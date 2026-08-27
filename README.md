@@ -85,6 +85,17 @@ npm run dev
 - 不复制 OpenEDU/FET/UniTime 的 GPL/AGPL 代码、页面、数据库脚本或图片。
 - 不使用随机贪心或毕业设计遗传算法作为生产核心。
 
+## 云端前端构建
+
+仓库根目录已提供 npm workspace 入口，适用于默认从仓库根目录安装依赖的托管平台：
+
+```bash
+npm ci
+npm run build
+```
+
+发布目录为 `dist/`。构建命令会调用 `frontend` 的 Vite 构建，并将生成的静态资源复制到根目录 `dist/`。如果托管平台支持设置 Base directory，也可以将 Base directory 设为 `frontend`，使用 `npm ci`、`npm run build`，发布目录设为 `frontend/dist`。
+
 ## 验证
 
 ```bash
