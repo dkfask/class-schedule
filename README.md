@@ -94,7 +94,14 @@ npm ci
 npm run build
 ```
 
-发布目录为 `dist/`。构建命令会调用 `frontend` 的 Vite 构建，并将生成的静态资源复制到根目录 `dist/`。如果托管平台支持设置 Base directory，也可以将 Base directory 设为 `frontend`，使用 `npm ci`、`npm run build`，发布目录设为 `frontend/dist`。
+发布目录为 `dist/`。构建命令会调用 `frontend` 的 Vite 构建，并将生成的静态资源复制到根目录 `dist/`。Cloudflare Pages 应使用静态站点部署，不要使用 Workers 的 `wrangler deploy`：
+
+- Build command：`npm run build`
+- Build output directory：`dist`
+- Deploy command（可选）：`npm run deploy:pages`
+- `CLOUDFLARE_PAGES_PROJECT`：绑定到 Cloudflare Pages 项目名称，并由部署平台的环境变量提供
+
+项目已包含 `frontend/public/_redirects`，用于 Vue SPA 路由直接访问时回退到 `index.html`。前端 API 使用同源 `/api/*`，Cloudflare Pages 只托管静态资源；生产环境还必须在 Pages 项目或边缘反向代理中把 `/api/*` 路由到可访问的 Spring Boot API，不能指向本机 `localhost`。如果托管平台支持设置 Base directory，也可以将 Base directory 设为 `frontend`，使用 `npm ci`、`npm run build`，发布目录设为 `frontend/dist`。
 
 ## 验证
 

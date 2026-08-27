@@ -8,6 +8,10 @@
   "scripts": {
     "build": "npm run build --workspace frontend && rm -rf dist && cp -R frontend/dist dist",
     "test:run": "npm run test:run --workspace frontend",
-    "dev": "npm run dev --workspace frontend"
+    "dev": "npm run dev --workspace frontend",
+    "deploy:pages": "wrangler pages deploy dist --project-name \"$CLOUDFLARE_PAGES_PROJECT\""
+  },
+  "devDependencies": {
+    "wrangler": "4.127.0"
   }
 }
