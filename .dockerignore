@@ -1,0 +1,10 @@
+.git
+.gitignore
+.zcode
+.phase6-evidence
+backups
+node_modules
+frontend/dist
+backend/target
+*.log
+.DS_Store

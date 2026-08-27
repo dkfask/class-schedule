@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: class-schedule-backend
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/class_schedule}
+    username: ${DATABASE_USERNAME:class_schedule}
+    password: ${DATABASE_PASSWORD:class_schedule}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  auth:
+    bootstrap:
+      username: ${APP_AUTH_BOOTSTRAP_USERNAME:}
+      password: ${APP_AUTH_BOOTSTRAP_PASSWORD:}
+  pdf:
+    font-path: ${APP_PDF_FONT_PATH:}
+    font-name: ${APP_PDF_FONT_NAME:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
