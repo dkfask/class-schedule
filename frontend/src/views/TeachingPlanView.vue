@@ -55,6 +55,10 @@ const selectedTerm = computed(() => term.terms.value.find(item => item.code === 
 const termLabel = computed(() => selectedTerm.value ? `${selectedTerm.value.name} · ${selectedTerm.value.code}` : term.selectedTermCode.value)
 
 async function loadOptions() {
+  if (!term.hasValidTerm.value) {
+    options.value = {}
+    return
+  }
   try {
     options.value = await http<Overview>('/api/master-data/overview')
   } catch {
@@ -63,6 +67,11 @@ async function loadOptions() {
 }
 
 async function loadItems() {
+  if (!term.hasValidTerm.value) {
+    items.value = []
+    total.value = 0
+    return
+  }
   loading.value = true
   errorMessage.value = ''
   try {
@@ -128,7 +137,11 @@ function changePage(nextPage: number) { page.value = nextPage - 1; void loadItem
 function changePageSize(nextSize: number) { size.value = nextSize; page.value = 0; void loadItems() }
 
 watch(() => term.selectedTermCode.value, () => { page.value = 0; void loadItems() })
-onMounted(() => { void loadOptions(); void loadItems() })
+onMounted(async () => {
+  await term.loadTerms()
+  await loadOptions()
+  await loadItems()
+})
 </script>
 
 <template>

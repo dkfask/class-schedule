@@ -1,3 +1,10 @@
 package com.classschedule.importexport;
 
-public record ImportResult(long batchId, String status, int importedRows, int issueCount, String message) {}
+import java.util.List;
+
+public record ImportResult(long batchId, String status, int importedRows, int issueCount, String message,
+        List<ImportSheetStat> sheetStats) {
+    public ImportResult(long batchId, String status, int importedRows, int issueCount, String message) {
+        this(batchId, status, importedRows, issueCount, message, List.of());
+    }
+}

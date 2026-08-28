@@ -59,6 +59,33 @@ export async function http<T>(url: string, init: RequestInit = {}): Promise<T> {
   return body as T
 }
 
+export async function downloadBlob(url: string, init: RequestInit = {}): Promise<Blob> {
+  const method = init.method ?? 'GET'
+  const headers = new Headers(init.headers)
+  headers.set('Accept', 'application/octet-stream')
+  if (requiresCsrf(method)) {
+    const token = csrfToken ?? await loadCsrfToken()
+    headers.set(token.headerName, token.token)
+  }
+  const response = await fetch(url, {
+    ...init,
+    credentials: 'include',
+    headers,
+  })
+  if (response.status === 401) {
+    window.dispatchEvent(new CustomEvent('auth:expired'))
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({})) as { message?: string; errorMessage?: string; code?: string }
+    const error = new Error(body.message ?? body.errorMessage ?? `请求失败 (${response.status})`) as HttpError
+    error.status = response.status
+    error.code = body.code
+    error.body = body
+    throw error
+  }
+  return response.blob()
+}
+
 export function jsonRequest(method: string, body?: unknown): RequestInit {
   return { method, headers: { 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }
 }

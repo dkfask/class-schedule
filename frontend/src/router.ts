@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import WorkspaceView from './views/WorkspaceView.vue'
 import MasterDataView from './views/MasterDataView.vue'
-import PlaceholderView from './views/PlaceholderView.vue'
+import ImportView from './views/ImportView.vue'
 import RuleFactsView from './views/RuleFactsView.vue'
 import TeachingPlanView from './views/TeachingPlanView.vue'
 import ScheduleVersionsView from './views/ScheduleVersionsView.vue'
@@ -18,7 +18,7 @@ const router = createRouter({
     { path: '/master-data', component: MasterDataView, meta: { requiresAuth: true, planner: true } },
     { path: '/teaching-plan', component: TeachingPlanView, meta: { requiresAuth: true, planner: true } },
     { path: '/rule-facts', component: RuleFactsView, meta: { requiresAuth: true, planner: true } },
-    { path: '/import', component: PlaceholderView, meta: { requiresAuth: true, planner: true } },
+    { path: '/import', component: ImportView, meta: { requiresAuth: true, planner: true } },
     { path: '/versions', component: ScheduleVersionsView, meta: { requiresAuth: true, planner: true } },
     { path: '/published', component: PublishedView, meta: { requiresAuth: true } },
   ],

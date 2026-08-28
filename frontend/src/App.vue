@@ -14,7 +14,7 @@ function selectTerm(event: Event) {
 
 onMounted(() => {
   window.addEventListener('auth:expired', () => { void router.push('/login') })
-  void term.loadTerms()
+  if (auth.isAuthenticated) void term.loadTerms()
 })
 
 watch(() => auth.isAuthenticated, authenticated => {
@@ -31,7 +31,7 @@ async function logout() {
   <div v-if="auth.isAuthenticated" class="app-shell">
     <aside class="sidebar">
       <div class="brand"><span class="brand-mark">排</span><div><strong>排课工作台</strong><small>独立校务工具</small></div></div>
-      <div class="term-card"><span>当前学期</span><select :value="term.selectedTermCode" @change="selectTerm"><option v-for="item in term.terms" :key="item.code" :value="item.code">{{ item.name }} · {{ item.code }}</option></select><em>{{ auth.user?.displayName }} · {{ auth.isPlanner ? '排课员' : '只读' }}</em></div>
+      <div class="term-card"><span>当前学期</span><select :value="term.selectedTermCode" :disabled="term.loading || !term.hasValidTerm" @change="selectTerm"><option v-if="term.loading" value="">正在加载学期…</option><option v-else-if="!term.terms.length" value="">暂无可用学期</option><option v-for="item in term.terms" :key="item.code" :value="item.code">{{ item.name }} · {{ item.code }}</option></select><em v-if="term.error" class="error-text">{{ term.error }}</em><em v-else>{{ auth.user?.displayName }} · {{ auth.isPlanner ? '排课员' : '只读' }}</em></div>
       <nav>
         <RouterLink to="/workspace" class="nav-item" active-class="active"><span>▦</span>排课工作台</RouterLink>
         <RouterLink v-if="auth.isPlanner" to="/master-data" class="nav-item" active-class="active"><span>◫</span>基础数据</RouterLink>

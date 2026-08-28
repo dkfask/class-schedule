@@ -2,10 +2,11 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { clearCsrfToken } from '../api/http'
 import ScheduleVersionsView from './ScheduleVersionsView.vue'
+import { resetTermStore } from '../stores/term'
 
 function response(body: unknown, ok = true) { return { ok, json: async () => body } }
 
-afterEach(() => { clearCsrfToken(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
+afterEach(() => { resetTermStore(); clearCsrfToken(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 function createFetchMock(initialVersions: unknown[]) {
   const calls: Array<{ url: string; init?: RequestInit }> = []
@@ -14,6 +15,7 @@ function createFetchMock(initialVersions: unknown[]) {
     const url = String(input)
     calls.push({ url, init })
     if (url.endsWith('/api/auth/csrf')) return response({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' })
+    if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
     if (url.endsWith('/api/schedule-versions') || url.includes('/api/schedule-versions?termCode')) {
       return response({ items: versions, page: 0, size: 50, total: versions.length })
     }
@@ -40,6 +42,7 @@ describe('ScheduleVersionsView', () => {
     const calls: string[] = []
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input); calls.push(url)
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       if (url.includes('/diff')) return response([{ changeType: 'MOVED', occurrenceKey: '1-0', before: { subjectName: '数学', timeslotCode: 'MON-1', roomCode: 'A101' }, after: { subjectName: '数学', timeslotCode: 'TUE-1', roomCode: 'A102' } }])
       if (url.endsWith('/adjustments/commands')) return response([])
       return response({ items: [{ id: 2, status: 'DRAFT', score: '0hard/0soft', parentVersionId: 1, revision: 1 }], page: 0, size: 50, total: 1 })
@@ -102,6 +105,7 @@ describe('ScheduleVersionsView', () => {
       const url = String(input)
       calls.push({ url, init })
       if (url.endsWith('/api/auth/csrf')) return response({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' })
+    if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
     if (url.endsWith('/api/schedule-versions') || url.includes('/api/schedule-versions?termCode')) {
         return response({ items: [{ id: 2, status: 'DRAFT', score: null, parentVersionId: 1, revision: 1 }], page: 0, size: 50, total: 1 })
       }

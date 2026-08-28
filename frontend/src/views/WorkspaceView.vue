@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   canCancelSolve,
   countAssignedOccurrences,
@@ -57,6 +58,7 @@ interface SolveDetails {
 }
 
 const term = useTermStore()
+const router = useRouter()
 const loading = ref(false)
 const cancelling = ref(false)
 const jobId = ref<number | null>(null)
@@ -97,9 +99,6 @@ const exchangeCandidates = ref<Array<{ occurrenceId: number; occurrenceKey: stri
 const exchangeLoading = ref(false)
 const dragOccurrence = ref<Occurrence | null>(null)
 const selectedExchangeCandidate = ref<{ occurrenceId: number; occurrenceKey: string; subjectName: string; studentGroupCode: string; teacherCode: string; roomCode: string; timeslotCode: string } | null>(null)
-const importInput = ref<HTMLInputElement | null>(null)
-const importPreview = ref<{ batchId: number; status: string; issues: Array<{ sheet: string; row: number; column: string; code: string; message: string }> } | null>(null)
-const importing = ref(false)
 const searchQuery = ref('')
 const message = ref('')
 const termName = ref('2026 秋季学期')
@@ -139,6 +138,12 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 async function loadMasterData() {
+  await term.loadTerms()
+  if (!term.hasValidTerm.value) {
+    masterDataSummary.value = { teachers: 0, studentGroups: 0, subjects: 0, rooms: 0 }
+    termName.value = term.error.value || '暂无可用学期'
+    return
+  }
   try {
     const data = await requestJson<{ terms?: Array<{ code: string; name: string }>; teachers?: unknown[]; studentGroups?: unknown[]; subjects?: unknown[]; rooms?: unknown[] }>('/api/master-data/overview')
     const currentTerm = data.terms?.find(item => item.code === term.selectedTermCode.value) ?? data.terms?.[0]
@@ -393,44 +398,11 @@ async function redoLatest() {
   }
 }
 
-async function previewImport(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  const body = new FormData()
-  body.append('file', file)
-  try {
-    importPreview.value = await requestJson<typeof importPreview.value>('/api/imports/preview', { method: 'POST', body })
-    message.value = importPreview.value?.status === 'VALIDATED' ? '数据预检通过，可以确认导入' : `发现 ${importPreview.value?.issues.length ?? 0} 个数据问题`
-  } catch (error) {
-    importPreview.value = null
-    message.value = error instanceof Error ? error.message : '导入预检失败'
-  }
-}
-
-function openImportDialog() {
-  importInput.value?.click()
-}
-
-async function confirmImport() {
-  if (!importPreview.value?.batchId || importPreview.value.status !== 'VALIDATED') return
-  importing.value = true
-  try {
-    const result = await requestJson<{ status: string; importedRows?: number; message?: string }>('/api/imports/confirm', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ batchId: importPreview.value.batchId })
-    })
-    message.value = result.status === 'IMPORTED' ? `导入成功，共写入 ${result.importedRows} 行` : result.message ?? '导入未提交'
-    if (result.status === 'IMPORTED') {
-      importPreview.value = null
-      await loadMasterData()
-    }
-  } catch (error) {
-    message.value = error instanceof Error ? error.message : '确认导入失败'
-  } finally {
-    importing.value = false
-  }
-}
-
 async function startSolve() {
+  if (!term.hasValidTerm.value) {
+    message.value = term.error.value || '暂无可用学期，无法开始排课'
+    return
+  }
   clearPollTimer()
   loading.value = true
   jobStatus.value = 'QUEUED'
@@ -449,7 +421,6 @@ async function startSolve() {
   exchangeCandidates.value = []
   selectedExchangeCandidate.value = null
   dragOccurrence.value = null
-  importPreview.value = null
   searchQuery.value = ''
   backendPublishable.value = false
   errorMessage.value = ''
@@ -566,8 +537,7 @@ onBeforeUnmount(() => {
     </div>
     <div class="top-actions">
       <span class="sync-state">● {{ errorMessage ? '需要处理' : '数据已同步' }}</span>
-      <input ref="importInput" class="hidden-file" type="file" accept=".xlsx" @change="previewImport" />
-      <el-button plain @click="openImportDialog">导入数据</el-button>
+      <el-button plain @click="router.push('/import')">导入数据</el-button>
       <el-button v-if="canCancel" plain :loading="cancelling" @click="cancelSolve">取消求解</el-button>
       <el-button data-testid="start-solve" type="primary" :loading="loading" :disabled="loading" @click="startSolve">{{ loading ? `正在求解 ${progress}%` : '开始自动排课' }}</el-button>
       <div class="avatar">教</div>
@@ -625,8 +595,6 @@ onBeforeUnmount(() => {
       <div class="notice" :class="{ success: publishable, warning: !publishable }"><span>{{ publishable ? '✓' : 'i' }}</span><div><strong>{{ publishable ? '后端发布门禁已通过' : '等待完整结果' }}</strong><small>{{ publishable ? '全部任务已分配，基础资源冲突为零' : '完成自动排课后可检查版本发布条件' }}</small></div></div>
       <div class="notice"><span>↗</span><div><strong>点击课程进行调整</strong><small>先选择目标节次和教室，后端会显示冲突及受影响课程</small></div></div>
       <div v-if="errorMessage" class="import-issues"><strong>{{ errorMessage }}</strong></div>
-      <div v-if="importPreview && importPreview.issues.length" class="import-issues"><strong>导入预检问题</strong><span v-for="issue in importPreview.issues.slice(0, 4)" :key="`${issue.sheet}-${issue.row}-${issue.code}`">{{ issue.sheet }} / {{ issue.row || '-'}} / {{ issue.code }}：{{ issue.message }}</span></div>
-      <div v-if="importPreview?.status === 'VALIDATED'" class="import-confirm"><span>预检通过，批次 #{{ importPreview.batchId }} 尚未写入业务数据</span><el-button type="primary" plain size="small" :loading="importing" @click="confirmImport">确认导入</el-button></div>
       <div v-if="message" class="inline-message">{{ message }}</div>
       <div v-if="versionId && commandHistory.length" class="command-history"><div class="history-heading"><strong>最近调整</strong><span>revision {{ versionRevision }}</span></div><div v-for="command in commandHistory.slice(0, 3)" :key="command.groupId" class="history-row"><span>{{ command.commandType }}</span><small>{{ command.reason }} · {{ command.state }}</small></div><div class="history-actions"><el-button size="small" plain :disabled="!latestAppliedCommand || !canEditVersion" @click="undoLatest">撤销</el-button><el-button size="small" plain :disabled="!latestUndoneCommand || !canEditVersion" @click="redoLatest">重做</el-button></div></div>
       <div class="quality"><div><span>方案完整度</span><strong>{{ qualityPercent }}%</strong></div><div class="quality-track"><i :style="{ width: `${qualityPercent}%` }"></i></div></div>

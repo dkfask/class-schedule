@@ -33,6 +33,10 @@ public class AppUserRepository implements UserDetailsService {
                 "SELECT r.code FROM app_role r JOIN app_user_role ur ON ur.role_id = r.id WHERE ur.user_id = ? AND r.active = TRUE",
                 (rs, rowNum) -> new SimpleGrantedAuthority("ROLE_" + rs.getString("code")),
                 row.get("id"));
+        authorities.addAll(jdbc.query(
+                "SELECT DISTINCT p.code FROM app_permission p JOIN app_role_permission rp ON rp.permission_id = p.id JOIN app_role r ON r.id = rp.role_id JOIN app_user_role ur ON ur.role_id = r.id WHERE ur.user_id = ? AND r.active = TRUE AND p.active = TRUE",
+                (rs, rowNum) -> new SimpleGrantedAuthority(rs.getString("code")),
+                row.get("id")));
         return User.withUsername((String) row.get("username"))
                 .password((String) row.get("password_hash"))
                 .disabled(!Boolean.TRUE.equals(row.get("enabled")))

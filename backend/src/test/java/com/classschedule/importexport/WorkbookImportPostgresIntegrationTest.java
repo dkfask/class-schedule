@@ -1,14 +1,17 @@
 package com.classschedule.importexport;
 
 import static org.hamcrest.Matchers.hasItem;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -26,7 +29,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
-@WithMockUser(username = "test-planner", roles = "PLANNER")
+@WithMockUser(username = "test-planner", authorities = {"ROLE_PLANNER", "IMPORT_EXECUTE"})
 class WorkbookImportPostgresIntegrationTest {
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
@@ -43,6 +46,44 @@ class WorkbookImportPostgresIntegrationTest {
 
     @Autowired MockMvc mockMvc;
     @Autowired JdbcTemplate jdbc;
+
+    @BeforeEach
+    void ensureTestPlannerOwner() {
+        jdbc.update("INSERT INTO app_user(username,password_hash,display_name,enabled) VALUES(?,?,?,TRUE) ON CONFLICT (username) DO NOTHING",
+                "test-planner", "{noop}test", "测试排课员");
+        jdbc.update("INSERT INTO app_user_role(user_id,role_id) SELECT u.id,r.id FROM app_user u CROSS JOIN app_role r WHERE u.username=? AND r.code='PLANNER' ON CONFLICT DO NOTHING", "test-planner");
+    }
+
+    @Test
+    void templateDownloadExposesStableMasterDataContract() throws Exception {
+        mockMvc.perform(get("/api/imports/templates/master-data.xlsx"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Content-Disposition", org.hamcrest.Matchers.containsString("master-data-v1.xlsx")))
+                .andExpect(result -> {
+                    try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result.getResponse().getContentAsByteArray()))) {
+                        org.assertj.core.api.Assertions.assertThat(workbook.getNumberOfSheets()).isEqualTo(MasterDataSchemaRegistry.SHEETS.size());
+                        for (int index = 0; index < MasterDataSchemaRegistry.SHEETS.size(); index++) {
+                            var definition = MasterDataSchemaRegistry.SHEETS.get(index);
+                            org.assertj.core.api.Assertions.assertThat(workbook.getSheetAt(index).getSheetName()).isEqualTo(definition.name());
+                            var header = workbook.getSheetAt(index).getRow(0);
+                            for (int column = 0; column < definition.headers().size(); column++) {
+                                org.assertj.core.api.Assertions.assertThat(header.getCell(column).getStringCellValue()).isEqualTo(definition.headers().get(column));
+                            }
+                        }
+                    }
+                });
+    }
+
+    @Test
+    void importEndpointsRequireImportPermission() throws Exception {
+        mockMvc.perform(get("/api/imports/templates/master-data.xlsx").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("viewer").roles("VIEWER")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/imports/templates/master-data.xlsx").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("planner").roles("PLANNER")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/imports/templates/master-data.xlsx"))
+                .andExpect(status().isOk());
+    }
 
     @Test
     void previewThenConfirmImportsAllBusinessSheetsInOneFlow() throws Exception {
@@ -73,6 +114,46 @@ class WorkbookImportPostgresIntegrationTest {
                         .content("{\"batchId\":" + batchId + "}"))
                 .andExpect(status().isConflict());
         org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT status FROM import_batch WHERE id = ?", String.class, batchId)).isEqualTo("IMPORTED");
+    }
+
+    @Test
+    void previewThenConfirmImportsMasterDataV1AcrossAllSheets() throws Exception {
+        MockMultipartFile file = masterDataWorkbook();
+
+        String preview = mockMvc.perform(multipart("/api/imports/preview").file(file).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("VALIDATED"))
+                .andExpect(jsonPath("$.templateType").value("MASTER_DATA"))
+                .andExpect(jsonPath("$.templateVersion").value("v1"))
+                .andExpect(jsonPath("$.schemaHash").value(MasterDataSchemaRegistry.schemaHash()))
+                .andExpect(jsonPath("$.sheets[0]").value("说明"))
+                .andExpect(jsonPath("$.sheets[10]").value("活动组"))
+                .andReturn().getResponse().getContentAsString();
+        long batchId = new com.fasterxml.jackson.databind.ObjectMapper().readTree(preview).get("batchId").asLong();
+
+        mockMvc.perform(post("/api/imports/confirm")
+                        .with(csrf()).contentType("application/json")
+                        .content("{\"batchId\":" + batchId + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IMPORTED"))
+                .andExpect(jsonPath("$.importedRows").value(13))
+                .andExpect(jsonPath("$.sheetStats[1].sheet").value("教师"))
+                .andExpect(jsonPath("$.sheetStats[1].rows").value(1))
+                .andExpect(jsonPath("$.sheetStats[10].rows").value(2));
+
+        org.assertj.core.api.Assertions.assertThat(count("teacher", "T910")).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT active FROM teacher WHERE code='T910'", Boolean.class)).isTrue();
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT student_count FROM student_group WHERE code='G9-10'", Integer.class)).isEqualTo(36);
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT room_type FROM room WHERE code='B210'", String.class)).isEqualTo("实验室");
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT student_count FROM teaching_requirement WHERE code='REQ-910'", Integer.class)).isEqualTo(30);
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT pinned_period_code FROM teaching_requirement WHERE code='REQ-910'", String.class)).isEqualTo("MON-1");
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT available FROM teacher_availability a JOIN teacher t ON t.id=a.teacher_id JOIN academic_term term ON term.id=a.term_id WHERE t.code='T910' AND term.code='2026-FALL' AND a.period_code='MON-1'", Boolean.class)).isFalse();
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT available FROM room_availability a JOIN room r ON r.id=a.room_id JOIN academic_term term ON term.id=a.term_id WHERE r.code='B210' AND term.code='2026-FALL' AND a.period_code='MON-2'", Boolean.class)).isTrue();
+        org.assertj.core.api.Assertions.assertThat(count("room_feature_catalog", "LAB")).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM room_feature rf JOIN room r ON r.id=rf.room_id WHERE r.code='B210' AND rf.feature_code='LAB'", Integer.class)).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM teaching_requirement_feature f JOIN teaching_requirement r ON r.id=f.teaching_requirement_id WHERE r.code='REQ-910' AND f.feature_code='LAB'", Integer.class)).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM activity_group_member m JOIN activity_group g ON g.id=m.activity_group_id WHERE g.code='ACT-910'", Integer.class)).isEqualTo(2);
+        org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT member_index FROM activity_group_member m JOIN activity_group g ON g.id=m.activity_group_id JOIN teaching_requirement r ON r.id=m.teaching_requirement_id WHERE g.code='ACT-910' AND r.code='REQ-911'", Integer.class)).isEqualTo(1);
     }
 
     @Test
@@ -111,6 +192,30 @@ class WorkbookImportPostgresIntegrationTest {
 
     private int count(String table, String code) {
         return jdbc.queryForObject("SELECT COUNT(*) FROM " + table + " WHERE code = ?", Integer.class, code);
+    }
+
+    private MockMultipartFile masterDataWorkbook() throws Exception {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            sheet(workbook, "说明", new String[] {"说明"}, new String[] {"MASTER_DATA v1 test fixture"});
+            sheet(workbook, "教师", new String[] {"code", "name", "active"}, new String[] {"T910", "实验教师", "TRUE"});
+            sheet(workbook, "班级", new String[] {"code", "name", "groupType", "studentCount", "active"}, new String[] {"G9-10", "九年级10班", "HOMEROOM", "36", "TRUE"});
+            sheet(workbook, "课程", new String[] {"code", "name", "active"}, new String[] {"SCI10", "科学", "TRUE"});
+            sheet(workbook, "教室", new String[] {"code", "name", "capacity", "roomType", "active"}, new String[] {"B210", "实验室 B210", "40", "实验室", "TRUE"});
+            SheetBuilder requirements = new SheetBuilder(workbook, "教学需求", new String[] {"code", "termCode", "studentGroupCode", "subjectCode", "teacherCode", "weeklyPeriods", "durationPeriods", "studentCount", "pinnedPeriodCode", "active"});
+            requirements.row("REQ-910", "2026-FALL", "G9-10", "SCI10", "T910", "2", "1", "30", "MON-1", "TRUE");
+            requirements.row("REQ-911", "2026-FALL", "G9-10", "SCI10", "T910", "1", "1", "30", "", "TRUE");
+            SheetBuilder availability = new SheetBuilder(workbook, "资源可用性", new String[] {"resourceType", "resourceCode", "termCode", "periodCode", "available"});
+            availability.row("TEACHER", "T910", "2026-FALL", "MON-1", "FALSE");
+            availability.row("ROOM", "B210", "2026-FALL", "MON-2", "TRUE");
+            sheet(workbook, "特征目录", new String[] {"code", "name", "active"}, new String[] {"LAB", "实验室", "TRUE"});
+            sheet(workbook, "教室特征", new String[] {"roomCode", "featureCode", "active"}, new String[] {"B210", "LAB", "TRUE"});
+            sheet(workbook, "教学需求特征", new String[] {"requirementCode", "featureCode", "active"}, new String[] {"REQ-910", "LAB", "TRUE"});
+            SheetBuilder activities = new SheetBuilder(workbook, "活动组", new String[] {"code", "name", "activityType", "termCode", "memberIndex", "requirementCode", "active"});
+            activities.row("ACT-910", "科学同步", "SYNCHRONIZED", "2026-FALL", "0", "REQ-910", "TRUE");
+            activities.row("ACT-910", "科学同步", "SYNCHRONIZED", "2026-FALL", "1", "REQ-911", "TRUE");
+            workbook.write(output);
+            return new MockMultipartFile("file", "master-data-v1.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", output.toByteArray());
+        }
     }
 
     private MockMultipartFile workbook(String teacher, String group, String subject, String room,

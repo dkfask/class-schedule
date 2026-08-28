@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import PublishedView from './PublishedView.vue'
+import { resetTermStore } from '../stores/term'
 
 function response(body: unknown, ok = true) { return { ok, json: async () => body } }
 
@@ -15,12 +16,13 @@ function mountView() {
   })
 }
 
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
+afterEach(() => { resetTermStore(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe('PublishedView', () => {
   it('renders legacy and modern scores from the raw score fallback', async () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       if (url.includes('/api/schedule-versions')) return response({ items: [
         { id: 24, status: 'PUBLISHED', score: '0hard/0soft', revision: 1 },
         { id: 25, status: 'PUBLISHED', score: '-1hard/-2medium/-3soft', revision: 2 },
@@ -38,6 +40,7 @@ describe('PublishedView', () => {
     const open = vi.fn()
     vi.stubGlobal('open', open)
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input) === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       if (String(input).includes('/api/schedule-versions')) return response({ items: [{ id: 24, status: 'PUBLISHED', score: '0hard/0soft' }] })
       return response({})
     }))

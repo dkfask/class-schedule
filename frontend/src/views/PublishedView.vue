@@ -12,6 +12,12 @@ const loading = ref(false)
 const message = ref('')
 
 async function load() {
+  await term.loadTerms()
+  if (!term.hasValidTerm.value) {
+    versions.value = []
+    selected.value = null
+    return
+  }
   loading.value = true
   try {
     const data = await http<{ items?: Version[] }>(`/api/schedule-versions?termCode=${encodeURIComponent(term.selectedTermCode.value)}&status=PUBLISHED&page=0&size=50`)

@@ -43,6 +43,45 @@ class WorkbookImportServiceTest {
         }
     }
 
+    @Test
+    void rejectsFormulaCells() throws Exception {
+        JdbcTemplate jdbc = mockJdbc();
+        try (var workbook = new XSSFWorkbook(); var output = new ByteArrayOutputStream()) {
+            var sheet = workbook.createSheet("说明");
+            sheet.createRow(0).createCell(0).setCellValue("说明");
+            sheet.createRow(1).createCell(0).setCellFormula("1+1");
+            workbook.write(output);
+            var preview = new WorkbookImportService(jdbc).preview(multipart(output, "input.xlsx"));
+            assertThat(preview.issues()).anyMatch(issue -> issue.code().equals("FORMULA_NOT_ALLOWED"));
+        }
+    }
+
+    @Test
+    void rejectsOverlongCellText() throws Exception {
+        JdbcTemplate jdbc = mockJdbc();
+        try (var workbook = new XSSFWorkbook(); var output = new ByteArrayOutputStream()) {
+            var sheet = workbook.createSheet("说明");
+            sheet.createRow(0).createCell(0).setCellValue("说明");
+            sheet.createRow(1).createCell(0).setCellValue("x".repeat(257));
+            workbook.write(output);
+            var preview = new WorkbookImportService(jdbc).preview(multipart(output, "input.xlsx"));
+            assertThat(preview.issues()).anyMatch(issue -> issue.code().equals("CELL_TEXT_TOO_LONG"));
+        }
+    }
+
+    @Test
+    void rejectsSheetsAboveRowLimit() throws Exception {
+        JdbcTemplate jdbc = mockJdbc();
+        try (var workbook = new XSSFWorkbook(); var output = new ByteArrayOutputStream()) {
+            var sheet = workbook.createSheet("说明");
+            sheet.createRow(0).createCell(0).setCellValue("说明");
+            sheet.createRow(10_001).createCell(0).setCellValue("x");
+            workbook.write(output);
+            var preview = new WorkbookImportService(jdbc).preview(multipart(output, "input.xlsx"));
+            assertThat(preview.issues()).anyMatch(issue -> issue.code().equals("TOO_MANY_ROWS"));
+        }
+    }
+
     private JdbcTemplate mockJdbc() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         when(jdbc.queryForObject(anyString(), eq(Long.class), any(Object[].class))).thenReturn(1L);

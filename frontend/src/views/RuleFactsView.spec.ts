@@ -1,10 +1,11 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import RuleFactsView from './RuleFactsView.vue'
+import { resetTermStore } from '../stores/term'
 
 function response(body: unknown, ok = true) { return { ok, json: async () => body } }
 
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
+afterEach(() => { resetTermStore(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe('RuleFactsView', () => {
   it('writes teacher availability through the rule facts API', async () => {
@@ -13,6 +14,7 @@ describe('RuleFactsView', () => {
       const url = String(input)
       calls.push({ url, init })
       if (url === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'test-csrf' })
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       if (init?.method === 'POST' && url === '/api/rule-facts/availability/TEACHER') return response({ status: 'UPDATED' })
       if (url.includes('/api/rule-facts/availability')) return response([{ resourceType: 'TEACHER', resourceCode: 'T001', periodCode: 'MON-1', available: false }])
       if (url.includes('/api/rule-facts/features')) return response([])
@@ -22,6 +24,7 @@ describe('RuleFactsView', () => {
       return response({ status: 'UPDATED' })
     }))
     const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
+    await flushPromises()
     const vm = wrapper.vm as any
     await vm.saveAvailability()
     await flushPromises()
@@ -35,6 +38,7 @@ describe('RuleFactsView', () => {
   it('shows rule fact API failures without reporting success', async () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       if (String(input) === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'test-csrf' })
+      if (String(input) === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       return response({ message: '资源不存在' }, false)
     }))
     const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } } })
@@ -52,6 +56,7 @@ describe('RuleFactsView', () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'test-csrf' })
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       if (url.includes('/api/rule-facts/availability')) return response([{ resourceType: 'TEACHER', resourceCode: 'T001', periodCode: 'MON-1', available: false }])
       if (url.includes('/api/rule-facts/features')) return response({ message: '特征服务不可用' }, false)
       if (url.includes('/api/rule-facts/room-features')) return response([])
@@ -76,6 +81,7 @@ describe('RuleFactsView', () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'test-csrf' })
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       if (url.includes('/api/rule-facts/features') && failFeatures) return response({ message: '暂时失败' }, false)
       if (url.includes('/api/rule-facts/availability')) return response([])
       if (url.includes('/api/rule-facts/features')) return response([])
@@ -103,6 +109,7 @@ describe('RuleFactsView', () => {
       const url = String(input)
       calls.push({ url, init })
       if (url === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'test-csrf' })
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       if (url.includes('/api/rule-facts/availability') && (!init || init.method === undefined || init.method === 'GET')) {
         return response([{ resourceType: 'TEACHER', resourceCode: 'T001', periodCode: 'MON-1', available: false }])
       }

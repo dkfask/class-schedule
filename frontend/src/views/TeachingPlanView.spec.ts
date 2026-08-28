@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import TeachingPlanView from './TeachingPlanView.vue'
+import { resetTermStore } from '../stores/term'
 
 function response(body: unknown, ok = true) { return { ok, json: async () => body } }
 
@@ -27,7 +28,7 @@ function mountTeachingPlan() {
   })
 }
 
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
+afterEach(() => { resetTermStore(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe('TeachingPlanView', () => {
   it('loads requirements for the selected term', async () => {
@@ -35,7 +36,7 @@ describe('TeachingPlanView', () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       calls.push(url)
-      if (url.endsWith('/api/master-data/overview')) return response({ terms: [{ code: '2026-FALL', name: '2026 秋季学期' }], periods: [{ code: 'MON-1', label: '周一 第1节' }], teachers: [{ code: 'T001', name: '张老师' }], studentGroups: [{ code: 'G7-1', name: '七年级1班' }], subjects: [{ code: 'MATH', name: '数学' }] })
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       if (url.includes('/api/master-data/teaching-requirements')) return response({ items: [{ id: 1, code: 'REQ-1', termCode: '2026-FALL', studentGroupCode: 'G7-1', subjectCode: 'MATH', teacherCode: 'T001', weeklyPeriods: 1, durationPeriods: 1, studentCount: 0, requiredFeatures: '', pinnedPeriodCode: null, active: true }], page: 0, size: 20, total: 1 })
       return response({})
     }))
@@ -55,8 +56,8 @@ describe('TeachingPlanView', () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
       calls.push({ url, init })
-      if (url.endsWith('/api/auth/csrf')) return response({ headerName: 'X-XSRF-TOKEN', token: 'test-csrf' })
-      if (url.endsWith('/api/master-data/overview')) return response({ terms: [{ code: '2026-FALL', name: '2026 秋季学期' }], periods: [], teachers: [{ code: 'T001', name: '张老师' }], studentGroups: [{ code: 'G7-1', name: '七年级1班' }], subjects: [{ code: 'MATH', name: '数学' }] })
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
+      if (url === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'test-csrf' })
       if (url.endsWith('/api/master-data/teaching-requirements') && init?.method === 'POST') return response({ id: 9, status: 'CREATED' })
       if (url.includes('/api/master-data/teaching-requirements')) return response({ items: [], page: 0, size: 20, total: 0 })
       return response({})

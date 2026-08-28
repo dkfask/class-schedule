@@ -48,6 +48,14 @@ function scoreParts(version: VersionSummary) {
 }
 
 async function loadVersions(preserveSelection = false) {
+  await term.loadTerms()
+  if (!term.hasValidTerm.value) {
+    versions.value = []
+    selectedVersion.value = null
+    diff.value = []
+    history.value = []
+    return
+  }
   loading.value = true
   message.value = ''
   const previousId = selectedVersion.value

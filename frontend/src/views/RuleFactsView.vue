@@ -46,6 +46,7 @@ const ruleWeight = ref(1)
 const selectedRule = computed(() => ruleCatalog.value.find(item => item.ruleCode === ruleCode.value))
 const ruleScopes = computed(() => selectedRule.value?.scopes ?? [])
 const ruleUsesText = computed(() => selectedRule.value?.valueType === 'TEXT')
+let loadSequence = 0
 
 function normalizeRuleScope() {
   if (!ruleScopes.value.includes(ruleScopeType.value)) ruleScopeType.value = ruleScopes.value[0] ?? 'TERM'
@@ -58,6 +59,10 @@ function requestFailure(label: string, reason: unknown) {
 }
 
 async function loadRules() {
+  if (!term.hasValidTerm.value) {
+    rules.value = []
+    return []
+  }
   const failures: string[] = []
   const [catalogResult, rulesResult] = await Promise.allSettled([
     http<RuleCatalogItem[]>('/api/schedule-rules/catalog'),
@@ -72,6 +77,11 @@ async function loadRules() {
 }
 
 async function saveRule() {
+  await term.loadTerms()
+  if (!term.hasValidTerm.value) {
+    error.value = term.error.value || '暂无可用学期'
+    return
+  }
   await submit('/api/schedule-rules', {
     termCode: termCode.value, ruleCode: ruleCode.value, scopeType: ruleScopeType.value,
     scopeCode: ruleScopeCode.value || null, intValue: ruleUsesText.value ? null : ruleIntValue.value,
@@ -86,18 +96,28 @@ async function deleteRule(id: number) {
 }
 
 async function loadAll() {
+  const sequence = ++loadSequence
+  await term.loadTerms()
+  if (!term.hasValidTerm.value) {
+    availability.value = []
+    activityGroups.value = []
+    rules.value = []
+    error.value = term.error.value || '暂无可用学期'
+    return
+  }
   loadingList.value = true
   error.value = ''
   try {
     const failures: string[] = []
     const results = await Promise.allSettled([
-      http<AvailabilityItem[]>(`/api/rule-facts/availability?termCode=${termCode.value}`),
+      http<AvailabilityItem[]>(`/api/rule-facts/availability?termCode=${encodeURIComponent(termCode.value)}`),
       http<FeatureItem[]>('/api/rule-facts/features'),
       http<RoomFeatureItem[]>('/api/rule-facts/room-features'),
       http<RequirementFeatureItem[]>('/api/rule-facts/requirement-features'),
       http<ActivityGroupItem[]>(`/api/rule-facts/activity-groups?termCode=${encodeURIComponent(termCode.value)}`),
     ])
     const [availabilityResult, featureResult, roomFeatureResult, requirementFeatureResult, activityResult] = results
+    if (sequence !== loadSequence) return
     const sections: Array<[string, PromiseSettledResult<unknown>, (value: any) => void]> = [
       ['资源可用性', availabilityResult, value => { if (Array.isArray(value)) availability.value = value }],
       ['特征目录', featureResult, value => { if (Array.isArray(value)) features.value = value }],
@@ -144,10 +164,24 @@ async function remove(url: string, init?: RequestInit) {
   }
 }
 
-function saveAvailability() { return submit(`/api/rule-facts/availability/${resourceType.value}`, { resourceCode: resourceCode.value, termCode: termCode.value, periodCode: periodCode.value, available: available.value }) }
+async function saveAvailability() {
+  await term.loadTerms()
+  if (!term.hasValidTerm.value) {
+    error.value = term.error.value || '暂无可用学期'
+    return
+  }
+  return submit(`/api/rule-facts/availability/${resourceType.value}`, { resourceCode: resourceCode.value, termCode: termCode.value, periodCode: periodCode.value, available: available.value })
+}
 function saveRoomFeature() { return submit('/api/rule-facts/room-features', { roomCode: roomCode.value, featureCode: featureCode.value, featureName: featureName.value }) }
 function saveRequirementFeature() { return submit('/api/rule-facts/requirement-features', { requirementCode: requirementCode.value, featureCode: featureCode.value }) }
-function saveActivity() { return submit('/api/rule-facts/activity-groups', { code: activityCode.value, name: activityName.value, activityType: activityType.value, requirementCodes: requirementCodes.value.split(',').map(value => value.trim()).filter(Boolean), termCode: termCode.value }) }
+async function saveActivity() {
+  await term.loadTerms()
+  if (!term.hasValidTerm.value) {
+    error.value = term.error.value || '暂无可用学期'
+    return
+  }
+  return submit('/api/rule-facts/activity-groups', { code: activityCode.value, name: activityName.value, activityType: activityType.value, requirementCodes: requirementCodes.value.split(',').map(value => value.trim()).filter(Boolean), termCode: termCode.value })
+}
 function deleteAvailability(item: AvailabilityItem) { return remove(`/api/rule-facts/availability/${item.resourceType}`, jsonRequest('DELETE', { resourceCode: item.resourceCode, termCode: termCode.value, periodCode: item.periodCode, available: item.available })) }
 function deleteRoomFeature(item: RoomFeatureItem) { return remove(`/api/rule-facts/room-features?roomCode=${encodeURIComponent(item.roomCode)}&featureCode=${encodeURIComponent(item.featureCode)}`) }
 function deleteRequirementFeature(item: RequirementFeatureItem) { return remove(`/api/rule-facts/requirement-features?requirementCode=${encodeURIComponent(item.requirementCode)}&featureCode=${encodeURIComponent(item.featureCode)}`) }

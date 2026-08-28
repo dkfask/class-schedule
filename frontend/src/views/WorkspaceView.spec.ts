@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import WorkspaceView from './WorkspaceView.vue'
+import { resetTermStore } from '../stores/term'
 
 const assignment = {
   occurrenceId: 1,
@@ -40,6 +41,7 @@ function createFetchMock(previewResponses: unknown[] = []) {
     const url = String(input)
     calls.push({ url, init })
     if (url === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'test-csrf' })
+    if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
     if (url.endsWith('/api/master-data/overview')) return response({ terms: [{ name: '2026 秋季学期' }], teachers: [], studentGroups: [], subjects: [], rooms: [] })
     if (url.endsWith('/api/solve-jobs') && init?.method === 'POST') return response({ jobId: 9, versionId: 43, status: 'QUEUED' })
     if (url.endsWith('/api/imports/confirm') && init?.method === 'POST') return response({ batchId: 9, status: 'IMPORTED', importedRows: 5 })
@@ -71,7 +73,7 @@ function mountWorkspace() {
   } } })
 }
 
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
+afterEach(() => { resetTermStore(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe('WorkspaceView API workflow', () => {
   it('loads a version, switches to teacher view, and filters by stable code', async () => {
@@ -111,11 +113,6 @@ describe('WorkspaceView API workflow', () => {
   it('filters pending tasks by the search query', async () => {
     const wrapper = mountWorkspace(); await flushPromises(); const vm = wrapper.vm as any
     vm.occurrences = [{ ...assignment, timeslotCode: undefined, roomCode: undefined }, { ...assignment, occurrenceId: 2, subjectName: '语文', subjectCode: 'CHN', timeslotCode: undefined, roomCode: undefined }]; vm.searchQuery = '语文'; await flushPromises(); expect(vm.pendingOccurrences.map((item: any) => item.subjectCode)).toEqual(['CHN']); wrapper.unmount()
-  })
-
-  it('clears a stale import preview after preview failure and after import success', async () => {
-    const { calls, fetchMock } = createFetchMock(); const wrapper = mountWorkspace(); await flushPromises(); const vm = wrapper.vm as any
-    vm.importPreview = { batchId: 1, status: 'VALIDATED', issues: [] }; fetchMock.mockImplementationOnce(async () => { throw new Error('网络失败') }); await vm.previewImport({ target: { files: [new File(['bad'], 'bad.xlsx')] } } as any); expect(vm.importPreview).toBeNull(); vm.importPreview = { batchId: 9, status: 'VALIDATED', issues: [] }; await vm.confirmImport(); expect(vm.importPreview).toBeNull(); expect(calls.some(call => call.url.endsWith('/api/imports/confirm'))).toBe(true); wrapper.unmount()
   })
 
   it('loads and confirms a one-hop exchange candidate', async () => {
