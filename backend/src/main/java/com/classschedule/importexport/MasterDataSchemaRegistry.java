@@ -17,16 +17,16 @@ public final class MasterDataSchemaRegistry {
 
     public static final List<Sheet> SHEETS = List.of(
             new Sheet("说明", List.of("说明")),
-            new Sheet("教师", List.of("code", "name", "active")),
-            new Sheet("班级", List.of("code", "name", "groupType", "studentCount", "active")),
-            new Sheet("课程", List.of("code", "name", "active")),
-            new Sheet("教室", List.of("code", "name", "capacity", "roomType", "active")),
-            new Sheet("教学需求", List.of("code", "termCode", "studentGroupCode", "subjectCode", "teacherCode", "weeklyPeriods", "durationPeriods", "studentCount", "pinnedPeriodCode", "active")),
-            new Sheet("资源可用性", List.of("resourceType", "resourceCode", "termCode", "periodCode", "available")),
-            new Sheet("特征目录", List.of("code", "name", "active")),
-            new Sheet("教室特征", List.of("roomCode", "featureCode", "active")),
-            new Sheet("教学需求特征", List.of("requirementCode", "featureCode", "active")),
-            new Sheet("活动组", List.of("code", "name", "activityType", "termCode", "memberIndex", "requirementCode", "active")));
+            new Sheet("教师", List.of("编码", "名称", "是否启用")),
+            new Sheet("班级", List.of("编码", "名称", "班级类型", "学生人数", "是否启用")),
+            new Sheet("课程", List.of("编码", "名称", "是否启用")),
+            new Sheet("教室", List.of("编码", "名称", "容量", "教室类型", "是否启用")),
+            new Sheet("教学需求", List.of("编码", "学期编码", "班级编码", "课程编码", "教师编码", "每周课时", "单次节数", "学生人数", "固定节次编码", "是否启用")),
+            new Sheet("资源可用性", List.of("资源类型", "资源编码", "学期编码", "节次编码", "是否可用")),
+            new Sheet("特征目录", List.of("编码", "名称", "是否启用")),
+            new Sheet("教室特征", List.of("教室编码", "特征编码", "是否启用")),
+            new Sheet("教学需求特征", List.of("教学需求编码", "特征编码", "是否启用")),
+            new Sheet("活动组", List.of("编码", "名称", "活动组类型", "学期编码", "成员序号", "教学需求编码", "是否启用")));
 
     private static final Map<String, List<String>> HEADERS;
 

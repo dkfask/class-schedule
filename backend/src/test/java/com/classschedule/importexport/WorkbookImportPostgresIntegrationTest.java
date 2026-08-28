@@ -190,6 +190,26 @@ class WorkbookImportPostgresIntegrationTest {
         org.assertj.core.api.Assertions.assertThat(count("room", "B202")).isZero();
     }
 
+    @Test
+    void masterDataRequiresChineseHeaders() throws Exception {
+        MockMultipartFile chinese = masterDataWorkbook();
+        mockMvc.perform(multipart("/api/imports/preview").file(chinese).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("VALIDATED"));
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(chinese.getBytes()));
+                ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            workbook.getSheet("教师").getRow(0).getCell(0).setCellValue("code");
+            workbook.write(output);
+            MockMultipartFile english = new MockMultipartFile("file", "master-data-v1.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", output.toByteArray());
+            mockMvc.perform(multipart("/api/imports/preview").file(english).with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("INVALID"))
+                    .andExpect(jsonPath("$.issues[?(@.code == 'INVALID_HEADER')]").isNotEmpty());
+        }
+    }
+
     private int count(String table, String code) {
         return jdbc.queryForObject("SELECT COUNT(*) FROM " + table + " WHERE code = ?", Integer.class, code);
     }
@@ -197,20 +217,20 @@ class WorkbookImportPostgresIntegrationTest {
     private MockMultipartFile masterDataWorkbook() throws Exception {
         try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             sheet(workbook, "说明", new String[] {"说明"}, new String[] {"MASTER_DATA v1 test fixture"});
-            sheet(workbook, "教师", new String[] {"code", "name", "active"}, new String[] {"T910", "实验教师", "TRUE"});
-            sheet(workbook, "班级", new String[] {"code", "name", "groupType", "studentCount", "active"}, new String[] {"G9-10", "九年级10班", "HOMEROOM", "36", "TRUE"});
-            sheet(workbook, "课程", new String[] {"code", "name", "active"}, new String[] {"SCI10", "科学", "TRUE"});
-            sheet(workbook, "教室", new String[] {"code", "name", "capacity", "roomType", "active"}, new String[] {"B210", "实验室 B210", "40", "实验室", "TRUE"});
-            SheetBuilder requirements = new SheetBuilder(workbook, "教学需求", new String[] {"code", "termCode", "studentGroupCode", "subjectCode", "teacherCode", "weeklyPeriods", "durationPeriods", "studentCount", "pinnedPeriodCode", "active"});
+            sheet(workbook, "教师", MasterDataSchemaRegistry.headers("教师").toArray(String[]::new), new String[] {"T910", "实验教师", "TRUE"});
+            sheet(workbook, "班级", MasterDataSchemaRegistry.headers("班级").toArray(String[]::new), new String[] {"G9-10", "九年级10班", "HOMEROOM", "36", "TRUE"});
+            sheet(workbook, "课程", MasterDataSchemaRegistry.headers("课程").toArray(String[]::new), new String[] {"SCI10", "科学", "TRUE"});
+            sheet(workbook, "教室", MasterDataSchemaRegistry.headers("教室").toArray(String[]::new), new String[] {"B210", "实验室 B210", "40", "实验室", "TRUE"});
+            SheetBuilder requirements = new SheetBuilder(workbook, "教学需求", MasterDataSchemaRegistry.headers("教学需求").toArray(String[]::new));
             requirements.row("REQ-910", "2026-FALL", "G9-10", "SCI10", "T910", "2", "1", "30", "MON-1", "TRUE");
             requirements.row("REQ-911", "2026-FALL", "G9-10", "SCI10", "T910", "1", "1", "30", "", "TRUE");
-            SheetBuilder availability = new SheetBuilder(workbook, "资源可用性", new String[] {"resourceType", "resourceCode", "termCode", "periodCode", "available"});
+            SheetBuilder availability = new SheetBuilder(workbook, "资源可用性", MasterDataSchemaRegistry.headers("资源可用性").toArray(String[]::new));
             availability.row("TEACHER", "T910", "2026-FALL", "MON-1", "FALSE");
             availability.row("ROOM", "B210", "2026-FALL", "MON-2", "TRUE");
-            sheet(workbook, "特征目录", new String[] {"code", "name", "active"}, new String[] {"LAB", "实验室", "TRUE"});
-            sheet(workbook, "教室特征", new String[] {"roomCode", "featureCode", "active"}, new String[] {"B210", "LAB", "TRUE"});
-            sheet(workbook, "教学需求特征", new String[] {"requirementCode", "featureCode", "active"}, new String[] {"REQ-910", "LAB", "TRUE"});
-            SheetBuilder activities = new SheetBuilder(workbook, "活动组", new String[] {"code", "name", "activityType", "termCode", "memberIndex", "requirementCode", "active"});
+            sheet(workbook, "特征目录", MasterDataSchemaRegistry.headers("特征目录").toArray(String[]::new), new String[] {"LAB", "实验室", "TRUE"});
+            sheet(workbook, "教室特征", MasterDataSchemaRegistry.headers("教室特征").toArray(String[]::new), new String[] {"B210", "LAB", "TRUE"});
+            sheet(workbook, "教学需求特征", MasterDataSchemaRegistry.headers("教学需求特征").toArray(String[]::new), new String[] {"REQ-910", "LAB", "TRUE"});
+            SheetBuilder activities = new SheetBuilder(workbook, "活动组", MasterDataSchemaRegistry.headers("活动组").toArray(String[]::new));
             activities.row("ACT-910", "科学同步", "SYNCHRONIZED", "2026-FALL", "0", "REQ-910", "TRUE");
             activities.row("ACT-910", "科学同步", "SYNCHRONIZED", "2026-FALL", "1", "REQ-911", "TRUE");
             workbook.write(output);

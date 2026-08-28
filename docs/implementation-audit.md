@@ -168,7 +168,7 @@
 - `POST /api/imports/preview` 计算 SHA-256 并创建持久化导入批次。
 - `POST /api/imports/confirm` 只接受 `VALIDATED` 批次。
 - 确认阶段重新计算摘要并二次解析/校验原始 XLSX。
-- 支持教师、班级、课程、教室、教学需求五个 Sheet 的全量 upsert。
+- 支持下载 `MASTER_DATA v1` 统一模板，模板使用中文列名，包含教师、班级、课程、教室、教学需求、资源可用性、特征目录、两类特征绑定和活动组 Sheet。
 - 检查必需 Sheet、表头、重复编码、容量/课时格式和跨表引用。
 - 单事务提交，任何数据库写入错误整体回滚。
 - 导入批次状态从 `VALIDATED` 变为 `IMPORTED`。
