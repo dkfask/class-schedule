@@ -13,20 +13,21 @@ public final class MasterDataSchemaRegistry {
     public static final String TEMPLATE_VERSION = "v1";
     public static final String FILE_NAME = "master-data-v1.xlsx";
 
-    public record Sheet(String name, List<String> headers) {}
+    public record Sheet(String name, List<String> headers, boolean required) {}
 
     public static final List<Sheet> SHEETS = List.of(
-            new Sheet("说明", List.of("说明")),
-            new Sheet("教师", List.of("编码", "名称", "是否启用")),
-            new Sheet("班级", List.of("编码", "名称", "班级类型", "学生人数", "是否启用")),
-            new Sheet("课程", List.of("编码", "名称", "是否启用")),
-            new Sheet("教室", List.of("编码", "名称", "容量", "教室类型", "是否启用")),
-            new Sheet("教学需求", List.of("编码", "学期编码", "班级编码", "课程编码", "教师编码", "每周课时", "单次节数", "学生人数", "固定节次编码", "是否启用")),
-            new Sheet("资源可用性", List.of("资源类型", "资源编码", "学期编码", "节次编码", "是否可用")),
-            new Sheet("特征目录", List.of("编码", "名称", "是否启用")),
-            new Sheet("教室特征", List.of("教室编码", "特征编码", "是否启用")),
-            new Sheet("教学需求特征", List.of("教学需求编码", "特征编码", "是否启用")),
-            new Sheet("活动组", List.of("编码", "名称", "活动组类型", "学期编码", "成员序号", "教学需求编码", "是否启用")));
+            new Sheet("说明", List.of("说明"), true),
+            new Sheet("教师", List.of("编码", "名称", "是否启用"), true),
+            new Sheet("班级", List.of("编码", "名称", "班级类型", "学生人数", "是否启用"), true),
+            new Sheet("课程", List.of("编码", "名称", "是否启用"), true),
+            new Sheet("教室", List.of("编码", "名称", "容量", "教室类型", "是否启用"), false),
+            new Sheet("教学需求", List.of("编码", "学期编码", "班级编码", "课程编码", "教师编码", "每周课时", "单次节数", "学生人数", "固定节次编码", "是否启用"), true),
+            new Sheet("资源可用性", List.of("资源类型", "资源编码", "学期编码", "节次编码", "是否可用"), false),
+            new Sheet("特征目录", List.of("编码", "名称", "是否启用"), false),
+            new Sheet("教室特征", List.of("教室编码", "特征编码", "是否启用"), false),
+            new Sheet("教学需求特征", List.of("教学需求编码", "特征编码", "是否启用"), false),
+            new Sheet("活动组", List.of("编码", "名称", "活动组类型", "学期编码", "成员序号", "教学需求编码", "是否启用"), false));
+
 
     private static final Map<String, List<String>> HEADERS;
 
@@ -46,7 +47,7 @@ public final class MasterDataSchemaRegistry {
 
     public static String schemaHash() {
         String canonical = SHEETS.stream()
-                .map(sheet -> sheet.name() + "\t" + String.join("\t", sheet.headers()))
+                .map(sheet -> sheet.name() + "\t" + sheet.required() + "\t" + String.join("\t", sheet.headers()))
                 .reduce((left, right) -> left + "\n" + right)
                 .orElse("");
         try {

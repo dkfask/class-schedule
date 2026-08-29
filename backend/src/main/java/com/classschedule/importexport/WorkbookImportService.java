@@ -54,7 +54,7 @@ public class WorkbookImportService {
                 sheet.createFreezePane(0, 1);
                 if ("说明".equals(definition.name())) {
                     sheet.createRow(1).createCell(0).setCellValue(
-                            "MASTER_DATA v1；学期和节次只校验引用，不在本模板写入；缺少的行不会删除已有数据。");
+                            "MASTER_DATA v1；必填 Sheet：教师、班级、课程、教学需求；教室、资源可用性、特征目录、教室特征、教学需求特征和活动组可省略或留空；学期和节次只校验引用，不在本模板写入；缺少的行不会删除已有数据。");
                 }
             }
             workbook.write(output);
@@ -165,30 +165,47 @@ public class WorkbookImportService {
         List<ImportIssue> issues = new BoundedIssueList();
         Map<String, MutableStat> stats = new LinkedHashMap<>();
         Map<String, Map<String, Boolean>> activeCodes = new HashMap<>();
+        Map<String, MasterDataSchemaRegistry.Sheet> definitions = new LinkedHashMap<>();
+        Map<String, Integer> positions = new HashMap<>();
+        for (int index = 0; index < MasterDataSchemaRegistry.SHEETS.size(); index++) {
+            MasterDataSchemaRegistry.Sheet definition = MasterDataSchemaRegistry.SHEETS.get(index);
+            definitions.put(definition.name(), definition);
+            positions.put(definition.name(), index);
+        }
         checkSheetRowLimits(workbook, issues);
         checkFormulas(workbook, issues);
         checkCellTextLengths(workbook, issues);
 
-        if (workbook.getNumberOfSheets() != MasterDataSchemaRegistry.SHEETS.size()) {
-            issues.add(new ImportIssue("", 0, "", "INVALID_SHEET_COUNT",
-                    "MASTER_DATA v1 必须包含且仅包含固定的 " + MasterDataSchemaRegistry.SHEETS.size() + " 个 Sheet"));
-        }
-        int expected = MasterDataSchemaRegistry.SHEETS.size();
-        for (int index = 0; index < expected; index++) {
-            MasterDataSchemaRegistry.Sheet definition = MasterDataSchemaRegistry.SHEETS.get(index);
-            if (index >= workbook.getNumberOfSheets()) {
-                issues.add(new ImportIssue(definition.name(), 0, "", "MISSING_SHEET", "缺少必需 Sheet"));
-                continue;
-            }
+        int previousPosition = -1;
+        Set<String> seenSheets = new HashSet<>();
+        for (int index = 0; index < workbook.getNumberOfSheets(); index++) {
             Sheet sheet = workbook.getSheetAt(index);
-            if (!definition.name().equals(sheet.getSheetName())) {
-                issues.add(new ImportIssue(sheet.getSheetName(), 0, "", "INVALID_SHEET_ORDER",
-                        "Sheet 顺序必须为 " + definition.name()));
+            MasterDataSchemaRegistry.Sheet definition = definitions.get(sheet.getSheetName());
+            if (definition == null) {
+                issues.add(new ImportIssue(sheet.getSheetName(), 0, "", "UNKNOWN_SHEET",
+                        "不支持的 MASTER_DATA Sheet: " + sheet.getSheetName()));
                 continue;
             }
+            if (!seenSheets.add(sheet.getSheetName())) {
+                issues.add(new ImportIssue(sheet.getSheetName(), 0, "", "DUPLICATE_SHEET",
+                        "Sheet 不能重复: " + sheet.getSheetName()));
+                continue;
+            }
+            int position = positions.get(sheet.getSheetName());
+            if (position < previousPosition) {
+                issues.add(new ImportIssue(sheet.getSheetName(), 0, "", "INVALID_SHEET_ORDER",
+                        "Sheet 顺序必须遵循 MASTER_DATA v1 模板顺序"));
+                continue;
+            }
+            previousPosition = position;
             if (!validateHeader(sheet, definition.headers(), issues)) continue;
             if (!"说明".equals(definition.name())) {
                 validateMasterRows(sheet, activeCodes, issues, stats);
+            }
+        }
+        for (MasterDataSchemaRegistry.Sheet definition : MasterDataSchemaRegistry.SHEETS) {
+            if (definition.required() && !seenSheets.contains(definition.name())) {
+                issues.add(new ImportIssue(definition.name(), 0, "", "MISSING_SHEET", "缺少必需 Sheet"));
             }
         }
         validateMasterReferences(workbook, activeCodes, issues);
@@ -840,7 +857,7 @@ public class WorkbookImportService {
     }
 
     private int dataRowLimit(Sheet sheet) {
-        return Math.min(sheet.getLastRowNum(), MAX_ROWS_PER_SHEET);
+        return sheet == null ? 0 : Math.min(sheet.getLastRowNum(), MAX_ROWS_PER_SHEET);
     }
 
     private void checkSheetRowLimits(Workbook workbook, List<ImportIssue> issues) {
@@ -959,6 +976,7 @@ public class WorkbookImportService {
     }
 
     private void forEachDataRow(Sheet sheet, RowConsumer consumer) {
+        if (sheet == null) return;
         for (int index = 1; index <= dataRowLimit(sheet); index++) {
             Row row = sheet.getRow(index);
             if (row != null && row.getLastCellNum() >= 1 && !blankRow(row, MasterDataSchemaRegistry.headers(sheet.getSheetName()).size())) consumer.accept(row);

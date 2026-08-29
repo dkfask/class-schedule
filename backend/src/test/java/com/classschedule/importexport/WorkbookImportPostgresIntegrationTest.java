@@ -157,6 +157,46 @@ class WorkbookImportPostgresIntegrationTest {
     }
 
     @Test
+    void masterDataWithoutOptionalSheetsImportsCoreDataAndPreservesExistingRoom() throws Exception {
+        jdbc.update("INSERT INTO room(code,name,capacity,room_type,active) VALUES(?,?,?,?,TRUE) ON CONFLICT (code) DO NOTHING",
+                "KEEP-ROOM", "已有教室", 40, "普通教室");
+        MockMultipartFile file = minimalMasterDataWorkbook("MIN-1");
+
+        String preview = mockMvc.perform(multipart("/api/imports/preview").file(file).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("VALIDATED"))
+                .andExpect(jsonPath("$.sheets").value(org.hamcrest.Matchers.contains("说明", "教师", "班级", "课程", "教学需求")))
+                .andReturn().getResponse().getContentAsString();
+        long batchId = new com.fasterxml.jackson.databind.ObjectMapper().readTree(preview).get("batchId").asLong();
+
+        mockMvc.perform(post("/api/imports/confirm")
+                        .with(csrf()).contentType("application/json")
+                        .content("{\"batchId\":" + batchId + "}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IMPORTED"))
+                .andExpect(jsonPath("$.importedRows").value(4))
+                .andExpect(jsonPath("$.sheetStats[4].rows").value(0))
+                .andExpect(jsonPath("$.sheetStats[6].rows").value(0))
+                .andExpect(jsonPath("$.sheetStats[10].rows").value(0));
+
+        org.assertj.core.api.Assertions.assertThat(count("teacher", "T-MIN-1")).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(count("student_group", "G-MIN-1")).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(count("subject", "SUB-MIN-1")).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(count("teaching_requirement", "REQ-MIN-1")).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(count("room", "KEEP-ROOM")).isEqualTo(1);
+    }
+
+    @Test
+    void masterDataMissingRequiredSheetIsRejected() throws Exception {
+        MockMultipartFile file = masterDataWithoutGroupSheet("MISSING-1");
+
+        mockMvc.perform(multipart("/api/imports/preview").file(file).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("INVALID"))
+                .andExpect(jsonPath("$.issues[?(@.code == 'MISSING_SHEET')]").isNotEmpty());
+    }
+
+    @Test
     void confirmStateChangeIsAtomicForAlreadyImportedBatch() throws Exception {
         MockMultipartFile file = workbook("T902", "G9-3", "SCI3", "B203", "REQ-902", false);
         String preview = mockMvc.perform(multipart("/api/imports/preview").file(file).with(csrf()))
@@ -212,6 +252,29 @@ class WorkbookImportPostgresIntegrationTest {
 
     private int count(String table, String code) {
         return jdbc.queryForObject("SELECT COUNT(*) FROM " + table + " WHERE code = ?", Integer.class, code);
+    }
+
+    private MockMultipartFile minimalMasterDataWorkbook(String suffix) throws Exception {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            sheet(workbook, "说明", new String[] {"说明"}, new String[] {"MASTER_DATA v1 minimal fixture"});
+            sheet(workbook, "教师", MasterDataSchemaRegistry.headers("教师").toArray(String[]::new), new String[] {"T-" + suffix, "导入教师", "TRUE"});
+            sheet(workbook, "班级", MasterDataSchemaRegistry.headers("班级").toArray(String[]::new), new String[] {"G-" + suffix, "导入班级", "HOMEROOM", "30", "TRUE"});
+            sheet(workbook, "课程", MasterDataSchemaRegistry.headers("课程").toArray(String[]::new), new String[] {"SUB-" + suffix, "导入课程", "TRUE"});
+            sheet(workbook, "教学需求", MasterDataSchemaRegistry.headers("教学需求").toArray(String[]::new), new String[] {"REQ-" + suffix, "2026-FALL", "G-" + suffix, "SUB-" + suffix, "T-" + suffix, "1", "1", "30", "", "TRUE"});
+            workbook.write(output);
+            return new MockMultipartFile("file", "master-data-minimal.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", output.toByteArray());
+        }
+    }
+
+    private MockMultipartFile masterDataWithoutGroupSheet(String suffix) throws Exception {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            sheet(workbook, "说明", new String[] {"说明"}, new String[] {"MASTER_DATA v1 invalid fixture"});
+            sheet(workbook, "教师", MasterDataSchemaRegistry.headers("教师").toArray(String[]::new), new String[] {"T-" + suffix, "导入教师", "TRUE"});
+            sheet(workbook, "课程", MasterDataSchemaRegistry.headers("课程").toArray(String[]::new), new String[] {"SUB-" + suffix, "导入课程", "TRUE"});
+            sheet(workbook, "教学需求", MasterDataSchemaRegistry.headers("教学需求").toArray(String[]::new), new String[] {"REQ-" + suffix, "2026-FALL", "G-" + suffix, "SUB-" + suffix, "T-" + suffix, "1", "1", "30", "", "TRUE"});
+            workbook.write(output);
+            return new MockMultipartFile("file", "master-data-invalid.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", output.toByteArray());
+        }
     }
 
     private MockMultipartFile masterDataWorkbook() throws Exception {

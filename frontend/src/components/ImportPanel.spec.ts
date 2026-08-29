@@ -68,8 +68,10 @@ describe('ImportPanel', () => {
       expect(anchor?.download).toBe('master-data-v1.xlsx')
       expect(anchor?.href).toBe('blob:template')
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:template')
-      expect(vm.message).toBe('模板下载已开始')
-      wrapper.unmount()
+    expect(vm.message).toBe('模板下载已开始')
+    expect(wrapper.text()).toContain('必填：教师、班级、课程、教学需求')
+    expect(wrapper.text()).toContain('可选 Sheet 可以省略或留空')
+    wrapper.unmount()
     } finally {
       if (originalCreateObjectURL) Object.defineProperty(urlApi, 'createObjectURL', { configurable: true, writable: true, value: originalCreateObjectURL })
       else delete urlApi.createObjectURL
