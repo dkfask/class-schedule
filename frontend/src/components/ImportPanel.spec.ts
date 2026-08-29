@@ -84,7 +84,7 @@ describe('ImportPanel', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       if (String(input) === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       if (String(input) === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' })
-      expect(String(input)).toBe('/api/imports/preview')
+      expect(String(input)).toMatch(/^\/api\/imports\/preview\?termCode=2026-FALL$/)
       expect(init?.method).toBe('POST')
       return response({
         batchId: 7,
@@ -117,7 +117,7 @@ describe('ImportPanel', () => {
       const url = String(input)
       calls.push({ url, init })
       if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
-      if (url === '/api/imports/preview') return response({ batchId: 8, status: 'VALIDATED', sheets: ['说明'], issues: [] })
+      if (url.match(/^\/api\/imports\/preview\?termCode=2026-FALL$/)) return response({ batchId: 8, status: 'VALIDATED', sheets: ['说明'], issues: [] })
       if (url === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' })
       if (url === '/api/imports/confirm') return response({ batchId: 8, status: 'IMPORTED', importedRows: 4, issueCount: 0 })
       throw new Error(`Unexpected request: ${url}`)

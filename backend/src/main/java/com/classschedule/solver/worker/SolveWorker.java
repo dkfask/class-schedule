@@ -2,6 +2,7 @@ package com.classschedule.solver.worker;
 
 import ai.timefold.solver.core.api.solver.SolverFactory;
 import com.classschedule.solver.PlanningProblemRepository;
+import com.classschedule.solver.SolverDataNotReadyException;
 import com.classschedule.solver.Timetable;
 import java.time.Duration;
 import java.util.UUID;
@@ -66,7 +67,8 @@ public class SolveWorker {
         } catch (Exception exception) {
             try {
                 SolveJobDetails details = jobs.details(jobId);
-                jobs.fail(jobId, details.versionId(), "SOLVER_ERROR", exception.getMessage());
+                String code = exception instanceof SolverDataNotReadyException ? "SOLVER_DATA_NOT_READY" : "SOLVER_ERROR";
+                jobs.fail(jobId, details.versionId(), code, exception.getMessage());
             } catch (Exception ignored) {
                 // 保留原始求解错误，下一次恢复扫描会处理租约过期任务。
             }

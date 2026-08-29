@@ -1,6 +1,9 @@
 package com.classschedule.solver.worker;
 
 import com.classschedule.schedule.ScheduleSnapshotHashService;
+import com.classschedule.solver.SolveReadiness;
+import com.classschedule.solver.SolveReadinessException;
+import com.classschedule.solver.SolveReadinessService;
 import com.classschedule.solver.Timetable;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -17,10 +20,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class SolveJobRepository {
     private final JdbcTemplate jdbc;
     private final ScheduleSnapshotHashService snapshots;
+    private final SolveReadinessService readiness;
 
-    public SolveJobRepository(JdbcTemplate jdbc, ScheduleSnapshotHashService snapshots) {
+    public SolveJobRepository(JdbcTemplate jdbc, ScheduleSnapshotHashService snapshots, SolveReadinessService readiness) {
         this.jdbc = jdbc;
         this.snapshots = snapshots;
+        this.readiness = readiness;
     }
 
     @Transactional
@@ -46,6 +51,8 @@ public class SolveJobRepository {
                     (rs, rowNum) -> new SolveJobHandle(rs.getLong("id"), rs.getLong("schedule_version_id"), rs.getString("status")), params.toArray());
             if (!existing.isEmpty()) return existing.get(0);
         }
+        SolveReadiness checked = readiness.check(termCode);
+        if (!checked.ready()) throw new SolveReadinessException(checked);
         try {
             Long scenarioId = jdbc.queryForObject(
                     "INSERT INTO schedule_scenario (term_id, name, status) SELECT id, '持久化求解场景', 'DRAFT' FROM academic_term WHERE code = ? RETURNING id",
@@ -140,7 +147,7 @@ public class SolveJobRepository {
             jdbc.update("INSERT INTO schedule_assignment (schedule_version_id, occurrence_id, teaching_requirement_id, requirement_code, occurrence_key, activity_index, activity_member_index, pinned_period_code, activity_type_snapshot, subject_code, subject_name, teacher_code, teacher_name, student_group_code, student_group_name, timeslot_code, timeslot_label, weekday, period_no, room_code, room_name, source, locked, duration, activity_group_code, student_count, required_features, room_features, room_capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", versionId, occurrence.getId(), occurrence.getTeachingRequirementId(), occurrence.getRequirementCode(), occurrence.getOccurrenceKey(), occurrence.getActivityIndex(), occurrence.getActivityMemberIndex(), occurrence.getPinnedPeriodCode(), occurrence.getActivityType(), occurrence.getSubjectCode(), occurrence.getSubjectName(), occurrence.getTeacherCode(), occurrence.getTeacherName(), occurrence.getStudentGroupCode(), occurrence.getStudentGroupName(), timeslot == null ? null : timeslot.getId(), timeslot == null ? null : timeslot.getLabel(), timeslot == null ? null : timeslot.getWeekday(), timeslot == null ? null : timeslot.getPeriod(), room == null ? null : room.getId(), room == null ? null : room.getName(), "SOLVER", occurrence.isPinned(), occurrence.getDuration(), occurrence.getActivityGroupCode(), occurrence.getStudentCount(), occurrence.getRequiredFeatures().toArray(String[]::new), room == null ? new String[0] : room.getFeatures().toArray(String[]::new), room == null ? 0 : room.getCapacity());
         });
         jdbc.update("UPDATE schedule_version SET status = 'CANDIDATE', score = ?, legacy_identity_unverified = ? WHERE id = ? AND status = 'SOLVING'", score, !identityComplete(solution), versionId);
-        return jdbc.update("UPDATE solve_job SET status = 'COMPLETED', progress = 100, finished_at = CURRENT_TIMESTAMP, lease_until = NULL WHERE id = ? AND status = 'COMPLETING' AND cancel_requested = FALSE", jobId) == 1;
+        return jdbc.update("UPDATE solve_job SET status = 'COMPLETED', progress = 100, error_code = NULL, error_message = NULL, finished_at = CURRENT_TIMESTAMP, lease_until = NULL WHERE id = ? AND status = 'COMPLETING' AND cancel_requested = FALSE", jobId) == 1;
     }
 
     private boolean identityComplete(Timetable solution) {

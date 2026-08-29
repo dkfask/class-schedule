@@ -69,6 +69,10 @@ public class WorkbookImportService {
     }
 
     public ImportPreview preview(MultipartFile file, String actor) {
+        return preview(file, actor, null);
+    }
+
+    public ImportPreview preview(MultipartFile file, String actor, String expectedTermCode) {
         if (file == null || file.isEmpty()) {
             return invalidPreview("EMPTY_FILE", "上传文件为空");
         }
@@ -78,7 +82,7 @@ public class WorkbookImportService {
         try {
             byte[] bytes = file.getBytes();
             String sha256 = sha256(bytes);
-            ParseResult parsed = parse(bytes);
+            ParseResult parsed = parse(bytes, expectedTermCode);
             long batchId = saveBatch(file.getOriginalFilename(), bytes, sha256, parsed, actor);
             return new ImportPreview(batchId, parsed.issues().isEmpty() ? "VALIDATED" : "INVALID", sha256,
                     parsed.sheets(), parsed.issues(), parsed.templateType(), parsed.templateVersion(),
@@ -141,13 +145,35 @@ public class WorkbookImportService {
     }
 
     private ParseResult parse(byte[] bytes) throws IOException {
+        return parse(bytes, null);
+    }
+
+    private ParseResult parse(byte[] bytes, String expectedTermCode) throws IOException {
         try (InputStream input = new ByteArrayInputStream(bytes); Workbook workbook = new XSSFWorkbook(input)) {
             if (workbook.getNumberOfSheets() > 0 && "说明".equals(workbook.getSheetName(0))) {
-                return parseMasterData(workbook);
+                ParseResult result = parseMasterData(workbook);
+                return expectedTermCode == null || expectedTermCode.isBlank() ? result : addExpectedTermIssue(workbook, result, expectedTermCode.trim());
             }
         }
         return parseLegacy(bytes);
     }
+
+    private ParseResult addExpectedTermIssue(Workbook workbook, ParseResult parsed, String expectedTermCode) {
+        Sheet requirements = workbook.getSheet("教学需求");
+        Set<String> terms = new LinkedHashSet<>();
+        if (requirements != null) {
+            for (int rowIndex = 1; rowIndex <= dataRowLimit(requirements); rowIndex++) {
+                Row row = requirements.getRow(rowIndex);
+                if (!blankRow(row, 10)) terms.add(text(row, 1));
+            }
+        }
+        Set<String> mismatches = terms.stream().filter(code -> !expectedTermCode.equals(code)).collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        if (mismatches.isEmpty()) return parsed;
+        List<ImportIssue> issues = new ArrayList<>(parsed.issues());
+        issues.add(new ImportIssue("教学需求", 0, "B", "TERM_MISMATCH", "教学需求学期必须与当前选择学期一致: " + expectedTermCode + "，文件包含: " + String.join("、", mismatches)));
+        return new ParseResult(parsed.sheets(), issues, parsed.rowCount(), parsed.templateType(), parsed.templateVersion(), parsed.schemaHash(), parsed.sheetStats());
+    }
+
 
     private ParseResult parseForType(byte[] bytes, String templateType) throws IOException {
         if (MasterDataSchemaRegistry.TEMPLATE_TYPE.equals(templateType)) {

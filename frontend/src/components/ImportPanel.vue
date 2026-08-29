@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { downloadBlob, http, jsonRequest } from '../api/http'
 import { useTermStore } from '../stores/term'
 
@@ -28,6 +29,7 @@ interface ImportResult {
 }
 
 const term = useTermStore()
+const router = useRouter()
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFileName = ref('')
 const preview = ref<ImportPreview | null>(null)
@@ -78,7 +80,7 @@ async function previewFile(file: File) {
   const body = new FormData()
   body.append('file', file)
   try {
-    const result = await http<ImportPreview>('/api/imports/preview', { method: 'POST', body })
+    const result = await http<ImportPreview>(`/api/imports/preview${term.selectedTermCode.value ? `?termCode=${encodeURIComponent(term.selectedTermCode.value)}` : ''}`, { method: 'POST', body })
     preview.value = { ...result, issues: result.issues ?? [] }
     if (result.status === 'VALIDATED') {
       setMessage('数据预检通过，可以确认导入', 'success')
@@ -195,7 +197,8 @@ defineExpose({
       </div>
     </div>
 
-    <div v-if="confirmation && confirmation.status === 'IMPORTED'" class="import-state success-state" data-testid="import-success">已完成批次 #{{ confirmation.batchId }} 的导入，共写入 {{ confirmation.importedRows ?? 0 }} 行。</div>
+      <div v-if="confirmation && confirmation.status === 'IMPORTED'" class="import-state success-state" data-testid="import-success">已完成批次 #{{ confirmation.batchId }} 的导入，共写入 {{ confirmation.importedRows ?? 0 }} 行。请返回工作台检查当前学期排课条件后再开始求解。<el-button link type="primary" @click="router.push('/workspace')">返回工作台</el-button></div>
+
   </section>
 </template>
 

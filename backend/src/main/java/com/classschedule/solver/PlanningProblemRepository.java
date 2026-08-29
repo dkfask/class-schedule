@@ -52,7 +52,7 @@ public class PlanningProblemRepository {
         var rules = jdbc.query("SELECT i.rule_code, i.scope_type, i.scope_code, i.int_value, i.text_value, i.severity, i.weight FROM schedule_rule_instance i JOIN schedule_rule_profile p ON p.id=i.profile_id WHERE p.term_id=? AND i.active=TRUE AND p.active=TRUE",
                 (rs, rowNum) -> new TypedScheduleRule(rs.getString("rule_code"), rs.getString("scope_type"), rs.getString("scope_code"),
                         (Integer) rs.getObject("int_value"), rs.getString("text_value"), rs.getString("severity"), rs.getInt("weight")), termId);
-        if (timeslots.isEmpty() || rooms.isEmpty() || occurrences.isEmpty()) throw new IllegalStateException("排课基础数据不完整：需要节次、教室和教学需求");
+        if (timeslots.isEmpty() || rooms.isEmpty() || occurrences.isEmpty()) throw new SolverDataNotReadyException("排课基础数据未就绪：需要当前学期节次、至少一间启用教室和至少一条启用教学需求");
         return new PlanningProblem(timeslots, rooms, occurrences, availabilities, rules);
     }
 

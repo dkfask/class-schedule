@@ -36,6 +36,27 @@ class SolveJobRepositoryIntegrationTest {
     @Autowired JdbcTemplate jdbc;
 
     @Test
+    void readinessFailureDoesNotCreateScenarioVersionOrJob() {
+        String termCode = "READINESS-BLOCK-" + System.nanoTime();
+        jdbc.update("INSERT INTO academic_term(code,name,status) VALUES(?,?, 'DRAFT')", termCode, "readiness block");
+        int scenariosBefore = jdbc.queryForObject("SELECT COUNT(*) FROM schedule_scenario", Integer.class);
+        int versionsBefore = jdbc.queryForObject("SELECT COUNT(*) FROM schedule_version", Integer.class);
+        int jobsBefore = jdbc.queryForObject("SELECT COUNT(*) FROM solve_job", Integer.class);
+
+        try {
+            assertThatThrownBy(() -> jobs.enqueue("readiness-block-" + System.nanoTime(), null, termCode))
+                    .isInstanceOf(com.classschedule.solver.SolveReadinessException.class)
+                    .hasMessageContaining("尚未配置节次")
+                    .hasMessageContaining("没有启用的教学需求");
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM schedule_scenario", Integer.class)).isEqualTo(scenariosBefore);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM schedule_version", Integer.class)).isEqualTo(versionsBefore);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM solve_job", Integer.class)).isEqualTo(jobsBefore);
+        } finally {
+            jdbc.update("DELETE FROM academic_term WHERE code = ?", termCode);
+        }
+    }
+
+    @Test
     void idempotencyAndSkipLockedClaimAllowOnlyOneWorker() {
         SolveJobHandle first = jobs.enqueue("job-idempotency-1");
         SolveJobHandle duplicate = jobs.enqueue("job-idempotency-1");
