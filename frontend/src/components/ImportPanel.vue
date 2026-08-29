@@ -160,7 +160,7 @@ defineExpose({
         <h2>批量导入基础数据</h2>
         <p class="import-caption">使用统一模板导入教师、班级、课程、教室和教学需求</p>
       </div>
-      <span class="import-term">{{ term.ready ? (term.hasValidTerm ? termLabel : '暂无可用学期') : '正在加载学期…' }}</span>
+      <span class="import-term">{{ term.ready.value ? (term.hasValidTerm.value ? termLabel : '暂无可用学期') : '正在加载学期…' }}</span>
     </div>
 
     <div class="import-actions">
@@ -169,8 +169,8 @@ defineExpose({
       <input ref="fileInput" class="hidden-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" @change="handleFileChange" />
     </div>
 
-    <div v-if="!term.ready || term.loading" class="import-state info-state">正在加载可用学期…</div>
-    <div v-else-if="!canImport" class="import-state error-state">{{ term.error || '暂无可用学期，暂不能进行导入' }}</div>
+    <div v-if="!term.ready.value || term.loading.value" class="import-state info-state">正在加载可用学期…</div>
+    <div v-else-if="!canImport" class="import-state error-state">{{ term.error.value || '暂无可用学期，暂不能进行导入' }}</div>
     <div v-else-if="selectedFileName" class="selected-file"><span>当前文件</span><strong>{{ selectedFileName }}</strong></div>
 
     <div v-if="previewLoading" class="import-state info-state" data-testid="preview-loading">正在预检文件，请稍候…</div>
