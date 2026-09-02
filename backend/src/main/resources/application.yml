@@ -21,6 +21,8 @@ server:
   port: ${SERVER_PORT:8080}
 
 app:
+  solver:
+    termination-spent: ${SOLVER_TERMINATION_SPENT:3s}
   auth:
     bootstrap:
       username: ${APP_AUTH_BOOTSTRAP_USERNAME:}

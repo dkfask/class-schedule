@@ -112,7 +112,7 @@ const dragOccurrence = ref<Occurrence | null>(null)
 const selectedExchangeCandidate = ref<{ occurrenceId: number; occurrenceKey: string; subjectName: string; studentGroupCode: string; teacherCode: string; roomCode: string; timeslotCode: string } | null>(null)
 const searchQuery = ref('')
 const message = ref('')
-const termName = ref('2026 秋季学期')
+const termName = ref('')
 const masterDataSummary = ref({ teachers: 0, studentGroups: 0, subjects: 0, rooms: 0 })
 const backendPublishable = ref(false)
 const activeView = computed(() => ({ CLASS: '班级课表', TEACHER: '教师课表', ROOM: '教室课表' })[viewType.value])
@@ -179,6 +179,7 @@ async function loadMasterData() {
     termName.value = term.error.value || '暂无可用学期'
     return
   }
+  termName.value = term.terms.value.find(item => item.code === term.selectedTermCode.value)?.name ?? ''
   try {
     const data = await requestJson<{ terms?: Array<{ code: string; name: string }>; teachers?: unknown[]; studentGroups?: unknown[]; subjects?: unknown[]; rooms?: unknown[] }>('/api/master-data/overview')
     const currentTerm = data.terms?.find(item => item.code === term.selectedTermCode.value) ?? data.terms?.[0]

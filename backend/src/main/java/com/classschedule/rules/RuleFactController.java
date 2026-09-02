@@ -24,7 +24,7 @@ public class RuleFactController {
     public RuleFactController(RuleFactRepository repository) { this.repository = repository; }
 
     @GetMapping("/availability")
-    public ResponseEntity<?> availabilityList(@RequestParam(defaultValue = "2026-FALL") String termCode) {
+    public ResponseEntity<?> availabilityList(@RequestParam(required = false) String termCode) {
         try {
             return ResponseEntity.ok(repository.listAvailability(termCode));
         } catch (IllegalArgumentException exception) {
@@ -57,10 +57,10 @@ public class RuleFactController {
     }
 
     @GetMapping("/activity-groups")
-    public Object activityGroups(@RequestParam(defaultValue = "2026-FALL") String termCode) { return repository.listActivityGroups(termCode); }
+    public Object activityGroups(@RequestParam(required = false) String termCode) { return repository.listActivityGroups(termCode); }
 
     @DeleteMapping("/activity-groups/{code}")
-    public ResponseEntity<?> deleteActivityGroup(@PathVariable String code) { return execute(() -> repository.deleteActivityGroup(code)); }
+    public ResponseEntity<?> deleteActivityGroup(@PathVariable String code, @RequestParam(required = false) String termCode) { return execute(() -> repository.deleteActivityGroup(code, termCode)); }
 
     @PostMapping("/availability/{resourceType}")
     public ResponseEntity<?> availability(@PathVariable String resourceType, @Valid @RequestBody AvailabilityRequest request) {

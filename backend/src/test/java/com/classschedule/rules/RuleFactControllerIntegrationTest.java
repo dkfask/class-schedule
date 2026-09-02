@@ -46,6 +46,33 @@ class RuleFactControllerIntegrationTest {
     }
 
     @Test
+    void activityGroupCodeIsScopedByTermAndRequirementCannotJoinTwoGroups() throws Exception {
+        String suffix = String.valueOf(System.nanoTime());
+        String termCode = "TERM-" + suffix;
+        String requirementCode = "REQ-ACT-" + suffix;
+        jdbc.update("INSERT INTO academic_term(code,name,status) VALUES(?,?, 'DRAFT')", termCode, "活动组测试学期");
+        Long termId = jdbc.queryForObject("SELECT id FROM academic_term WHERE code=?", Long.class, termCode);
+        String currentTermRequirementCode = "REQ-ACT-FALL-" + suffix;
+        Long currentTermId = jdbc.queryForObject("SELECT id FROM academic_term WHERE code='2026-FALL'", Long.class);
+        jdbc.update("INSERT INTO teaching_requirement(code,term_id,student_group_id,subject_id,teacher_id,weekly_periods,duration_periods) VALUES(?,?,(SELECT id FROM student_group WHERE code='G7-1'),(SELECT id FROM subject WHERE code='MATH'),(SELECT id FROM teacher WHERE code='T001'),1,1)", currentTermRequirementCode, currentTermId);
+        jdbc.update("INSERT INTO teaching_requirement(code,term_id,student_group_id,subject_id,teacher_id,weekly_periods,duration_periods) VALUES(?,?,(SELECT id FROM student_group WHERE code='G7-1'),(SELECT id FROM subject WHERE code='MATH'),(SELECT id FROM teacher WHERE code='T001'),1,1)", requirementCode, termId);
+
+        String groupCode = "ACT-SCOPE-" + suffix;
+        mockMvc.perform(post("/api/rule-facts/activity-groups").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"" + groupCode + "\",\"name\":\"当前学期活动\",\"activityType\":\"JOINED\",\"requirementCodes\":[\"" + currentTermRequirementCode + "\"],\"termCode\":\"2026-FALL\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/rule-facts/activity-groups").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"" + groupCode + "\",\"name\":\"另一学期活动\",\"activityType\":\"JOINED\",\"requirementCodes\":[\"" + requirementCode + "\"],\"termCode\":\"" + termCode + "\"}"))
+                .andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM activity_group WHERE code=?", Integer.class, groupCode)).isEqualTo(2);
+
+        mockMvc.perform(post("/api/rule-facts/activity-groups").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"" + groupCode + "-OTHER\",\"name\":\"冲突活动\",\"activityType\":\"JOINED\",\"requirementCodes\":[\"" + currentTermRequirementCode + "\"],\"termCode\":\"2026-FALL\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value("REJECTED"));
+    }
+
+    @Test
     void rejectsUnknownResourceOrPeriod() throws Exception {
         mockMvc.perform(post("/api/rule-facts/availability/TEACHER").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"resourceCode\":\"MISSING\",\"termCode\":\"2026-FALL\",\"periodCode\":\"MON-1\",\"available\":false}"))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.status").value("REJECTED"));

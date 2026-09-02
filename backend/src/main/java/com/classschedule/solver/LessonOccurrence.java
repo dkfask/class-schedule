@@ -1,10 +1,11 @@
 package com.classschedule.solver;
 
 import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
-import ai.timefold.solver.core.api.domain.entity.PlanningPin;
 import ai.timefold.solver.core.api.domain.lookup.PlanningId;
+import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider;
 import ai.timefold.solver.core.api.domain.variable.PlanningVariable;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 @PlanningEntity
@@ -32,7 +33,8 @@ public class LessonOccurrence {
     private Set<String> availablePeriodCodes = new LinkedHashSet<>();
     private Set<String> breakAfterPeriodCodes = new LinkedHashSet<>();
     private java.util.Map<String, String> nextPeriodCodes = new java.util.LinkedHashMap<>();
-    @PlanningPin
+    private List<Timeslot> timeslotPool = List.of();
+    private List<Timeslot> timeslotRange = List.of();
     private boolean pinned;
 
     @PlanningVariable(valueRangeProviderRefs = "timeslotRange")
@@ -73,6 +75,8 @@ public class LessonOccurrence {
         copy.availablePeriodCodes = new LinkedHashSet<>(availablePeriodCodes);
         copy.breakAfterPeriodCodes = new LinkedHashSet<>(breakAfterPeriodCodes);
         copy.nextPeriodCodes = new java.util.LinkedHashMap<>(nextPeriodCodes);
+        copy.timeslotPool = List.copyOf(timeslotPool);
+        copy.timeslotRange = List.copyOf(timeslotRange);
         copy.pinned = pinned;
         copy.timeslot = timeslot;
         copy.room = room;
@@ -109,7 +113,10 @@ public class LessonOccurrence {
     public String getActivityType() { return activityType; }
     public void setActivityType(String activityType) { this.activityType = activityType; }
     public String getPinnedPeriodCode() { return pinnedPeriodCode; }
-    public void setPinnedPeriodCode(String pinnedPeriodCode) { this.pinnedPeriodCode = pinnedPeriodCode; }
+    public void setPinnedPeriodCode(String pinnedPeriodCode) {
+        this.pinnedPeriodCode = pinnedPeriodCode;
+        refreshTimeslotRange();
+    }
     public int getActivityIndex() { return activityIndex; }
     public void setActivityIndex(int activityIndex) { this.activityIndex = activityIndex; }
     public int getActivityMemberIndex() { return activityMemberIndex; }
@@ -124,10 +131,28 @@ public class LessonOccurrence {
     public void setBreakAfterPeriodCodes(Set<String> breakAfterPeriodCodes) { this.breakAfterPeriodCodes = breakAfterPeriodCodes == null ? new LinkedHashSet<>() : new LinkedHashSet<>(breakAfterPeriodCodes); }
     public java.util.Map<String, String> getNextPeriodCodes() { return nextPeriodCodes; }
     public void setNextPeriodCodes(java.util.Map<String, String> nextPeriodCodes) { this.nextPeriodCodes = nextPeriodCodes == null ? new java.util.LinkedHashMap<>() : new java.util.LinkedHashMap<>(nextPeriodCodes); }
+    @ValueRangeProvider(id = "timeslotRange")
+    public List<Timeslot> getTimeslotRange() { return timeslotRange; }
+    public void setTimeslotRange(List<Timeslot> timeslotRange) { this.timeslotRange = timeslotRange == null ? List.of() : List.copyOf(timeslotRange); }
+    public void setTimeslotPool(List<Timeslot> timeslotPool) {
+        this.timeslotPool = timeslotPool == null ? List.of() : List.copyOf(timeslotPool);
+        refreshTimeslotRange();
+    }
     public boolean isPinned() { return pinned; }
     public void setPinned(boolean pinned) { this.pinned = pinned; }
     public Timeslot getTimeslot() { return timeslot; }
     public void setTimeslot(Timeslot timeslot) { this.timeslot = timeslot; }
     public Room getRoom() { return room; }
     public void setRoom(Room room) { this.room = room; }
+
+    private void refreshTimeslotRange() {
+        if (timeslotPool.isEmpty()) return;
+        if (pinnedPeriodCode == null || pinnedPeriodCode.isBlank()) {
+            timeslotRange = timeslotPool;
+        } else {
+            timeslotRange = timeslotPool.stream()
+                    .filter(timeslot -> pinnedPeriodCode.equals(timeslot.getId()))
+                    .toList();
+        }
+    }
 }

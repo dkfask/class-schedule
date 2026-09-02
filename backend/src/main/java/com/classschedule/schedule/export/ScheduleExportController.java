@@ -92,6 +92,7 @@ public class ScheduleExportController {
     }
 
     private boolean viewerCanRead(long versionId, Authentication authentication) {
+        if (!schedules.canAccessVersion(versionId, authentication.getName())) return false;
         if (!isPublishedOnlyViewer(authentication)) return true;
         return Set.of("PUBLISHED").contains(schedules.findVersion(versionId).status());
     }

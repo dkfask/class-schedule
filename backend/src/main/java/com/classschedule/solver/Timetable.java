@@ -11,7 +11,6 @@ import ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftSc
 @PlanningSolution
 public class Timetable {
     @ProblemFactCollectionProperty
-    @ValueRangeProvider(id = "timeslotRange")
     private List<Timeslot> timeslots;
 
     @ProblemFactCollectionProperty
@@ -47,18 +46,24 @@ public class Timetable {
         this.occurrences = occurrences;
         this.availabilities = availabilities;
         this.rules = rules == null ? List.of() : rules;
+        configureTimeslotRanges();
     }
 
     public List<Timeslot> getTimeslots() { return timeslots; }
-    public void setTimeslots(List<Timeslot> timeslots) { this.timeslots = timeslots; }
+    public void setTimeslots(List<Timeslot> timeslots) { this.timeslots = timeslots; configureTimeslotRanges(); }
     public List<Room> getRooms() { return rooms; }
     public void setRooms(List<Room> rooms) { this.rooms = rooms; }
     public List<LessonOccurrence> getOccurrences() { return occurrences; }
-    public void setOccurrences(List<LessonOccurrence> occurrences) { this.occurrences = occurrences; }
+    public void setOccurrences(List<LessonOccurrence> occurrences) { this.occurrences = occurrences; configureTimeslotRanges(); }
     public List<ResourceAvailability> getAvailabilities() { return availabilities; }
     public void setAvailabilities(List<ResourceAvailability> availabilities) { this.availabilities = availabilities; }
     public List<TypedScheduleRule> getRules() { return rules; }
     public void setRules(List<TypedScheduleRule> rules) { this.rules = rules == null ? List.of() : rules; }
     public HardMediumSoftScore getScore() { return score; }
     public void setScore(HardMediumSoftScore score) { this.score = score; }
+
+    private void configureTimeslotRanges() {
+        if (timeslots == null || occurrences == null) return;
+        occurrences.forEach(occurrence -> occurrence.setTimeslotPool(timeslots));
+    }
 }

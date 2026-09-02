@@ -10,10 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public class TeachingRequirementRepository {
     private final JdbcTemplate jdbc;
-    public TeachingRequirementRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    private final AcademicTermResolver terms;
+    public TeachingRequirementRepository(JdbcTemplate jdbc, AcademicTermResolver terms) { this.jdbc = jdbc; this.terms = terms; }
 
     public List<TeachingRequirementItem> list(String termCode, boolean active) {
-        return jdbc.query("SELECT r.id,r.code,term.code AS term_code,g.code AS group_code,s.code AS subject_code,t.code AS teacher_code,r.weekly_periods,r.duration_periods,r.student_count,COALESCE((SELECT string_agg(feature_code, ',' ORDER BY feature_code) FROM teaching_requirement_feature rf WHERE rf.teaching_requirement_id=r.id),'') AS required_features,r.pinned_period_code,r.active FROM teaching_requirement r JOIN academic_term term ON term.id=r.term_id JOIN student_group g ON g.id=r.student_group_id JOIN subject s ON s.id=r.subject_id JOIN teacher t ON t.id=r.teacher_id WHERE term.code=? AND r.active=? ORDER BY r.code", (rs,row) -> item(rs), termCode, active);
+        return jdbc.query("SELECT r.id,r.code,term.code AS term_code,g.code AS group_code,s.code AS subject_code,t.code AS teacher_code,r.weekly_periods,r.duration_periods,r.student_count,COALESCE((SELECT string_agg(feature_code, ',' ORDER BY feature_code) FROM teaching_requirement_feature rf WHERE rf.teaching_requirement_id=r.id),'') AS required_features,r.pinned_period_code,r.active FROM teaching_requirement r JOIN academic_term term ON term.id=r.term_id JOIN student_group g ON g.id=r.student_group_id JOIN subject s ON s.id=r.subject_id JOIN teacher t ON t.id=r.teacher_id WHERE term.code=? AND r.active=? ORDER BY r.code", (rs,row) -> item(rs), terms.resolve(termCode), active);
     }
 
     @Transactional

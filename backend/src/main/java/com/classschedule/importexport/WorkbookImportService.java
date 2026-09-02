@@ -323,6 +323,8 @@ public class WorkbookImportService {
                 }
                 case "活动组" -> {
                     String code = text(row, 0);
+                    String termCode = text(row, 3);
+                    String activityKey = termCode + "|" + code;
                     requireText(row, 0, sheet, rowIndex, "MISSING_CODE", "活动组编码不能为空", issues);
                     requireText(row, 1, sheet, rowIndex, "MISSING_NAME", "名称不能为空", issues);
                     String activityType = text(row, 2);
@@ -333,17 +335,17 @@ public class WorkbookImportService {
                     nonNegativeInt(row, 4, sheet, rowIndex, "INVALID_MEMBER_INDEX", issues);
                     requireText(row, 5, sheet, rowIndex, "MISSING_REQUIREMENT", "教学需求编码不能为空", issues);
                     Boolean active = booleanValue(row, 6, sheet, rowIndex, issues);
-                    String definition = text(row, 1) + "\t" + activityType + "\t" + text(row, 3);
-                    String prior = activityDefinitions.putIfAbsent(code, definition);
+                    String definition = text(row, 1) + "\t" + activityType + "\t" + termCode;
+                    String prior = activityDefinitions.putIfAbsent(activityKey, definition);
                     if (prior != null && !prior.equals(definition)) {
                         issues.add(new ImportIssue(sheet.getSheetName(), rowIndex + 1, "A", "INCONSISTENT_ACTIVITY", "同一活动组的名称、类型和学期必须一致"));
                     }
-                    Boolean priorActive = activityActives.putIfAbsent(code, active);
+                    Boolean priorActive = activityActives.putIfAbsent(activityKey, active);
                     if (priorActive != null && !priorActive.equals(active)) {
                         issues.add(new ImportIssue(sheet.getSheetName(), rowIndex + 1, "G", "INCONSISTENT_ACTIVITY_ACTIVE", "同一活动组的 active 值必须一致"));
                     }
-                    relationKey(row, List.of(0, 4), relationKeys, sheet, rowIndex, issues);
-                    relationKey(row, List.of(0, 5), keys, sheet, rowIndex, issues);
+                    relationKey(row, List.of(3, 0, 4), relationKeys, sheet, rowIndex, issues);
+                    relationKey(row, List.of(3, 0, 5), keys, sheet, rowIndex, issues);
                 }
                 default -> throw new IllegalStateException("未处理的 MASTER_DATA Sheet: " + sheet.getSheetName());
             }
@@ -410,11 +412,26 @@ public class WorkbookImportService {
 
         Sheet activityGroups = workbook.getSheet("活动组");
         if (activityGroups != null) {
+            Map<String, String> importedRequirementGroups = new HashMap<>();
             for (int rowIndex = 1; rowIndex <= dataRowLimit(activityGroups); rowIndex++) {
                 Row row = activityGroups.getRow(rowIndex);
                 if (blankRow(row, 7)) continue;
                 checkTerm(activityGroups, rowIndex, text(row, 3), issues);
                 String requirementCode = text(row, 5);
+                String termCode = text(row, 3);
+                String groupCode = text(row, 0);
+                if (booleanValue(text(row, 6))) {
+                    String requirementKey = termCode + "|" + requirementCode;
+                    String previousGroup = importedRequirementGroups.putIfAbsent(requirementKey, groupCode);
+                    if (previousGroup != null && !previousGroup.equals(groupCode)) {
+                        issues.add(new ImportIssue(activityGroups.getSheetName(), rowIndex + 1, "F", "REQUIREMENT_MULTIPLE_ACTIVITY_GROUPS", "同一教学需求不能属于多个活动组"));
+                    }
+                    if (jdbc.queryForObject(
+                                    "SELECT COUNT(*) FROM activity_group_member m JOIN activity_group g ON g.id=m.activity_group_id WHERE m.teaching_requirement_id=(SELECT id FROM teaching_requirement WHERE code=?) AND NOT (g.term_id=(SELECT id FROM academic_term WHERE code=?) AND g.code=?)",
+                                    Integer.class, requirementCode, termCode, groupCode) > 0) {
+                        issues.add(new ImportIssue(activityGroups.getSheetName(), rowIndex + 1, "F", "REQUIREMENT_MULTIPLE_ACTIVITY_GROUPS", "同一教学需求不能属于多个活动组"));
+                    }
+                }
                 Boolean importedActive = activeCodes.getOrDefault("教学需求", Map.of()).get(requirementCode);
                 if (importedActive != null) {
                     if (!importedActive || !text(row, 3).equals(requirementTerms.get(requirementCode))) {
@@ -763,18 +780,21 @@ public class WorkbookImportService {
             stat.rows++;
             String code = text(row, 0), termCode = text(row, 3), requirementCode = text(row, 5);
             boolean active = booleanValue(text(row, 6));
-            boolean existing = exists("activity_group", "code", code);
+            Long termId = jdbc.queryForObject("SELECT id FROM academic_term WHERE code=?", Long.class, termCode);
+            boolean existing = jdbc.queryForObject("SELECT COUNT(*) FROM activity_group WHERE term_id=? AND code=?", Integer.class, termId, code) > 0;
             if (existing) {
-                jdbc.update("UPDATE activity_group SET name=?, activity_type=?, term_id=(SELECT id FROM academic_term WHERE code=?), active=? WHERE code=?", text(row, 1), text(row, 2), termCode, active, code);
+                jdbc.update("UPDATE activity_group SET name=?, activity_type=?, active=? WHERE term_id=? AND code=?", text(row, 1), text(row, 2), active, termId, code);
                 stat.updated++;
             } else {
-                jdbc.update("INSERT INTO activity_group(code,name,activity_type,term_id,active) VALUES(?,?,?,(SELECT id FROM academic_term WHERE code=?),?)", code, text(row, 1), text(row, 2), termCode, active);
+                jdbc.update("INSERT INTO activity_group(code,name,activity_type,term_id,active) VALUES(?,?,?,?,?)", code, text(row, 1), text(row, 2), termId, active);
                 stat.created++;
             }
             if (active) {
-                int memberUpdated = jdbc.update("UPDATE activity_group_member SET member_index=? WHERE activity_group_id=(SELECT id FROM activity_group WHERE code=?) AND teaching_requirement_id=(SELECT id FROM teaching_requirement WHERE code=?)", Integer.parseInt(text(row, 4)), code, requirementCode);
+                Long groupId = jdbc.queryForObject("SELECT id FROM activity_group WHERE term_id=? AND code=?", Long.class, termId, code);
+                Long requirementId = jdbc.queryForObject("SELECT id FROM teaching_requirement WHERE code=?", Long.class, requirementCode);
+                int memberUpdated = jdbc.update("UPDATE activity_group_member SET member_index=? WHERE activity_group_id=? AND teaching_requirement_id=?", Integer.parseInt(text(row, 4)), groupId, requirementId);
                 if (memberUpdated == 0) {
-                    jdbc.update("INSERT INTO activity_group_member(activity_group_id,teaching_requirement_id,member_index) VALUES((SELECT id FROM activity_group WHERE code=?),(SELECT id FROM teaching_requirement WHERE code=?),?)", code, requirementCode, Integer.parseInt(text(row, 4)));
+                    jdbc.update("INSERT INTO activity_group_member(activity_group_id,teaching_requirement_id,member_index) VALUES(?,?,?)", groupId, requirementId, Integer.parseInt(text(row, 4)));
                     stat.created++;
                 } else stat.updated++;
             } else {

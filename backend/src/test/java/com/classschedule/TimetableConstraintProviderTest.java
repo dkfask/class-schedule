@@ -53,6 +53,8 @@ class TimetableConstraintProviderTest {
         left.setDuration(2);
         left.setTimeslot(first);
         right.setTimeslot(second);
+        left.setPinnedPeriodCode("MON-1");
+        right.setPinnedPeriodCode("MON-2");
         assertThat(new TimetableConstraintProvider().overlaps(left, right)).isTrue();
         Room room = new Room("A101", "教学楼 A101", 50);
         Room otherRoom = new Room("A102", "教学楼 A102", 50);
@@ -117,6 +119,29 @@ class TimetableConstraintProviderTest {
         left.setRoom(room);
         right.setRoom(room);
         verifier.verifyThat(TimetableConstraintProvider::consecutiveActivityForTest).given(left, right).penalizesBy(1);
+    }
+
+    @Test
+    void consecutiveActivityAcceptsTheFirstAdjacentPeriodAfterDurationOne() {
+        Timeslot first = new Timeslot("MON-1", 1, 1, "周一 第1节");
+        Timeslot second = new Timeslot("MON-2", 1, 2, "周一 第2节");
+        Room room = new Room("A101", "教学楼 A101", 50);
+        LessonOccurrence left = occurrence(1L, "T001", "G7-1");
+        LessonOccurrence right = occurrence(2L, "T002", "G7-1");
+        left.setActivityGroupCode("CON-ADJACENT");
+        right.setActivityGroupCode("CON-ADJACENT");
+        left.setActivityType("CONSECUTIVE");
+        right.setActivityType("CONSECUTIVE");
+        left.setActivityIndex(0);
+        right.setActivityIndex(1);
+        left.setTimeslot(first);
+        right.setTimeslot(second);
+        left.setRoom(room);
+        right.setRoom(room);
+
+        verifier.verifyThat(TimetableConstraintProvider::consecutiveActivityForTest)
+                .given(left, right)
+                .penalizesBy(0);
     }
 
     @Test
@@ -201,7 +226,68 @@ class TimetableConstraintProviderTest {
     }
 
     @Test
+    void typedDailyMaxDoesNotAggregateDifferentStudentGroupsForOneSubject() {
+        TypedScheduleRule rule = new TypedScheduleRule("SUBJECT_DAILY_MAX", "TERM", "__TERM__", 1, null, "MEDIUM", 5);
+        Timeslot first = new Timeslot("MON-1", 1, 1, "周一 第1节");
+        Room room = new Room("A101", "教学楼 A101", 50);
+        LessonOccurrence left = occurrence(1L, "T001", "G7-1");
+        LessonOccurrence right = occurrence(2L, "T002", "G7-2");
+        left.setSubjectCode("MATH");
+        right.setSubjectCode("MATH");
+        left.setTimeslot(first);
+        left.setRoom(room);
+        right.setTimeslot(first);
+        right.setRoom(room);
+
+        verifier.verifyThat((p, factory) -> p.typedDailyMax(factory, "MEDIUM"))
+                .given(rule, left, right)
+                .penalizesBy(0);
+    }
+
+    @Test
+    void typedDailyMaxPenalizesEachExcessPeriod() {
+        TypedScheduleRule rule = new TypedScheduleRule("TEACHER_DAILY_MAX", "TERM", "__TERM__", 1, null, "SOFT", 5);
+        Timeslot first = new Timeslot("MON-1", 1, 1, "周一 第1节");
+        Timeslot second = new Timeslot("MON-2", 1, 2, "周一 第2节");
+        Timeslot third = new Timeslot("MON-3", 1, 3, "周一 第3节");
+        Room room = new Room("A101", "教学楼 A101", 50);
+        LessonOccurrence firstOccurrence = occurrence(1L, "T001", "G7-1");
+        LessonOccurrence secondOccurrence = occurrence(2L, "T001", "G7-2");
+        LessonOccurrence thirdOccurrence = occurrence(3L, "T001", "G7-3");
+        firstOccurrence.setTimeslot(first);
+        secondOccurrence.setTimeslot(second);
+        thirdOccurrence.setTimeslot(third);
+        firstOccurrence.setRoom(room);
+        secondOccurrence.setRoom(room);
+        thirdOccurrence.setRoom(room);
+
+        verifier.verifyThat((p, factory) -> p.typedDailyMax(factory, "SOFT"))
+                .given(rule, firstOccurrence, secondOccurrence, thirdOccurrence)
+                .penalizesBy(10);
+    }
+
+    @Test
     void typedSpreadPenalizesSubjectsConcentratedOnFewerDays() {
+        TypedScheduleRule rule = new TypedScheduleRule("SUBJECT_MIN_SPREAD_DAYS", "TERM", "__TERM__", 2, null, "SOFT", 3);
+        Timeslot first = new Timeslot("MON-1", 1, 1, "周一 第1节");
+        Room room = new Room("A101", "教学楼 A101", 50);
+        LessonOccurrence left = occurrence(1L, "T001", "G7-1");
+        LessonOccurrence right = occurrence(2L, "T002", "G7-2");
+        left.setSubjectCode("MATH");
+        right.setSubjectCode("MATH");
+        right.setStudentGroupCode("G7-1");
+        left.setTimeslot(first);
+        left.setRoom(room);
+        right.setTimeslot(first);
+        right.setRoom(room);
+
+        verifier.verifyThat((p, factory) -> p.typedSpread(factory, "SOFT"))
+                .given(rule, left, right)
+                .penalizesBy(3);
+    }
+
+    @Test
+    void typedSpreadDoesNotAggregateDifferentStudentGroups() {
         TypedScheduleRule rule = new TypedScheduleRule("SUBJECT_MIN_SPREAD_DAYS", "TERM", "__TERM__", 2, null, "SOFT", 3);
         Timeslot first = new Timeslot("MON-1", 1, 1, "周一 第1节");
         Room room = new Room("A101", "教学楼 A101", 50);
@@ -216,7 +302,27 @@ class TimetableConstraintProviderTest {
 
         verifier.verifyThat((p, factory) -> p.typedSpread(factory, "SOFT"))
                 .given(rule, left, right)
-                .penalizesBy(3);
+                .penalizesBy(6);
+    }
+
+    @Test
+    void typedSpreadPenalizesEachMissingDay() {
+        TypedScheduleRule rule = new TypedScheduleRule("SUBJECT_MIN_SPREAD_DAYS", "TERM", "__TERM__", 4, null, "SOFT", 3);
+        Timeslot first = new Timeslot("MON-1", 1, 1, "周一 第1节");
+        Timeslot second = new Timeslot("MON-2", 1, 2, "周一 第2节");
+        Room room = new Room("A101", "教学楼 A101", 50);
+        LessonOccurrence left = occurrence(1L, "T001", "G7-1");
+        LessonOccurrence right = occurrence(2L, "T002", "G7-1");
+        left.setSubjectCode("MATH");
+        right.setSubjectCode("MATH");
+        left.setTimeslot(first);
+        right.setTimeslot(second);
+        left.setRoom(room);
+        right.setRoom(room);
+
+        verifier.verifyThat((p, factory) -> p.typedSpread(factory, "SOFT"))
+                .given(rule, left, right)
+                .penalizesBy(9);
     }
 
     @Test
@@ -257,8 +363,8 @@ class TimetableConstraintProviderTest {
         LessonOccurrence pinned = sample.getOccurrences().get(0);
         Timeslot fixed = sample.getTimeslots().get(2);
         pinned.setTimeslot(fixed);
-        pinned.setRoom(sample.getRooms().get(0));
-        pinned.setPinned(true);
+        pinned.setPinnedPeriodCode(fixed.getId());
+        pinned.setRoom(null);
 
         Timetable solved = SolverConfigurationForTest.createSolver().solve(sample);
         LessonOccurrence solvedPinned = solved.getOccurrences().stream()
@@ -266,6 +372,7 @@ class TimetableConstraintProviderTest {
                 .findFirst()
                 .orElseThrow();
         assertThat(solvedPinned.getTimeslot().getId()).isEqualTo("TUE-1");
+        assertThat(solvedPinned.getRoom()).isNotNull();
     }
 
 

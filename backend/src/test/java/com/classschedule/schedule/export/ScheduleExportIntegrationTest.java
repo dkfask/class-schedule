@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.io.ByteArrayInputStream;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -30,6 +31,11 @@ class ScheduleExportIntegrationTest {
     @DynamicPropertySource static void database(DynamicPropertyRegistry registry) { registry.add("spring.datasource.url", POSTGRES::getJdbcUrl); registry.add("spring.datasource.username", POSTGRES::getUsername); registry.add("spring.datasource.password", POSTGRES::getPassword); registry.add("app.pdf.font-path", () -> "/System/Library/Fonts/STHeiti Medium.ttc"); }
     @Autowired MockMvc mockMvc;
     @Autowired JdbcTemplate jdbc;
+
+    @BeforeEach
+    void seedOwner() {
+        jdbc.update("INSERT INTO app_user(username,password_hash,display_name) VALUES('export-planner','{noop}test','测试排课员') ON CONFLICT (username) DO NOTHING");
+    }
 
     @Test
     void exportsXlsxPdfValidationAndPrintData() throws Exception {
@@ -58,8 +64,8 @@ class ScheduleExportIntegrationTest {
 
     private long seedCandidateVersion() {
         Long term = jdbc.queryForObject("SELECT id FROM academic_term WHERE code='2026-FALL'", Long.class);
-        Long scenario = jdbc.queryForObject("INSERT INTO schedule_scenario(term_id,name) VALUES(?, 'export-test') RETURNING id", Long.class, term);
-        Long version = jdbc.queryForObject("INSERT INTO schedule_version(scenario_id,status,score,legacy_identity_unverified) VALUES(?, 'CANDIDATE','0hard/0soft',FALSE) RETURNING id", Long.class, scenario);
+        Long scenario = jdbc.queryForObject("INSERT INTO schedule_scenario(term_id,owner_user_id,name) VALUES(?,(SELECT id FROM app_user WHERE username='export-planner'), 'export-test') RETURNING id", Long.class, term);
+        Long version = jdbc.queryForObject("INSERT INTO schedule_version(scenario_id,owner_user_id,status,score,legacy_identity_unverified) VALUES(?,(SELECT id FROM app_user WHERE username='export-planner'), 'CANDIDATE','0hard/0soft',FALSE) RETURNING id", Long.class, scenario);
         jdbc.update("INSERT INTO schedule_assignment(schedule_version_id,occurrence_id,occurrence_key,subject_code,subject_name,teacher_code,teacher_name,student_group_code,student_group_name,timeslot_code,timeslot_label,weekday,period_no,room_code,room_name,source,locked,duration,student_count,required_features,room_features,room_capacity) VALUES(?,1,'export-1','MATH','数学','T001','张老师','G7-1','七年级1班','MON-1','周一 第1节',1,1,'A101','教学楼 A101','SOLVER',false,1,0,'{}','{}',50)", version);
         return version;
     }
