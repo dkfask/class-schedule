@@ -307,6 +307,28 @@ class TimetableConstraintProviderTest {
     }
 
     @Test
+    void typedSpreadCountsOccurrencesInTheSameStudentGroupOnce() {
+        TypedScheduleRule rule =
+                new TypedScheduleRule(
+                        "SUBJECT_MIN_SPREAD_DAYS", "TERM", "__TERM__", 2, null, "SOFT", 3);
+        Timeslot first = new Timeslot("MON-1", 1, 1, "周一 第1节");
+        Room room = new Room("A101", "教学楼 A101", 50);
+        LessonOccurrence left = occurrence(1L, "T001", "G7-1");
+        LessonOccurrence right = occurrence(2L, "T002", "G7-2");
+        left.setSubjectCode("MATH");
+        right.setSubjectCode("MATH");
+        right.setStudentGroupCode("G7-1");
+        left.setTimeslot(first);
+        left.setRoom(room);
+        right.setTimeslot(first);
+        right.setRoom(room);
+
+        verifier.verifyThat((p, factory) -> p.typedSpread(factory, "SOFT"))
+                .given(rule, left, right)
+                .penalizesBy(3);
+    }
+
+    @Test
     void typedSpreadDoesNotAggregateDifferentStudentGroups() {
         TypedScheduleRule rule =
                 new TypedScheduleRule(
