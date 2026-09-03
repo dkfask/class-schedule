@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { routerKey } from 'vue-router'
 import ImportPanel from './ImportPanel.vue'
 import { clearCsrfToken } from '../api/http'
 import { resetTermStore } from '../stores/term'
@@ -11,6 +12,7 @@ function response(body: unknown, ok = true) {
 function mountPanel() {
   return mount(ImportPanel, {
     global: {
+      provide: { [routerKey]: { push: vi.fn() } },
       stubs: {
         'el-button': {
           props: ['disabled', 'loading'],
@@ -32,6 +34,7 @@ afterEach(() => {
 
 describe('ImportPanel', () => {
   it('downloads the stable master-data template', async () => {
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
     const createObjectURL = vi.fn(() => 'blob:template')
     const revokeObjectURL = vi.fn()
     const urlApi = globalThis.URL as typeof URL & {

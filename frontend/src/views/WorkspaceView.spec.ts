@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { routerKey } from 'vue-router'
 import WorkspaceView from './WorkspaceView.vue'
 import { resetTermStore } from '../stores/term'
 
@@ -69,7 +70,7 @@ function createFetchMock(previewResponses: unknown[] = []) {
 }
 
 function mountWorkspace() {
-  return mount(WorkspaceView, { global: { stubs: {
+  return mount(WorkspaceView, { global: { provide: { [routerKey]: { push: vi.fn() } }, stubs: {
     'el-button': { template: '<button><slot /></button>' }, 'el-select': { template: '<select><slot /></select>' }, 'el-option': { template: '<option><slot /></option>' }, 'el-drawer': { template: '<div><slot /></div>' }, 'el-form': { template: '<form><slot /></form>' }, 'el-form-item': { template: '<label><slot /></label>' }, 'el-input': { template: '<textarea />' }, 'el-tag': { template: '<span><slot /></span>' },
   } } })
 }
