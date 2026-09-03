@@ -8,7 +8,10 @@ public record PlanningProblem(
         List<LessonOccurrence> occurrences,
         List<ResourceAvailability> availabilities,
         List<TypedScheduleRule> rules) {
-    public PlanningProblem(List<Timeslot> timeslots, List<Room> rooms, List<LessonOccurrence> occurrences,
+    public PlanningProblem(
+            List<Timeslot> timeslots,
+            List<Room> rooms,
+            List<LessonOccurrence> occurrences,
             List<ResourceAvailability> availabilities) {
         this(timeslots, rooms, occurrences, availabilities, List.of());
     }

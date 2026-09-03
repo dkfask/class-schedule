@@ -6,8 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,10 +26,11 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 class SolveReadinessControllerIntegrationTest {
     @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("class_schedule_readiness_controller")
-            .withUsername("class_schedule")
-            .withPassword("class_schedule");
+    static final PostgreSQLContainer<?> POSTGRES =
+            new PostgreSQLContainer<>("postgres:16-alpine")
+                    .withDatabaseName("class_schedule_readiness_controller")
+                    .withUsername("class_schedule")
+                    .withPassword("class_schedule");
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
@@ -43,7 +44,8 @@ class SolveReadinessControllerIntegrationTest {
 
     @BeforeEach
     void seedPlannerIdentity() {
-        jdbc.update("INSERT INTO app_user(username,password_hash,display_name,enabled) VALUES('readiness-planner','{noop}test','测试排课员',TRUE) ON CONFLICT (username) DO UPDATE SET enabled=TRUE");
+        jdbc.update(
+                "INSERT INTO app_user(username,password_hash,display_name,enabled) VALUES('readiness-planner','{noop}test','测试排课员',TRUE) ON CONFLICT (username) DO UPDATE SET enabled=TRUE");
     }
 
     @Test
@@ -84,25 +86,45 @@ class SolveReadinessControllerIntegrationTest {
     @WithMockUser(username = "readiness-planner", roles = "PLANNER")
     void blockedEnqueueReturnsReadinessDetailsWithoutCreatingRows() throws Exception {
         String termCode = "CTRL-BLOCK-" + System.nanoTime();
-        jdbc.update("INSERT INTO academic_term(code,name,status) VALUES(?,?, 'DRAFT')", termCode, "controller readiness block");
-        int scenariosBefore = jdbc.queryForObject("SELECT COUNT(*) FROM schedule_scenario", Integer.class);
-        int versionsBefore = jdbc.queryForObject("SELECT COUNT(*) FROM schedule_version", Integer.class);
+        jdbc.update(
+                "INSERT INTO academic_term(code,name,status) VALUES(?,?, 'DRAFT')",
+                termCode,
+                "controller readiness block");
+        int scenariosBefore =
+                jdbc.queryForObject("SELECT COUNT(*) FROM schedule_scenario", Integer.class);
+        int versionsBefore =
+                jdbc.queryForObject("SELECT COUNT(*) FROM schedule_version", Integer.class);
         int jobsBefore = jdbc.queryForObject("SELECT COUNT(*) FROM solve_job", Integer.class);
 
         try {
-            mockMvc.perform(post("/api/solve-jobs")
-                            .with(csrf())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"idempotencyKey\":\"controller-block-" + System.nanoTime() + "\",\"termCode\":\"" + termCode + "\"}"))
+            mockMvc.perform(
+                            post("/api/solve-jobs")
+                                    .with(csrf())
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(
+                                            "{\"idempotencyKey\":\"controller-block-"
+                                                    + System.nanoTime()
+                                                    + "\",\"termCode\":\""
+                                                    + termCode
+                                                    + "\"}"))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.code").value("SOLVER_DATA_NOT_READY"))
                     .andExpect(jsonPath("$.readiness.termCode").value(termCode))
                     .andExpect(jsonPath("$.readiness.ready").value(false))
                     .andExpect(jsonPath("$.readiness.issues[0].code").value("NO_TIMESLOTS"))
-                    .andExpect(jsonPath("$.readiness.issues[1].code").value("NO_ACTIVE_REQUIREMENTS"));
-            org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM schedule_scenario", Integer.class)).isEqualTo(scenariosBefore);
-            org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM schedule_version", Integer.class)).isEqualTo(versionsBefore);
-            org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM solve_job", Integer.class)).isEqualTo(jobsBefore);
+                    .andExpect(
+                            jsonPath("$.readiness.issues[1].code").value("NO_ACTIVE_REQUIREMENTS"));
+            org.assertj.core.api.Assertions.assertThat(
+                            jdbc.queryForObject(
+                                    "SELECT COUNT(*) FROM schedule_scenario", Integer.class))
+                    .isEqualTo(scenariosBefore);
+            org.assertj.core.api.Assertions.assertThat(
+                            jdbc.queryForObject(
+                                    "SELECT COUNT(*) FROM schedule_version", Integer.class))
+                    .isEqualTo(versionsBefore);
+            org.assertj.core.api.Assertions.assertThat(
+                            jdbc.queryForObject("SELECT COUNT(*) FROM solve_job", Integer.class))
+                    .isEqualTo(jobsBefore);
         } finally {
             jdbc.update("DELETE FROM academic_term WHERE code = ?", termCode);
         }

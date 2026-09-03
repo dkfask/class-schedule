@@ -11,5 +11,6 @@ public record AdjustmentPreviewResponse(
         AdjustmentLocation current,
         AdjustmentLocation target) {
     public record Violation(String code, String message, String resourceCode) {}
+
     public record AdjustmentLocation(String timeslotCode, String roomCode) {}
 }

@@ -1,7 +1,5 @@
 package com.classschedule.masterdata;
 
-import java.util.Map;
-
 public enum MasterDataResource {
     TEACHERS("teacher", "教师"),
     STUDENT_GROUPS("student_group", "班级"),
@@ -16,8 +14,13 @@ public enum MasterDataResource {
         this.label = label;
     }
 
-    public String table() { return table; }
-    public String label() { return label; }
+    public String table() {
+        return table;
+    }
+
+    public String label() {
+        return label;
+    }
 
     public static MasterDataResource parse(String value) {
         return switch (value) {

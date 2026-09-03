@@ -9,15 +9,15 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
-import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.web.csrf.CsrfToken;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -25,7 +25,8 @@ import org.springframework.security.web.csrf.CsrfToken;
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final AppUserRepository users;
-    private final SecurityContextRepository securityContexts = new HttpSessionSecurityContextRepository();
+    private final SecurityContextRepository securityContexts =
+            new HttpSessionSecurityContextRepository();
 
     public AuthController(AuthenticationManager authenticationManager, AppUserRepository users) {
         this.authenticationManager = authenticationManager;
@@ -33,11 +34,15 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest,
+    public ResponseEntity<?> login(
+            @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
         try {
-            Authentication authentication = authenticationManager.authenticate(
-                    UsernamePasswordAuthenticationToken.unauthenticated(request.username(), request.password()));
+            Authentication authentication =
+                    authenticationManager.authenticate(
+                            UsernamePasswordAuthenticationToken.unauthenticated(
+                                    request.username(), request.password()));
             httpRequest.getSession(true);
             httpRequest.changeSessionId();
             SecurityContext context = SecurityContextHolder.createEmptyContext();
@@ -46,7 +51,8 @@ public class AuthController {
             securityContexts.saveContext(context, httpRequest, httpResponse);
             return ResponseEntity.ok(users.profile(authentication.getName()));
         } catch (org.springframework.security.core.AuthenticationException exception) {
-            return ResponseEntity.status(401).body(Map.of("code", "AUTHENTICATION_FAILED", "message", "用户名或密码错误"));
+            return ResponseEntity.status(401)
+                    .body(Map.of("code", "AUTHENTICATION_FAILED", "message", "用户名或密码错误"));
         }
     }
 
@@ -57,11 +63,20 @@ public class AuthController {
 
     @GetMapping("/csrf")
     public Map<String, String> csrf(CsrfToken token) {
-        return Map.of("headerName", token.getHeaderName(), "parameterName", token.getParameterName(), "token", token.getToken());
+        return Map.of(
+                "headerName",
+                token.getHeaderName(),
+                "parameterName",
+                token.getParameterName(),
+                "token",
+                token.getToken());
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+    public ResponseEntity<Void> logout(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Authentication authentication) {
         new SecurityContextLogoutHandler().logout(request, response, authentication);
         SecurityContextHolder.clearContext();
         return ResponseEntity.noContent().build();

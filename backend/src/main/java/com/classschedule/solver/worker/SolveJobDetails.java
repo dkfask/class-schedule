@@ -4,10 +4,24 @@ import com.classschedule.schedule.ScheduleScoreView;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public record SolveJobDetails(long jobId, long versionId, String jobStatus, String versionStatus,
-        int progress, String score, String errorCode, String errorMessage, int attempt,
-        String startedAt, String heartbeatAt, String finishedAt, boolean cancelRequested, String deadlineAt) {
-    public ScheduleScoreView scoreView() { return ScheduleScoreView.parse(score); }
+public record SolveJobDetails(
+        long jobId,
+        long versionId,
+        String jobStatus,
+        String versionStatus,
+        int progress,
+        String score,
+        String errorCode,
+        String errorMessage,
+        int attempt,
+        String startedAt,
+        String heartbeatAt,
+        String finishedAt,
+        boolean cancelRequested,
+        String deadlineAt) {
+    public ScheduleScoreView scoreView() {
+        return ScheduleScoreView.parse(score);
+    }
 
     public Map<String, Object> asMap() {
         ScheduleScoreView scoreView = scoreView();

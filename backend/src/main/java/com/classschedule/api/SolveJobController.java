@@ -24,7 +24,9 @@ public class SolveJobController {
     private final ScheduleRepository repository;
     private final PlanningProblemRepository planningProblemRepository;
 
-    public SolveJobController(SolverManager<Timetable, Long> solverManager, ScheduleRepository repository,
+    public SolveJobController(
+            SolverManager<Timetable, Long> solverManager,
+            ScheduleRepository repository,
             PlanningProblemRepository planningProblemRepository) {
         this.solverManager = solverManager;
         this.repository = repository;
@@ -35,13 +37,17 @@ public class SolveJobController {
     public Map<String, Object> submit() {
         long versionId = repository.createScenarioAndVersion();
         long jobId = repository.createJob(versionId);
-        solverManager.solve(jobId, planningProblemRepository.loadDefault().toTimetable(), solution -> {
-            try {
-                repository.markCompleted(jobId, versionId, String.valueOf(solution.getScore()), solution);
-            } catch (RuntimeException exception) {
-                repository.markFailed(jobId, versionId, exception.getMessage());
-            }
-        });
+        solverManager.solve(
+                jobId,
+                planningProblemRepository.loadDefault().toTimetable(),
+                solution -> {
+                    try {
+                        repository.markCompleted(
+                                jobId, versionId, String.valueOf(solution.getScore()), solution);
+                    } catch (RuntimeException exception) {
+                        repository.markFailed(jobId, versionId, exception.getMessage());
+                    }
+                });
         return Map.of("jobId", jobId, "versionId", versionId, "status", "RUNNING");
     }
 
@@ -50,19 +56,21 @@ public class SolveJobController {
         try {
             ScheduleVersionView version = repository.findVersionByJob(jobId);
             ScheduleScoreView score = ScheduleScoreView.parse(version.score());
-            return ResponseEntity.ok(Map.of(
-                    "jobId", jobId,
-                    "versionId", version.id(),
-                    "status", version.status(),
-                    "score", version.score() == null ? "等待结果" : version.score(),
-                    "hardScore", score.hardScore(),
-                    "mediumScore", score.mediumScore(),
-                    "softScore", score.softScore(),
-                    "scoreValid", score.valid(),
-                    "publishable", version.publishable(),
-                    "occurrences", version.assignments()));
+            return ResponseEntity.ok(
+                    Map.of(
+                            "jobId", jobId,
+                            "versionId", version.id(),
+                            "status", version.status(),
+                            "score", version.score() == null ? "等待结果" : version.score(),
+                            "hardScore", score.hardScore(),
+                            "mediumScore", score.mediumScore(),
+                            "softScore", score.softScore(),
+                            "scoreValid", score.valid(),
+                            "publishable", version.publishable(),
+                            "occurrences", version.assignments()));
         } catch (IllegalArgumentException exception) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", exception.getMessage()));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", exception.getMessage()));
         }
     }
 

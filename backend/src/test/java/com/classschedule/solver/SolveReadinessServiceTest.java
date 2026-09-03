@@ -21,20 +21,21 @@ class SolveReadinessServiceTest {
         SolveReadiness result = new SolveReadinessService(jdbc).check(" ");
 
         assertThat(result.ready()).isFalse();
-        assertThat(result.issues()).extracting(SolveReadiness.Issue::code)
+        assertThat(result.issues())
+                .extracting(SolveReadiness.Issue::code)
                 .containsExactly("TERM_REQUIRED");
     }
 
     @Test
     void rejectsMissingTerm() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
-        when(jdbc.query(anyString(), any(RowMapper.class), eq("2026-FALL")))
-                .thenReturn(List.of());
+        when(jdbc.query(anyString(), any(RowMapper.class), eq("2026-FALL"))).thenReturn(List.of());
 
         SolveReadiness result = new SolveReadinessService(jdbc).check("2026-FALL");
 
         assertThat(result.ready()).isFalse();
-        assertThat(result.issues()).extracting(SolveReadiness.Issue::code)
+        assertThat(result.issues())
+                .extracting(SolveReadiness.Issue::code)
                 .containsExactly("TERM_NOT_FOUND");
     }
 
@@ -47,7 +48,8 @@ class SolveReadinessServiceTest {
         SolveReadiness result = new SolveReadinessService(jdbc).check("2026-FALL");
 
         assertThat(result.ready()).isFalse();
-        assertThat(result.issues()).extracting(SolveReadiness.Issue::code)
+        assertThat(result.issues())
+                .extracting(SolveReadiness.Issue::code)
                 .containsExactly("TERM_ARCHIVED");
     }
 
@@ -56,11 +58,13 @@ class SolveReadinessServiceTest {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         when(jdbc.query(anyString(), any(RowMapper.class), eq("2026-FALL")))
                 .thenReturn(List.of("ACTIVE"));
-        when(jdbc.queryForObject(contains("SELECT id FROM academic_term"), eq(Long.class), eq("2026-FALL")))
+        when(jdbc.queryForObject(
+                        contains("SELECT id FROM academic_term"), eq(Long.class), eq("2026-FALL")))
                 .thenReturn(1L);
         when(jdbc.queryForObject(contains("period_template"), eq(Integer.class), eq(1L)))
                 .thenReturn(0);
-        when(jdbc.queryForObject(contains("room WHERE active"), eq(Integer.class), any(Object[].class)))
+        when(jdbc.queryForObject(
+                        contains("room WHERE active"), eq(Integer.class), any(Object[].class)))
                 .thenReturn(0);
         when(jdbc.queryForObject(contains("teaching_requirement"), eq(Integer.class), eq(1L)))
                 .thenReturn(0);
@@ -71,7 +75,8 @@ class SolveReadinessServiceTest {
         assertThat(result.timeslotCount()).isZero();
         assertThat(result.roomCount()).isZero();
         assertThat(result.requirementCount()).isZero();
-        assertThat(result.issues()).extracting(SolveReadiness.Issue::code)
+        assertThat(result.issues())
+                .extracting(SolveReadiness.Issue::code)
                 .containsExactly("NO_TIMESLOTS", "NO_ACTIVE_ROOMS", "NO_ACTIVE_REQUIREMENTS");
     }
 
@@ -80,11 +85,13 @@ class SolveReadinessServiceTest {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         when(jdbc.query(anyString(), any(RowMapper.class), eq("2026-FALL")))
                 .thenReturn(List.of("ACTIVE"));
-        when(jdbc.queryForObject(contains("SELECT id FROM academic_term"), eq(Long.class), eq("2026-FALL")))
+        when(jdbc.queryForObject(
+                        contains("SELECT id FROM academic_term"), eq(Long.class), eq("2026-FALL")))
                 .thenReturn(1L);
         when(jdbc.queryForObject(contains("period_template"), eq(Integer.class), eq(1L)))
                 .thenReturn(4);
-        when(jdbc.queryForObject(contains("room WHERE active"), eq(Integer.class), any(Object[].class)))
+        when(jdbc.queryForObject(
+                        contains("room WHERE active"), eq(Integer.class), any(Object[].class)))
                 .thenReturn(2);
         when(jdbc.queryForObject(contains("teaching_requirement"), eq(Integer.class), eq(1L)))
                 .thenReturn(3);

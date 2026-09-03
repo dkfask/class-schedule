@@ -5,8 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class Room {
-    @PlanningId
-    private String id;
+    @PlanningId private String id;
     private String name;
     private int capacity;
     private Set<String> features = new LinkedHashSet<>();
@@ -20,18 +19,46 @@ public class Room {
         this.capacity = capacity;
     }
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public int getCapacity() { return capacity; }
-    public void setCapacity(int capacity) { this.capacity = capacity; }
-    public Set<String> getFeatures() { return features; }
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(int capacity) {
+        this.capacity = capacity;
+    }
+
+    public Set<String> getFeatures() {
+        return features;
+    }
+
     public void setFeatures(Set<String> features) {
         this.features = features == null ? new LinkedHashSet<>() : new LinkedHashSet<>(features);
     }
-    public Set<String> getUnavailablePeriodCodes() { return unavailablePeriodCodes; }
+
+    public Set<String> getUnavailablePeriodCodes() {
+        return unavailablePeriodCodes;
+    }
+
     public void setUnavailablePeriodCodes(Set<String> unavailablePeriodCodes) {
-        this.unavailablePeriodCodes = unavailablePeriodCodes == null ? new LinkedHashSet<>() : new LinkedHashSet<>(unavailablePeriodCodes);
+        this.unavailablePeriodCodes =
+                unavailablePeriodCodes == null
+                        ? new LinkedHashSet<>()
+                        : new LinkedHashSet<>(unavailablePeriodCodes);
     }
 }

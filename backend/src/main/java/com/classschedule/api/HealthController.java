@@ -11,6 +11,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthController {
     @GetMapping
     public Map<String, Object> health() {
-        return Map.of("status", "UP", "service", "class-schedule-backend", "time", Instant.now().toString());
+        return Map.of(
+                "status",
+                "UP",
+                "service",
+                "class-schedule-backend",
+                "time",
+                Instant.now().toString());
     }
 }

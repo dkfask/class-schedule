@@ -13,6 +13,9 @@ public class SolveReadinessException extends IllegalArgumentException {
     }
 
     private static String message(SolveReadiness readiness) {
-        return readiness.issues().stream().map(SolveReadiness.Issue::message).reduce((left, right) -> left + "；" + right).orElse("排课基础数据未就绪");
+        return readiness.issues().stream()
+                .map(SolveReadiness.Issue::message)
+                .reduce((left, right) -> left + "；" + right)
+                .orElse("排课基础数据未就绪");
     }
 }
