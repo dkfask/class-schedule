@@ -6,6 +6,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.io.ByteArrayInputStream;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +31,15 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @WithMockUser(username = "export-planner", roles = "PLANNER")
 class ScheduleExportIntegrationTest {
     @Container static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine").withDatabaseName("class_schedule_export").withUsername("class_schedule").withPassword("class_schedule");
-    @DynamicPropertySource static void database(DynamicPropertyRegistry registry) { registry.add("spring.datasource.url", POSTGRES::getJdbcUrl); registry.add("spring.datasource.username", POSTGRES::getUsername); registry.add("spring.datasource.password", POSTGRES::getPassword); registry.add("app.pdf.font-path", () -> "/System/Library/Fonts/STHeiti Medium.ttc"); }
+    private static final String TEST_CJK_FONT = resolveTestFont();
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRES::getUsername);
+        registry.add("spring.datasource.password", POSTGRES::getPassword);
+        if (TEST_CJK_FONT != null) registry.add("app.pdf.font-path", () -> TEST_CJK_FONT);
+    }
     @Autowired MockMvc mockMvc;
     @Autowired JdbcTemplate jdbc;
 
@@ -54,12 +65,37 @@ class ScheduleExportIntegrationTest {
         assertThat(pdf).startsWith(new byte[]{37, 80, 68, 70});
         try (org.apache.pdfbox.pdmodel.PDDocument document = org.apache.pdfbox.Loader.loadPDF(pdf)) {
             String extracted = new org.apache.pdfbox.text.PDFTextStripper().getText(document);
-            assertThat(extracted).contains("课表版本", "数学");
+            assertThat(extracted).contains("v" + version, "revision 0", "T001", "G7-1", "MON-1", "A101");
+            if (TEST_CJK_FONT == null) assertThat(extracted).contains("?");
+            else assertThat(extracted).contains("课表版本", "数学");
         }
         mockMvc.perform(get("/api/schedule-versions/" + version + "/validation"))
                 .andExpect(status().isOk()).andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
         mockMvc.perform(get("/api/schedule-versions/" + version + "/print?view=CLASS"))
                 .andExpect(status().isOk()).andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML)).andExpect(content().string(org.hamcrest.Matchers.containsString("课表版本")));
+    }
+
+    private static String resolveTestFont() {
+        String configured = System.getenv("APP_PDF_FONT_PATH");
+        String[] candidates = {
+                configured,
+                "/System/Library/Fonts/STHeiti Medium.ttc",
+                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.otf",
+                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+                "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+                "C:/Windows/Fonts/msyh.ttc",
+                "C:/Windows/Fonts/simhei.ttf"
+        };
+        for (String candidate : candidates) {
+            if (candidate == null || candidate.isBlank()) continue;
+            try {
+                if (Files.isRegularFile(Path.of(candidate))) return candidate;
+            } catch (InvalidPathException ignored) {
+                // Ignore an invalid optional path and continue with other platform candidates.
+            }
+        }
+        return null;
     }
 
     private long seedCandidateVersion() {
