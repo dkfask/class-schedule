@@ -15,5 +15,4 @@ public record TeachingRequirementRequest(
         @Positive int durationPeriods,
         @PositiveOrZero int studentCount,
         @Size(max = 512) String requiredFeatures,
-        @Size(max = 64) String pinnedPeriodCode) {
-}
+        @Size(max = 64) String pinnedPeriodCode) {}

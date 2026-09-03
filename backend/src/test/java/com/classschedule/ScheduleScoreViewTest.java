@@ -39,8 +39,10 @@ class ScheduleScoreViewTest {
 
     @Test
     void serializesTimefoldScoreWithoutLosingComponents() {
-        ScheduleScoreView score = ScheduleScoreView.from(
-                ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore.of(-1, -3, -7));
+        ScheduleScoreView score =
+                ScheduleScoreView.from(
+                        ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore
+                                .of(-1, -3, -7));
 
         assertThat(score.score()).isEqualTo("-1hard/-3medium/-7soft");
         assertThat(score.hardScore()).isEqualTo(-1);

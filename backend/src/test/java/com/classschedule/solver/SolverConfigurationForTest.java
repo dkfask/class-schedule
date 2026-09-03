@@ -8,11 +8,13 @@ final class SolverConfigurationForTest {
     private SolverConfigurationForTest() {}
 
     static Solver<Timetable> createSolver() {
-        SolverFactory<Timetable> factory = SolverFactory.create(new SolverConfig()
-                .withSolutionClass(Timetable.class)
-                .withEntityClasses(LessonOccurrence.class)
-                .withConstraintProviderClass(TimetableConstraintProvider.class)
-                .withTerminationSpentLimit(java.time.Duration.ofSeconds(2)));
+        SolverFactory<Timetable> factory =
+                SolverFactory.create(
+                        new SolverConfig()
+                                .withSolutionClass(Timetable.class)
+                                .withEntityClasses(LessonOccurrence.class)
+                                .withConstraintProviderClass(TimetableConstraintProvider.class)
+                                .withTerminationSpentLimit(java.time.Duration.ofSeconds(2)));
         return factory.buildSolver();
     }
 }

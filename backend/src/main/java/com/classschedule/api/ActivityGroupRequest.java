@@ -11,7 +11,8 @@ public record ActivityGroupRequest(
         @NotBlank String activityType,
         @NotEmpty List<String> requirementCodes,
         @Size(max = 64) String termCode) {
-    public ActivityGroupRequest(String code, String name, String activityType, List<String> requirementCodes) {
+    public ActivityGroupRequest(
+            String code, String name, String activityType, List<String> requirementCodes) {
         this(code, name, activityType, requirementCodes, null);
     }
 

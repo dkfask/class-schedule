@@ -25,11 +25,15 @@ public class ScheduleVersionController {
     }
 
     @GetMapping("/{versionId}")
-    public ResponseEntity<ScheduleVersionView> get(@PathVariable Long versionId, Authentication authentication) {
+    public ResponseEntity<ScheduleVersionView> get(
+            @PathVariable Long versionId, Authentication authentication) {
         try {
             ScheduleVersionView version = repository.findVersion(versionId);
-            if (isPublishedOnlyViewer(authentication) && !Set.of("PUBLISHED").contains(version.status())) return ResponseEntity.status(403).build();
-            if (!repository.canAccessVersion(versionId, authentication.getName())) return ResponseEntity.notFound().build();
+            if (isPublishedOnlyViewer(authentication)
+                    && !Set.of("PUBLISHED").contains(version.status()))
+                return ResponseEntity.status(403).build();
+            if (!repository.canAccessVersion(versionId, authentication.getName()))
+                return ResponseEntity.notFound().build();
             return ResponseEntity.ok(version);
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.notFound().build();
@@ -38,26 +42,43 @@ public class ScheduleVersionController {
 
     private boolean isPublishedOnlyViewer(Authentication authentication) {
         if (authentication == null) return false;
-        boolean viewer = authentication.getAuthorities().stream().anyMatch(a -> "ROLE_VIEWER".equals(a.getAuthority()));
-        boolean planner = authentication.getAuthorities().stream().anyMatch(a -> "ROLE_PLANNER".equals(a.getAuthority()));
+        boolean viewer =
+                authentication.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_VIEWER".equals(a.getAuthority()));
+        boolean planner =
+                authentication.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_PLANNER".equals(a.getAuthority()));
         return viewer && !planner;
     }
 
     @PostMapping("/{versionId}/publish")
-    public ResponseEntity<Map<String, Object>> publish(@PathVariable Long versionId,
+    public ResponseEntity<Map<String, Object>> publish(
+            @PathVariable Long versionId,
             @RequestHeader(value = "If-Match", required = false) Long expectedRevision,
             Authentication authentication) {
         try {
             if (!repository.publish(versionId, expectedRevision, authentication.getName())) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                        "status", "NOT_PUBLISHABLE",
-                        "message", "版本尚未通过全部任务已分配、硬约束为零和独立校验门禁"));
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(
+                                Map.of(
+                                        "status", "NOT_PUBLISHABLE",
+                                        "message", "版本尚未通过全部任务已分配、硬约束为零和独立校验门禁"));
             }
             return ResponseEntity.ok(Map.of("versionId", versionId, "status", "PUBLISHED"));
         } catch (VersionMutationException exception) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                    "status", "CONFLICT", "code", exception.code(), "versionId", exception.versionId(),
-                    "currentRevision", exception.currentRevision(), "message", exception.getMessage()));
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(
+                            Map.of(
+                                    "status",
+                                    "CONFLICT",
+                                    "code",
+                                    exception.code(),
+                                    "versionId",
+                                    exception.versionId(),
+                                    "currentRevision",
+                                    exception.currentRevision(),
+                                    "message",
+                                    exception.getMessage()));
         }
     }
 }

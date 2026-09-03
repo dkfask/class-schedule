@@ -4,8 +4,10 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public record ScheduleScoreView(String score, Integer hardScore, Integer mediumScore, Integer softScore) {
-    private static final Pattern COMPONENT = Pattern.compile("^(-?\\d+)(hard|medium|soft)$", Pattern.CASE_INSENSITIVE);
+public record ScheduleScoreView(
+        String score, Integer hardScore, Integer mediumScore, Integer softScore) {
+    private static final Pattern COMPONENT =
+            Pattern.compile("^(-?\\d+)(hard|medium|soft)$", Pattern.CASE_INSENSITIVE);
 
     public static ScheduleScoreView parse(String raw) {
         if (raw == null || raw.isBlank() || "等待结果".equals(raw)) {
@@ -31,17 +33,21 @@ public record ScheduleScoreView(String score, Integer hardScore, Integer mediumS
                 case "hard" -> hard = hard == null ? value : null;
                 case "medium" -> medium = medium == null ? value : null;
                 case "soft" -> soft = soft == null ? value : null;
-                default -> { return new ScheduleScoreView(raw, null, null, null); }
+                default -> {
+                    return new ScheduleScoreView(raw, null, null, null);
+                }
             }
         }
-        if (hard == null || (components.length == 3 && (medium == null || soft == null))
+        if (hard == null
+                || (components.length == 3 && (medium == null || soft == null))
                 || (components.length == 2 && (medium != null || soft == null))) {
             return new ScheduleScoreView(raw, null, null, null);
         }
         return new ScheduleScoreView(raw, hard, medium == null ? 0 : medium, soft);
     }
 
-    public static ScheduleScoreView from(ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore score) {
+    public static ScheduleScoreView from(
+            ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore score) {
         return score == null ? parse(null) : parse(score.toString());
     }
 

@@ -13,7 +13,8 @@ public class AcademicTermResolver {
 
     public String resolve(String requestedCode) {
         if (requestedCode != null && !requestedCode.isBlank()) return requestedCode.trim();
-        return jdbc.query(
+        return jdbc
+                .query(
                         "SELECT code FROM academic_term WHERE status <> 'ARCHIVED' ORDER BY CASE status WHEN 'ACTIVE' THEN 0 WHEN 'DRAFT' THEN 1 ELSE 2 END, id LIMIT 1",
                         (rs, rowNum) -> rs.getString("code"))
                 .stream()

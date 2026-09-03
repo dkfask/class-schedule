@@ -18,6 +18,7 @@ public class TermController {
 
     @GetMapping
     public List<Map<String, Object>> list() {
-        return jdbc.queryForList("SELECT code, name, status FROM academic_term WHERE status <> 'ARCHIVED' ORDER BY id");
+        return jdbc.queryForList(
+                "SELECT code, name, status FROM academic_term WHERE status <> 'ARCHIVED' ORDER BY id");
     }
 }

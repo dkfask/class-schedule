@@ -9,11 +9,13 @@ import org.junit.jupiter.api.Test;
 class PeriodContinuityTest {
     @Test
     void usesTheNextLegalPeriodAfterTheWholeDuration() {
-        Map<String, String> next = PeriodContinuity.nextCodes(List.of(
-                new PeriodContinuity.Segment("MON-1", 1, 1, "REGULAR", false),
-                new PeriodContinuity.Segment("MON-2", 1, 2, "REGULAR", false),
-                new PeriodContinuity.Segment("MON-3", 1, 3, "REGULAR", true),
-                new PeriodContinuity.Segment("MON-4", 1, 4, "REGULAR", false)));
+        Map<String, String> next =
+                PeriodContinuity.nextCodes(
+                        List.of(
+                                new PeriodContinuity.Segment("MON-1", 1, 1, "REGULAR", false),
+                                new PeriodContinuity.Segment("MON-2", 1, 2, "REGULAR", false),
+                                new PeriodContinuity.Segment("MON-3", 1, 3, "REGULAR", true),
+                                new PeriodContinuity.Segment("MON-4", 1, 4, "REGULAR", false)));
 
         assertThat(PeriodContinuity.codeAfter(next, "MON-1", 1)).isEqualTo("MON-2");
         assertThat(PeriodContinuity.isConsecutive(next, "MON-1", "MON-2", 1)).isTrue();
@@ -23,11 +25,13 @@ class PeriodContinuityTest {
 
     @Test
     void doesNotJoinDifferentContinuityGroupsOrWeekdays() {
-        Map<String, String> next = PeriodContinuity.nextCodes(List.of(
-                new PeriodContinuity.Segment("MON-1", 1, 1, "REGULAR", false),
-                new PeriodContinuity.Segment("MON-2", 1, 2, "BREAKOUT", false),
-                new PeriodContinuity.Segment("TUE-1", 2, 1, "REGULAR", false),
-                new PeriodContinuity.Segment("TUE-2", 2, 2, "REGULAR", false)));
+        Map<String, String> next =
+                PeriodContinuity.nextCodes(
+                        List.of(
+                                new PeriodContinuity.Segment("MON-1", 1, 1, "REGULAR", false),
+                                new PeriodContinuity.Segment("MON-2", 1, 2, "BREAKOUT", false),
+                                new PeriodContinuity.Segment("TUE-1", 2, 1, "REGULAR", false),
+                                new PeriodContinuity.Segment("TUE-2", 2, 2, "REGULAR", false)));
 
         assertThat(next).containsEntry("TUE-1", "TUE-2").doesNotContainKey("MON-1");
         assertThat(PeriodContinuity.isConsecutive(next, "MON-1", "MON-2", 1)).isFalse();

@@ -12,7 +12,12 @@ public record ImportPreview(
         String templateVersion,
         String schemaHash,
         List<ImportSheetStat> sheetStats) {
-    public ImportPreview(long batchId, String status, String sha256, List<String> sheets, List<ImportIssue> issues) {
+    public ImportPreview(
+            long batchId,
+            String status,
+            String sha256,
+            List<String> sheets,
+            List<ImportIssue> issues) {
         this(batchId, status, sha256, sheets, issues, "", "", "", List.of());
     }
 }

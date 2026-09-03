@@ -22,15 +22,26 @@ import org.springframework.web.bind.annotation.RestController;
 public class PersistentSolveJobController {
     private final SolveJobRepository jobs;
 
-    public PersistentSolveJobController(SolveJobRepository jobs) { this.jobs = jobs; }
+    public PersistentSolveJobController(SolveJobRepository jobs) {
+        this.jobs = jobs;
+    }
 
     @PostMapping
-    public ResponseEntity<?> enqueue(@RequestBody(required = false) SubmitSolveJobRequest request, Authentication authentication) {
+    public ResponseEntity<?> enqueue(
+            @RequestBody(required = false) SubmitSolveJobRequest request,
+            Authentication authentication) {
         String key = request == null ? null : request.idempotencyKey();
         String termCode = request == null ? null : request.termCode();
         try {
             SolveJobHandle handle = jobs.enqueue(key, authentication.getName(), termCode);
-            return ResponseEntity.ok(Map.of("jobId", handle.jobId(), "versionId", handle.versionId(), "status", handle.status()));
+            return ResponseEntity.ok(
+                    Map.of(
+                            "jobId",
+                            handle.jobId(),
+                            "versionId",
+                            handle.versionId(),
+                            "status",
+                            handle.status()));
         } catch (SolveReadinessException exception) {
             return SolveReadinessController.blocked(exception);
         }
@@ -42,20 +53,34 @@ public class PersistentSolveJobController {
             SolveJobDetails details = jobs.details(jobId, authentication.getName());
             return ResponseEntity.ok(details.asMap());
         } catch (EmptyResultDataAccessException | IllegalArgumentException exception) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("code", "JOB_NOT_FOUND", "message", "求解任务不存在"));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("code", "JOB_NOT_FOUND", "message", "求解任务不存在"));
         }
     }
 
     @PostMapping("/{jobId}/cancel")
-    public ResponseEntity<Map<String, Object>> cancel(@PathVariable long jobId, Authentication authentication) {
+    public ResponseEntity<Map<String, Object>> cancel(
+            @PathVariable long jobId, Authentication authentication) {
         try {
             boolean requested = jobs.requestCancel(jobId, authentication.getName());
             SolveJobDetails after = jobs.details(jobId, authentication.getName());
-            return ResponseEntity.ok(Map.of("jobId", jobId, "cancelRequested", requested, "jobStatus", after.jobStatus(), "versionStatus", after.versionStatus()));
+            return ResponseEntity.ok(
+                    Map.of(
+                            "jobId",
+                            jobId,
+                            "cancelRequested",
+                            requested,
+                            "jobStatus",
+                            after.jobStatus(),
+                            "versionStatus",
+                            after.versionStatus()));
         } catch (EmptyResultDataAccessException | IllegalArgumentException exception) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("code", "JOB_NOT_FOUND", "message", "求解任务不存在"));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("code", "JOB_NOT_FOUND", "message", "求解任务不存在"));
         }
     }
 
-    public record SubmitSolveJobRequest(@Size(max = 128) String idempotencyKey, @jakarta.validation.constraints.Size(max = 64) String termCode) {}
+    public record SubmitSolveJobRequest(
+            @Size(max = 128) String idempotencyKey,
+            @jakarta.validation.constraints.Size(max = 64) String termCode) {}
 }

@@ -29,9 +29,14 @@ public class SolveReadinessController {
 
     public static ResponseEntity<Map<String, Object>> blocked(SolveReadinessException exception) {
         SolveReadiness result = exception.readiness();
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                "code", "SOLVER_DATA_NOT_READY",
-                "message", exception.getMessage(),
-                "readiness", result));
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(
+                        Map.of(
+                                "code",
+                                "SOLVER_DATA_NOT_READY",
+                                "message",
+                                exception.getMessage(),
+                                "readiness",
+                                result));
     }
 }

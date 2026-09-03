@@ -10,8 +10,7 @@ import java.util.Set;
 
 @PlanningEntity
 public class LessonOccurrence {
-    @PlanningId
-    private Long id;
+    @PlanningId private Long id;
     private String subjectCode;
     private String subjectName;
     private String teacherCode;
@@ -45,8 +44,14 @@ public class LessonOccurrence {
 
     public LessonOccurrence() {}
 
-    public LessonOccurrence(Long id, String subjectCode, String subjectName, String teacherCode,
-            String teacherName, String studentGroupCode, String studentGroupName) {
+    public LessonOccurrence(
+            Long id,
+            String subjectCode,
+            String subjectName,
+            String teacherCode,
+            String teacherName,
+            String studentGroupCode,
+            String studentGroupName) {
         this.id = id;
         this.subjectCode = subjectCode;
         this.subjectName = subjectName;
@@ -58,8 +63,15 @@ public class LessonOccurrence {
     }
 
     public LessonOccurrence copy() {
-        LessonOccurrence copy = new LessonOccurrence(id, subjectCode, subjectName, teacherCode,
-                teacherName, studentGroupCode, studentGroupName);
+        LessonOccurrence copy =
+                new LessonOccurrence(
+                        id,
+                        subjectCode,
+                        subjectName,
+                        teacherCode,
+                        teacherName,
+                        studentGroupCode,
+                        studentGroupName);
         copy.duration = duration;
         copy.studentCount = studentCount;
         copy.teachingRequirementId = teachingRequirementId;
@@ -83,76 +95,249 @@ public class LessonOccurrence {
         return copy;
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getSubjectCode() { return subjectCode; }
-    public void setSubjectCode(String subjectCode) { this.subjectCode = subjectCode; }
-    public String getSubjectName() { return subjectName; }
-    public void setSubjectName(String subjectName) { this.subjectName = subjectName; }
-    public String getTeacherCode() { return teacherCode; }
-    public void setTeacherCode(String teacherCode) { this.teacherCode = teacherCode; }
-    public String getTeacherName() { return teacherName; }
-    public void setTeacherName(String teacherName) { this.teacherName = teacherName; }
-    public String getStudentGroupCode() { return studentGroupCode; }
-    public void setStudentGroupCode(String studentGroupCode) { this.studentGroupCode = studentGroupCode; }
-    public String getStudentGroupName() { return studentGroupName; }
-    public void setStudentGroupName(String studentGroupName) { this.studentGroupName = studentGroupName; }
-    public int getDuration() { return duration; }
-    public void setDuration(int duration) { this.duration = duration; }
-    public int getStudentCount() { return studentCount; }
-    public void setStudentCount(int studentCount) { this.studentCount = studentCount; }
-    public Long getTeachingRequirementId() { return teachingRequirementId; }
-    public void setTeachingRequirementId(Long teachingRequirementId) { this.teachingRequirementId = teachingRequirementId; }
-    public String getRequirementCode() { return requirementCode; }
-    public void setRequirementCode(String requirementCode) { this.requirementCode = requirementCode; }
-    public String getOccurrenceKey() { return occurrenceKey == null ? String.valueOf(id) : occurrenceKey; }
-    public boolean hasExplicitOccurrenceKey() { return occurrenceKey != null && !occurrenceKey.isBlank(); }
-    public void setOccurrenceKey(String occurrenceKey) { this.occurrenceKey = occurrenceKey; }
-    public String getActivityGroupCode() { return activityGroupCode; }
-    public void setActivityGroupCode(String activityGroupCode) { this.activityGroupCode = activityGroupCode; }
-    public String getActivityType() { return activityType; }
-    public void setActivityType(String activityType) { this.activityType = activityType; }
-    public String getPinnedPeriodCode() { return pinnedPeriodCode; }
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getSubjectCode() {
+        return subjectCode;
+    }
+
+    public void setSubjectCode(String subjectCode) {
+        this.subjectCode = subjectCode;
+    }
+
+    public String getSubjectName() {
+        return subjectName;
+    }
+
+    public void setSubjectName(String subjectName) {
+        this.subjectName = subjectName;
+    }
+
+    public String getTeacherCode() {
+        return teacherCode;
+    }
+
+    public void setTeacherCode(String teacherCode) {
+        this.teacherCode = teacherCode;
+    }
+
+    public String getTeacherName() {
+        return teacherName;
+    }
+
+    public void setTeacherName(String teacherName) {
+        this.teacherName = teacherName;
+    }
+
+    public String getStudentGroupCode() {
+        return studentGroupCode;
+    }
+
+    public void setStudentGroupCode(String studentGroupCode) {
+        this.studentGroupCode = studentGroupCode;
+    }
+
+    public String getStudentGroupName() {
+        return studentGroupName;
+    }
+
+    public void setStudentGroupName(String studentGroupName) {
+        this.studentGroupName = studentGroupName;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
+    }
+
+    public int getStudentCount() {
+        return studentCount;
+    }
+
+    public void setStudentCount(int studentCount) {
+        this.studentCount = studentCount;
+    }
+
+    public Long getTeachingRequirementId() {
+        return teachingRequirementId;
+    }
+
+    public void setTeachingRequirementId(Long teachingRequirementId) {
+        this.teachingRequirementId = teachingRequirementId;
+    }
+
+    public String getRequirementCode() {
+        return requirementCode;
+    }
+
+    public void setRequirementCode(String requirementCode) {
+        this.requirementCode = requirementCode;
+    }
+
+    public String getOccurrenceKey() {
+        return occurrenceKey == null ? String.valueOf(id) : occurrenceKey;
+    }
+
+    public boolean hasExplicitOccurrenceKey() {
+        return occurrenceKey != null && !occurrenceKey.isBlank();
+    }
+
+    public void setOccurrenceKey(String occurrenceKey) {
+        this.occurrenceKey = occurrenceKey;
+    }
+
+    public String getActivityGroupCode() {
+        return activityGroupCode;
+    }
+
+    public void setActivityGroupCode(String activityGroupCode) {
+        this.activityGroupCode = activityGroupCode;
+    }
+
+    public String getActivityType() {
+        return activityType;
+    }
+
+    public void setActivityType(String activityType) {
+        this.activityType = activityType;
+    }
+
+    public String getPinnedPeriodCode() {
+        return pinnedPeriodCode;
+    }
+
     public void setPinnedPeriodCode(String pinnedPeriodCode) {
         this.pinnedPeriodCode = pinnedPeriodCode;
         refreshTimeslotRange();
     }
-    public int getActivityIndex() { return activityIndex; }
-    public void setActivityIndex(int activityIndex) { this.activityIndex = activityIndex; }
-    public int getActivityMemberIndex() { return activityMemberIndex; }
-    public void setActivityMemberIndex(int activityMemberIndex) { this.activityMemberIndex = activityMemberIndex; }
-    public Set<String> getRequiredFeatures() { return requiredFeatures; }
-    public void setRequiredFeatures(Set<String> requiredFeatures) { this.requiredFeatures = requiredFeatures == null ? new LinkedHashSet<>() : new LinkedHashSet<>(requiredFeatures); }
-    public Set<String> getUnavailablePeriodCodes() { return unavailablePeriodCodes; }
-    public void setUnavailablePeriodCodes(Set<String> unavailablePeriodCodes) { this.unavailablePeriodCodes = unavailablePeriodCodes == null ? new LinkedHashSet<>() : new LinkedHashSet<>(unavailablePeriodCodes); }
-    public Set<String> getAvailablePeriodCodes() { return availablePeriodCodes; }
-    public void setAvailablePeriodCodes(Set<String> availablePeriodCodes) { this.availablePeriodCodes = availablePeriodCodes == null ? new LinkedHashSet<>() : new LinkedHashSet<>(availablePeriodCodes); }
-    public Set<String> getBreakAfterPeriodCodes() { return breakAfterPeriodCodes; }
-    public void setBreakAfterPeriodCodes(Set<String> breakAfterPeriodCodes) { this.breakAfterPeriodCodes = breakAfterPeriodCodes == null ? new LinkedHashSet<>() : new LinkedHashSet<>(breakAfterPeriodCodes); }
-    public java.util.Map<String, String> getNextPeriodCodes() { return nextPeriodCodes; }
-    public void setNextPeriodCodes(java.util.Map<String, String> nextPeriodCodes) { this.nextPeriodCodes = nextPeriodCodes == null ? new java.util.LinkedHashMap<>() : new java.util.LinkedHashMap<>(nextPeriodCodes); }
+
+    public int getActivityIndex() {
+        return activityIndex;
+    }
+
+    public void setActivityIndex(int activityIndex) {
+        this.activityIndex = activityIndex;
+    }
+
+    public int getActivityMemberIndex() {
+        return activityMemberIndex;
+    }
+
+    public void setActivityMemberIndex(int activityMemberIndex) {
+        this.activityMemberIndex = activityMemberIndex;
+    }
+
+    public Set<String> getRequiredFeatures() {
+        return requiredFeatures;
+    }
+
+    public void setRequiredFeatures(Set<String> requiredFeatures) {
+        this.requiredFeatures =
+                requiredFeatures == null
+                        ? new LinkedHashSet<>()
+                        : new LinkedHashSet<>(requiredFeatures);
+    }
+
+    public Set<String> getUnavailablePeriodCodes() {
+        return unavailablePeriodCodes;
+    }
+
+    public void setUnavailablePeriodCodes(Set<String> unavailablePeriodCodes) {
+        this.unavailablePeriodCodes =
+                unavailablePeriodCodes == null
+                        ? new LinkedHashSet<>()
+                        : new LinkedHashSet<>(unavailablePeriodCodes);
+    }
+
+    public Set<String> getAvailablePeriodCodes() {
+        return availablePeriodCodes;
+    }
+
+    public void setAvailablePeriodCodes(Set<String> availablePeriodCodes) {
+        this.availablePeriodCodes =
+                availablePeriodCodes == null
+                        ? new LinkedHashSet<>()
+                        : new LinkedHashSet<>(availablePeriodCodes);
+    }
+
+    public Set<String> getBreakAfterPeriodCodes() {
+        return breakAfterPeriodCodes;
+    }
+
+    public void setBreakAfterPeriodCodes(Set<String> breakAfterPeriodCodes) {
+        this.breakAfterPeriodCodes =
+                breakAfterPeriodCodes == null
+                        ? new LinkedHashSet<>()
+                        : new LinkedHashSet<>(breakAfterPeriodCodes);
+    }
+
+    public java.util.Map<String, String> getNextPeriodCodes() {
+        return nextPeriodCodes;
+    }
+
+    public void setNextPeriodCodes(java.util.Map<String, String> nextPeriodCodes) {
+        this.nextPeriodCodes =
+                nextPeriodCodes == null
+                        ? new java.util.LinkedHashMap<>()
+                        : new java.util.LinkedHashMap<>(nextPeriodCodes);
+    }
+
     @ValueRangeProvider(id = "timeslotRange")
-    public List<Timeslot> getTimeslotRange() { return timeslotRange; }
-    public void setTimeslotRange(List<Timeslot> timeslotRange) { this.timeslotRange = timeslotRange == null ? List.of() : List.copyOf(timeslotRange); }
+    public List<Timeslot> getTimeslotRange() {
+        return timeslotRange;
+    }
+
+    public void setTimeslotRange(List<Timeslot> timeslotRange) {
+        this.timeslotRange = timeslotRange == null ? List.of() : List.copyOf(timeslotRange);
+    }
+
     public void setTimeslotPool(List<Timeslot> timeslotPool) {
         this.timeslotPool = timeslotPool == null ? List.of() : List.copyOf(timeslotPool);
         refreshTimeslotRange();
     }
-    public boolean isPinned() { return pinned; }
-    public void setPinned(boolean pinned) { this.pinned = pinned; }
-    public Timeslot getTimeslot() { return timeslot; }
-    public void setTimeslot(Timeslot timeslot) { this.timeslot = timeslot; }
-    public Room getRoom() { return room; }
-    public void setRoom(Room room) { this.room = room; }
+
+    public boolean isPinned() {
+        return pinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        this.pinned = pinned;
+    }
+
+    public Timeslot getTimeslot() {
+        return timeslot;
+    }
+
+    public void setTimeslot(Timeslot timeslot) {
+        this.timeslot = timeslot;
+    }
+
+    public Room getRoom() {
+        return room;
+    }
+
+    public void setRoom(Room room) {
+        this.room = room;
+    }
 
     private void refreshTimeslotRange() {
         if (timeslotPool.isEmpty()) return;
         if (pinnedPeriodCode == null || pinnedPeriodCode.isBlank()) {
             timeslotRange = timeslotPool;
         } else {
-            timeslotRange = timeslotPool.stream()
-                    .filter(timeslot -> pinnedPeriodCode.equals(timeslot.getId()))
-                    .toList();
+            timeslotRange =
+                    timeslotPool.stream()
+                            .filter(timeslot -> pinnedPeriodCode.equals(timeslot.getId()))
+                            .toList();
         }
     }
 }
