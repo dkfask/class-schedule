@@ -37,11 +37,37 @@ public final class PeriodContinuity {
                 .toList());
     }
 
+    public static String codeAfter(Map<String, String> nextCodes, String startCode, int periods) {
+        String code = startCode;
+        for (int index = 0; index < Math.max(0, periods) && code != null; index++) {
+            code = nextCodes.get(code);
+            if (code == null && nextCodes.isEmpty()) {
+                code = fallbackNextCode(startCode, index + 1);
+            }
+        }
+        return code;
+    }
+
+    public static boolean isConsecutive(Map<String, String> nextCodes, String startCode, String targetCode, int duration) {
+        return targetCode != null && Objects.equals(codeAfter(nextCodes, startCode, Math.max(1, duration)), targetCode);
+    }
+
     public static boolean adjacent(Segment current, Segment following) {
         return current != null && following != null
                 && current.period() + 1 == following.period()
                 && current.weekday() == following.weekday()
                 && Objects.equals(current.continuityGroup(), following.continuityGroup())
                 && !current.breakAfter();
+    }
+
+    private static String fallbackNextCode(String startCode, int periods) {
+        if (startCode == null) return null;
+        int separator = startCode.lastIndexOf('-');
+        if (separator < 0) return null;
+        try {
+            return startCode.substring(0, separator + 1) + (Integer.parseInt(startCode.substring(separator + 1)) + periods);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
     }
 }

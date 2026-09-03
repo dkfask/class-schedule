@@ -1,6 +1,10 @@
 package com.classschedule.solver.worker;
 
 import com.classschedule.schedule.ScheduleSnapshotHashService;
+import com.classschedule.masterdata.AcademicTermResolver;
+import com.classschedule.solver.SolveReadiness;
+import com.classschedule.solver.SolveReadinessException;
+import com.classschedule.solver.SolveReadinessService;
 import com.classschedule.solver.Timetable;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -8,7 +12,6 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,52 +20,65 @@ import org.springframework.transaction.annotation.Transactional;
 public class SolveJobRepository {
     private final JdbcTemplate jdbc;
     private final ScheduleSnapshotHashService snapshots;
+    private final SolveReadinessService readiness;
+    private final AcademicTermResolver terms;
 
-    public SolveJobRepository(JdbcTemplate jdbc, ScheduleSnapshotHashService snapshots) {
+    public SolveJobRepository(JdbcTemplate jdbc, ScheduleSnapshotHashService snapshots, SolveReadinessService readiness, AcademicTermResolver terms) {
         this.jdbc = jdbc;
         this.snapshots = snapshots;
+        this.readiness = readiness;
+        this.terms = terms;
     }
 
     @Transactional
     public SolveJobHandle enqueue(String idempotencyKey) {
-        return enqueue(idempotencyKey, null, "2026-FALL");
+        return enqueue(idempotencyKey, null, null);
     }
 
     @Transactional
     public SolveJobHandle enqueue(String idempotencyKey, String submittedByUsername) {
-        return enqueue(idempotencyKey, submittedByUsername, "2026-FALL");
+        return enqueue(idempotencyKey, submittedByUsername, null);
     }
 
     @Transactional
     public SolveJobHandle enqueue(String idempotencyKey, String submittedByUsername, String termCode) {
+        String owner = normalizedOwner(submittedByUsername);
+        requireKnownUser(owner);
+        String normalizedTermCode = terms.resolve(termCode);
+        SolveReadiness checked = readiness.check(normalizedTermCode);
+        if (!checked.ready()) throw new SolveReadinessException(checked);
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            String ownerClause = submittedByUsername == null ? "" : " AND (u.username = CAST(? AS varchar) OR CAST(? AS varchar) = 'system')";
-            Object[] ownerArgs = submittedByUsername == null ? new Object[]{} : new Object[]{submittedByUsername, submittedByUsername};
+            lockIdempotencyKey(idempotencyKey, owner);
+            String ownerClause = " AND (u.username = CAST(? AS varchar) OR CAST(? AS varchar) = 'system')";
+            Object[] ownerArgs = new Object[]{owner, owner};
             List<Object> params = new java.util.ArrayList<>();
             params.add(idempotencyKey);
             params.addAll(java.util.Arrays.asList(ownerArgs));
             List<SolveJobHandle> existing = jdbc.query(
-                    "SELECT j.id, j.schedule_version_id, j.status FROM solve_job j LEFT JOIN app_user u ON u.id = j.submitted_by_user_id WHERE j.idempotency_key = ? AND j.status IN ('QUEUED','RUNNING')" + ownerClause,
+                "SELECT j.id, j.schedule_version_id, j.status FROM solve_job j LEFT JOIN app_user u ON u.id = j.submitted_by_user_id WHERE j.idempotency_key = ? AND j.status IN ('QUEUED','RUNNING')" + ownerClause,
                     (rs, rowNum) -> new SolveJobHandle(rs.getLong("id"), rs.getLong("schedule_version_id"), rs.getString("status")), params.toArray());
             if (!existing.isEmpty()) return existing.get(0);
         }
-        try {
-            Long scenarioId = jdbc.queryForObject(
-                    "INSERT INTO schedule_scenario (term_id, name, status) SELECT id, '持久化求解场景', 'DRAFT' FROM academic_term WHERE code = ? RETURNING id",
-                    Long.class, termCode);
-            ScheduleSnapshotHashService.Snapshot snapshot = snapshots.snapshot(termCode);
-            Long versionId = jdbc.queryForObject(
-                    "INSERT INTO schedule_version (scenario_id, status, solver_version, random_seed, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at) VALUES (?, 'SOLVING', 'timefold-1.17.0', 0, ?, ?, ?, CURRENT_TIMESTAMP) RETURNING id",
-                    Long.class, scenarioId, snapshot.termCode(), snapshot.inputHash(), snapshot.ruleHash());
-            Long jobId = jdbc.queryForObject(
-                    "INSERT INTO solve_job (schedule_version_id, status, idempotency_key, next_attempt_at, deadline_at, submitted_by_user_id) VALUES (?, 'QUEUED', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '15 minutes', (SELECT id FROM app_user WHERE username = ?)) RETURNING id",
-                    Long.class, versionId,
-                    idempotencyKey == null || idempotencyKey.isBlank() ? UUID.randomUUID().toString() : idempotencyKey,
-                    submittedByUsername);
-            return new SolveJobHandle(jobId, versionId, "QUEUED");
-        } catch (DuplicateKeyException exception) {
-            return enqueue(idempotencyKey, submittedByUsername, termCode);
-        }
+        Long scenarioId = jdbc.queryForObject(
+                "INSERT INTO schedule_scenario (term_id, name, status, owner_user_id) SELECT id, '持久化求解场景', 'DRAFT', (SELECT id FROM app_user WHERE username = ?) FROM academic_term WHERE code = ? RETURNING id",
+                Long.class, owner, normalizedTermCode);
+        ScheduleSnapshotHashService.Snapshot snapshot = snapshots.snapshot(normalizedTermCode);
+        Long versionId = jdbc.queryForObject(
+                "INSERT INTO schedule_version (scenario_id, owner_user_id, status, solver_version, random_seed, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at) VALUES (?, (SELECT owner_user_id FROM schedule_scenario WHERE id = ?), 'SOLVING', 'timefold-1.17.0', 0, ?, ?, ?, CURRENT_TIMESTAMP) RETURNING id",
+                Long.class, scenarioId, scenarioId, snapshot.termCode(), snapshot.inputHash(), snapshot.ruleHash());
+        Long jobId = jdbc.queryForObject(
+                "INSERT INTO solve_job (schedule_version_id, status, idempotency_key, next_attempt_at, deadline_at, submitted_by_user_id) VALUES (?, 'QUEUED', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '15 minutes', (SELECT id FROM app_user WHERE username = ?)) RETURNING id",
+                Long.class, versionId,
+                idempotencyKey == null || idempotencyKey.isBlank() ? UUID.randomUUID().toString() : idempotencyKey,
+                owner);
+        return new SolveJobHandle(jobId, versionId, "QUEUED");
+    }
+
+    private void lockIdempotencyKey(String idempotencyKey, String submittedByUsername) {
+        String owner = submittedByUsername == null ? "__legacy__" : submittedByUsername;
+        jdbc.queryForRowSet(
+                "SELECT pg_advisory_xact_lock(hashtextextended(CAST(? AS text), 0))",
+                owner.length() + ":" + owner + ":" + idempotencyKey).next();
     }
 
 
@@ -114,7 +130,7 @@ public class SolveJobRepository {
 
     @Transactional
     public boolean requestCancel(long jobId, String requesterUsername) {
-        if (requesterUsername != null && jdbc.queryForObject("SELECT COUNT(*) FROM solve_job j LEFT JOIN app_user u ON u.id=j.submitted_by_user_id WHERE j.id=? AND (u.username=? OR ?='system')", Integer.class, jobId, requesterUsername, requesterUsername) == 0) {
+        if (requesterUsername != null && jdbc.queryForObject("SELECT COUNT(*) FROM solve_job j LEFT JOIN app_user u ON u.id=j.submitted_by_user_id WHERE j.id=? AND (u.username=? AND u.enabled=TRUE OR ?='system' OR EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id=ur.role_id JOIN app_user admin ON admin.id=ur.user_id WHERE admin.username=? AND admin.enabled=TRUE AND r.code='USER_ADMIN' AND r.active=TRUE))", Integer.class, jobId, requesterUsername, requesterUsername, requesterUsername) == 0) {
             throw new IllegalArgumentException("无权操作该求解任务");
         }
         int queued = jdbc.update(
@@ -140,7 +156,7 @@ public class SolveJobRepository {
             jdbc.update("INSERT INTO schedule_assignment (schedule_version_id, occurrence_id, teaching_requirement_id, requirement_code, occurrence_key, activity_index, activity_member_index, pinned_period_code, activity_type_snapshot, subject_code, subject_name, teacher_code, teacher_name, student_group_code, student_group_name, timeslot_code, timeslot_label, weekday, period_no, room_code, room_name, source, locked, duration, activity_group_code, student_count, required_features, room_features, room_capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", versionId, occurrence.getId(), occurrence.getTeachingRequirementId(), occurrence.getRequirementCode(), occurrence.getOccurrenceKey(), occurrence.getActivityIndex(), occurrence.getActivityMemberIndex(), occurrence.getPinnedPeriodCode(), occurrence.getActivityType(), occurrence.getSubjectCode(), occurrence.getSubjectName(), occurrence.getTeacherCode(), occurrence.getTeacherName(), occurrence.getStudentGroupCode(), occurrence.getStudentGroupName(), timeslot == null ? null : timeslot.getId(), timeslot == null ? null : timeslot.getLabel(), timeslot == null ? null : timeslot.getWeekday(), timeslot == null ? null : timeslot.getPeriod(), room == null ? null : room.getId(), room == null ? null : room.getName(), "SOLVER", occurrence.isPinned(), occurrence.getDuration(), occurrence.getActivityGroupCode(), occurrence.getStudentCount(), occurrence.getRequiredFeatures().toArray(String[]::new), room == null ? new String[0] : room.getFeatures().toArray(String[]::new), room == null ? 0 : room.getCapacity());
         });
         jdbc.update("UPDATE schedule_version SET status = 'CANDIDATE', score = ?, legacy_identity_unverified = ? WHERE id = ? AND status = 'SOLVING'", score, !identityComplete(solution), versionId);
-        return jdbc.update("UPDATE solve_job SET status = 'COMPLETED', progress = 100, finished_at = CURRENT_TIMESTAMP, lease_until = NULL WHERE id = ? AND status = 'COMPLETING' AND cancel_requested = FALSE", jobId) == 1;
+        return jdbc.update("UPDATE solve_job SET status = 'COMPLETED', progress = 100, error_code = NULL, error_message = NULL, finished_at = CURRENT_TIMESTAMP, lease_until = NULL WHERE id = ? AND status = 'COMPLETING' AND cancel_requested = FALSE", jobId) == 1;
     }
 
     private boolean identityComplete(Timetable solution) {
@@ -172,8 +188,8 @@ public class SolveJobRepository {
     }
 
     public SolveJobDetails details(long jobId, String requesterUsername) {
-        String ownerClause = requesterUsername == null ? "" : " AND (u.username = ? OR ? = 'system')";
-        Object[] args = requesterUsername == null ? new Object[]{jobId} : new Object[]{jobId, requesterUsername, requesterUsername};
+        String ownerClause = requesterUsername == null ? "" : " AND (u.username = ? AND u.enabled = TRUE OR ? = 'system' OR EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id=ur.role_id JOIN app_user admin ON admin.id=ur.user_id WHERE admin.username=? AND admin.enabled=TRUE AND r.code='USER_ADMIN' AND r.active=TRUE))";
+        Object[] args = requesterUsername == null ? new Object[]{jobId} : new Object[]{jobId, requesterUsername, requesterUsername, requesterUsername};
         try {
             return jdbc.queryForObject("SELECT j.id, j.schedule_version_id, j.status AS job_status, v.status AS version_status, j.progress, v.score, j.error_code, j.error_message, j.attempt, j.started_at, j.heartbeat_at, j.finished_at, j.cancel_requested, j.deadline_at FROM solve_job j JOIN schedule_version v ON v.id = j.schedule_version_id LEFT JOIN app_user u ON u.id = j.submitted_by_user_id WHERE j.id = ?" + ownerClause, (rs, rowNum) -> mapDetails(rs), args);
         } catch (org.springframework.dao.EmptyResultDataAccessException exception) {
@@ -186,4 +202,14 @@ public class SolveJobRepository {
     }
 
     private String stringTime(OffsetDateTime time) { return time == null ? null : time.toString(); }
+
+    private String normalizedOwner(String username) {
+        return username == null || username.isBlank() ? "system" : username.trim();
+    }
+
+    private void requireKnownUser(String username) {
+        if (jdbc.queryForObject("SELECT COUNT(*) FROM app_user WHERE username = ? AND enabled = TRUE", Integer.class, username) == 0) {
+            throw new IllegalArgumentException("用户不存在或已停用: " + username);
+        }
+    }
 }

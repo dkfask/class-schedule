@@ -1,6 +1,7 @@
 package com.classschedule.rules;
 
 import com.classschedule.api.ScheduleRuleRequest;
+import com.classschedule.masterdata.AcademicTermResolver;
 import java.util.List;
 import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -10,10 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public class ScheduleRuleRepository {
     private final JdbcTemplate jdbc;
-    public ScheduleRuleRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    private final AcademicTermResolver terms;
+    public ScheduleRuleRepository(JdbcTemplate jdbc, AcademicTermResolver terms) { this.jdbc = jdbc; this.terms = terms; }
 
     public List<Map<String, Object>> list(String termCode) {
-        return jdbc.queryForList("SELECT p.code AS profile_code, i.id, i.rule_code, i.scope_type, NULLIF(i.scope_code, '__TERM__') AS scope_code, i.int_value, i.text_value, i.severity, i.weight FROM schedule_rule_instance i JOIN schedule_rule_profile p ON p.id=i.profile_id JOIN academic_term t ON t.id=p.term_id WHERE t.code=? AND i.active=TRUE ORDER BY i.rule_code, i.scope_type, i.scope_code", termCode);
+        return jdbc.queryForList("SELECT p.code AS profile_code, i.id, i.rule_code, i.scope_type, NULLIF(i.scope_code, '__TERM__') AS scope_code, i.int_value, i.text_value, i.severity, i.weight FROM schedule_rule_instance i JOIN schedule_rule_profile p ON p.id=i.profile_id JOIN academic_term t ON t.id=p.term_id WHERE t.code=? AND i.active=TRUE ORDER BY i.rule_code, i.scope_type, i.scope_code", terms.resolve(termCode));
     }
 
     public List<Map<String, Object>> catalog() {

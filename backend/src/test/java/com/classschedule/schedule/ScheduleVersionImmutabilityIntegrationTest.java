@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -44,6 +45,11 @@ class ScheduleVersionImmutabilityIntegrationTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired MockMvc mockMvc;
 
+    @BeforeEach
+    void seedOwner() {
+        jdbc.update("INSERT INTO app_user(username,password_hash,display_name) VALUES('immutability-planner','{noop}test','测试排课员') ON CONFLICT (username) DO NOTHING");
+    }
+
     @AfterEach
     void clean() {
         jdbc.update("DELETE FROM adjustment_command_event");
@@ -56,8 +62,8 @@ class ScheduleVersionImmutabilityIntegrationTest {
 
     private long publishedWithAssignment(boolean legacyIdentityUnverified) {
         Long termId = jdbc.queryForObject("SELECT id FROM academic_term WHERE code='2026-FALL'", Long.class);
-        Long scenarioId = jdbc.queryForObject("INSERT INTO schedule_scenario(term_id,name) VALUES(?,?) RETURNING id", Long.class, termId, "immutability-published-" + System.nanoTime());
-        long versionId = jdbc.queryForObject("INSERT INTO schedule_version(scenario_id,status,score,legacy_identity_unverified) VALUES(?, 'SOLVING', NULL, ?) RETURNING id", Long.class, scenarioId, legacyIdentityUnverified);
+        Long scenarioId = jdbc.queryForObject("INSERT INTO schedule_scenario(term_id,owner_user_id,name) VALUES(?,(SELECT id FROM app_user WHERE username='immutability-planner'),?) RETURNING id", Long.class, termId, "immutability-published-" + System.nanoTime());
+        long versionId = jdbc.queryForObject("INSERT INTO schedule_version(scenario_id,owner_user_id,status,score,legacy_identity_unverified) VALUES(?,(SELECT id FROM app_user WHERE username='immutability-planner'), 'SOLVING', NULL, ?) RETURNING id", Long.class, scenarioId, legacyIdentityUnverified);
         seedAssignment(versionId, 1);
         jdbc.update("UPDATE schedule_version SET status = 'PUBLISHED', score = '0hard/0medium/0soft', published_at = CURRENT_TIMESTAMP WHERE id = ?", versionId);
         return versionId;
@@ -110,8 +116,8 @@ class ScheduleVersionImmutabilityIntegrationTest {
 
     private long seedCandidate() {
         Long termId = jdbc.queryForObject("SELECT id FROM academic_term WHERE code='2026-FALL'", Long.class);
-        Long scenarioId = jdbc.queryForObject("INSERT INTO schedule_scenario(term_id,name) VALUES(?,?) RETURNING id", Long.class, termId, "immutability-candidate-" + System.nanoTime());
-        long versionId = jdbc.queryForObject("INSERT INTO schedule_version(scenario_id,status,score,legacy_identity_unverified) VALUES(?, 'SOLVING', NULL, TRUE) RETURNING id", Long.class, scenarioId);
+        Long scenarioId = jdbc.queryForObject("INSERT INTO schedule_scenario(term_id,owner_user_id,name) VALUES(?,(SELECT id FROM app_user WHERE username='immutability-planner'),?) RETURNING id", Long.class, termId, "immutability-candidate-" + System.nanoTime());
+        long versionId = jdbc.queryForObject("INSERT INTO schedule_version(scenario_id,owner_user_id,status,score,legacy_identity_unverified) VALUES(?,(SELECT id FROM app_user WHERE username='immutability-planner'), 'SOLVING', NULL, TRUE) RETURNING id", Long.class, scenarioId);
         seedAssignment(versionId, 1);
         jdbc.update("UPDATE schedule_version SET status = 'CANDIDATE', score = '0hard/0medium/0soft' WHERE id = ?", versionId);
         return versionId;

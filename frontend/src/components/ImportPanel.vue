@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { downloadBlob, http, jsonRequest } from '../api/http'
 import { useTermStore } from '../stores/term'
 
@@ -28,6 +29,7 @@ interface ImportResult {
 }
 
 const term = useTermStore()
+const router = useRouter()
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFileName = ref('')
 const preview = ref<ImportPreview | null>(null)
@@ -78,7 +80,7 @@ async function previewFile(file: File) {
   const body = new FormData()
   body.append('file', file)
   try {
-    const result = await http<ImportPreview>('/api/imports/preview', { method: 'POST', body })
+    const result = await http<ImportPreview>(`/api/imports/preview${term.selectedTermCode.value ? `?termCode=${encodeURIComponent(term.selectedTermCode.value)}` : ''}`, { method: 'POST', body })
     preview.value = { ...result, issues: result.issues ?? [] }
     if (result.status === 'VALIDATED') {
       setMessage('数据预检通过，可以确认导入', 'success')
@@ -158,7 +160,8 @@ defineExpose({
       <div>
         <p class="eyebrow">IMPORT / MASTER DATA</p>
         <h2>批量导入基础数据</h2>
-        <p class="import-caption">使用统一模板导入教师、班级、课程、教室和教学需求</p>
+        <p class="import-caption">必填：教师、班级、课程、教学需求。可选：教室、资源可用性、特征目录、特征绑定和活动组。</p>
+        <p class="import-caption">可选 Sheet 可以省略或留空，系统会保留已有配置；仅填写的数据行会被导入。</p>
       </div>
       <span class="import-term">{{ term.ready.value ? (term.hasValidTerm.value ? termLabel : '暂无可用学期') : '正在加载学期…' }}</span>
     </div>
@@ -194,7 +197,8 @@ defineExpose({
       </div>
     </div>
 
-    <div v-if="confirmation && confirmation.status === 'IMPORTED'" class="import-state success-state" data-testid="import-success">已完成批次 #{{ confirmation.batchId }} 的导入，共写入 {{ confirmation.importedRows ?? 0 }} 行。</div>
+      <div v-if="confirmation && confirmation.status === 'IMPORTED'" class="import-state success-state" data-testid="import-success">已完成批次 #{{ confirmation.batchId }} 的导入，共写入 {{ confirmation.importedRows ?? 0 }} 行。请返回工作台检查当前学期排课条件后再开始求解。<el-button link type="primary" @click="router.push('/workspace')">返回工作台</el-button></div>
+
   </section>
 </template>
 
@@ -203,6 +207,7 @@ defineExpose({
 .import-panel-heading { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; padding: 24px 24px 20px; border-bottom: 1px solid #e5ece8; }
 .import-panel-heading h2 { margin: 0; font-size: 21px; color: #213b32; }
 .import-caption { color: #789087; font-size: 12px; line-height: 1.6; margin: 8px 0 0; }
+.import-caption + .import-caption { margin-top: 3px; }
 .import-term { color: #4e7565; background: #edf8f1; padding: 7px 10px; font-size: 11px; white-space: nowrap; }
 .import-actions { display: flex; flex-wrap: wrap; gap: 10px; padding: 20px 24px 14px; }
 .selected-file { display: flex; align-items: baseline; gap: 12px; margin: 0 24px 14px; padding: 11px 13px; background: #f7faf8; border: 1px solid #e1ebe5; color: #789087; font-size: 11px; }

@@ -6,6 +6,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.classschedule.solver.SampleTimetableFactory;
 import com.classschedule.solver.Timetable;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -36,6 +39,27 @@ class SolveJobRepositoryIntegrationTest {
     @Autowired JdbcTemplate jdbc;
 
     @Test
+    void readinessFailureDoesNotCreateScenarioVersionOrJob() {
+        String termCode = "READINESS-BLOCK-" + System.nanoTime();
+        jdbc.update("INSERT INTO academic_term(code,name,status) VALUES(?,?, 'DRAFT')", termCode, "readiness block");
+        int scenariosBefore = jdbc.queryForObject("SELECT COUNT(*) FROM schedule_scenario", Integer.class);
+        int versionsBefore = jdbc.queryForObject("SELECT COUNT(*) FROM schedule_version", Integer.class);
+        int jobsBefore = jdbc.queryForObject("SELECT COUNT(*) FROM solve_job", Integer.class);
+
+        try {
+            assertThatThrownBy(() -> jobs.enqueue("readiness-block-" + System.nanoTime(), null, termCode))
+                    .isInstanceOf(com.classschedule.solver.SolveReadinessException.class)
+                    .hasMessageContaining("尚未配置节次")
+                    .hasMessageContaining("没有启用的教学需求");
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM schedule_scenario", Integer.class)).isEqualTo(scenariosBefore);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM schedule_version", Integer.class)).isEqualTo(versionsBefore);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM solve_job", Integer.class)).isEqualTo(jobsBefore);
+        } finally {
+            jdbc.update("DELETE FROM academic_term WHERE code = ?", termCode);
+        }
+    }
+
+    @Test
     void idempotencyAndSkipLockedClaimAllowOnlyOneWorker() {
         SolveJobHandle first = jobs.enqueue("job-idempotency-1");
         SolveJobHandle duplicate = jobs.enqueue("job-idempotency-1");
@@ -50,6 +74,52 @@ class SolveJobRepositoryIntegrationTest {
         assertThat(secondClaim).isNull();
         assertThat(jobs.details(first.jobId()).jobStatus()).isEqualTo("RUNNING");
         assertThat(jobs.details(first.jobId()).attempt()).isEqualTo(1);
+    }
+
+    @Test
+    void concurrentSameOwnerSubmissionReturnsOneActiveHandle() throws Exception {
+        String username = "concurrent-planner-" + System.nanoTime();
+        String key = "concurrent-idempotency-" + System.nanoTime();
+        jdbc.update("INSERT INTO app_user(username,password_hash,display_name) VALUES(?,?,?)", username, "{noop}test", username);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            var first = executor.submit(() -> {
+                start.await();
+                return jobs.enqueue(key, username, "2026-FALL");
+            });
+            var second = executor.submit(() -> {
+                start.await();
+                return jobs.enqueue(key, username, "2026-FALL");
+            });
+            start.countDown();
+
+            SolveJobHandle firstHandle = first.get();
+            SolveJobHandle secondHandle = second.get();
+            assertThat(secondHandle).isEqualTo(firstHandle);
+            assertThat(jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM solve_job WHERE submitted_by_user_id = (SELECT id FROM app_user WHERE username = ?) AND idempotency_key = ? AND status IN ('QUEUED','RUNNING')",
+                    Integer.class, username, key)).isEqualTo(1);
+            assertThat(jobs.requestCancel(firstHandle.jobId())).isTrue();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void terminalJobCanReuseItsIdempotencyKeyForANewJob() {
+        String key = "terminal-idempotency-" + System.nanoTime();
+        SolveJobHandle first = jobs.enqueue(key);
+        assertThat(jobs.claim("terminal-worker", java.time.Duration.ofSeconds(30))).isEqualTo(first.jobId());
+        assertThat(jobs.complete(first.jobId(), first.versionId(), "0hard/0soft", SampleTimetableFactory.create())).isTrue();
+
+        SolveJobHandle second = jobs.enqueue(key);
+
+        assertThat(second.jobId()).isNotEqualTo(first.jobId());
+        assertThat(second.versionId()).isNotEqualTo(first.versionId());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM solve_job WHERE idempotency_key = ?", Integer.class, key)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM solve_job WHERE idempotency_key = ? AND status IN ('QUEUED','RUNNING')", Integer.class, key)).isEqualTo(1);
+        assertThat(jobs.requestCancel(second.jobId())).isTrue();
     }
 
     @Test

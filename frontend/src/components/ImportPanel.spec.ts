@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { routerKey } from 'vue-router'
 import ImportPanel from './ImportPanel.vue'
 import { clearCsrfToken } from '../api/http'
 import { resetTermStore } from '../stores/term'
@@ -11,6 +12,7 @@ function response(body: unknown, ok = true) {
 function mountPanel() {
   return mount(ImportPanel, {
     global: {
+      provide: { [routerKey]: { push: vi.fn() } },
       stubs: {
         'el-button': {
           props: ['disabled', 'loading'],
@@ -32,6 +34,7 @@ afterEach(() => {
 
 describe('ImportPanel', () => {
   it('downloads the stable master-data template', async () => {
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
     const createObjectURL = vi.fn(() => 'blob:template')
     const revokeObjectURL = vi.fn()
     const urlApi = globalThis.URL as typeof URL & {
@@ -68,8 +71,10 @@ describe('ImportPanel', () => {
       expect(anchor?.download).toBe('master-data-v1.xlsx')
       expect(anchor?.href).toBe('blob:template')
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:template')
-      expect(vm.message).toBe('模板下载已开始')
-      wrapper.unmount()
+    expect(vm.message).toBe('模板下载已开始')
+    expect(wrapper.text()).toContain('必填：教师、班级、课程、教学需求')
+    expect(wrapper.text()).toContain('可选 Sheet 可以省略或留空')
+    wrapper.unmount()
     } finally {
       if (originalCreateObjectURL) Object.defineProperty(urlApi, 'createObjectURL', { configurable: true, writable: true, value: originalCreateObjectURL })
       else delete urlApi.createObjectURL
@@ -82,7 +87,7 @@ describe('ImportPanel', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       if (String(input) === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       if (String(input) === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' })
-      expect(String(input)).toBe('/api/imports/preview')
+      expect(String(input)).toMatch(/^\/api\/imports\/preview\?termCode=2026-FALL$/)
       expect(init?.method).toBe('POST')
       return response({
         batchId: 7,
@@ -115,7 +120,7 @@ describe('ImportPanel', () => {
       const url = String(input)
       calls.push({ url, init })
       if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
-      if (url === '/api/imports/preview') return response({ batchId: 8, status: 'VALIDATED', sheets: ['说明'], issues: [] })
+      if (url.match(/^\/api\/imports\/preview\?termCode=2026-FALL$/)) return response({ batchId: 8, status: 'VALIDATED', sheets: ['说明'], issues: [] })
       if (url === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' })
       if (url === '/api/imports/confirm') return response({ batchId: 8, status: 'IMPORTED', importedRows: 4, issueCount: 0 })
       throw new Error(`Unexpected request: ${url}`)

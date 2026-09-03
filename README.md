@@ -22,17 +22,27 @@
 - assignment 结果契约包含稳定资源 code、`source`、`locked` 和 `duration`
 - 版本 options、按班级/教师/教室 code 过滤和调整预览 API
 - 调整确认会在后端再次校验冲突和锁定状态，并返回 `commandId`
-- Excel 统一模板导入：下载 `MASTER_DATA v1` 模板，使用中文列名导入教师、班级、课程、教室、教学需求、资源可用性、特征及活动组数据。
+- Excel 统一模板导入：下载 `MASTER_DATA v1` 模板，使用中文列名导入教师、班级、课程和教学需求；教室、资源可用性、特征及活动组数据为可选项，可省略或留空。缺少的可选 Sheet 和数据行不会删除已有配置，只有明确提交的停用/解绑行才会修改对应关系。
 - 导入失败事务回滚和重复确认保护
 - Vue 排课工作台、真实求解状态、动态课表网格、班级/教师/教室三维视图和发布操作
 - 点击课程或拖动课程打开调整 Drawer，调用后端预览并在允许后确认调整
 - `/versions` 提供版本列表和稳定 occurrence key 差异查看
 - `/versions` 显示 revision、锁/归档状态，支持任意基线和只看变化
 - `/versions` 支持锁定/解锁、归档、命令历史与撤销/重做
-- Flyway 数据库迁移已执行到 V27：包含教学需求/assignment 身份快照、活动组成员索引、节次连续组和断点、typed rule TERM 作用域身份、已发布/归档版本数据库级不可变保护。
+- Flyway 数据库迁移已执行到 V31：包含教学需求/assignment 身份快照、活动组成员索引、节次连续组和断点、typed rule TERM 作用域身份、已发布/归档版本数据库级不可变保护，以及版本、场景和求解任务的对象级所有权约束。
 - 版本输入快照哈希和规则快照哈希用于检测候选结果是否过期；输入或规则变化后发布会返回 `INPUT_SNAPSHOT_STALE`。
 - 发布前按目标学期教学需求对账，拒绝漏排、重复、额外 occurrence、需求身份/周课时/时长/固定节次篡改；活动组按每个 activity index 检查整体缺失、成员漏排/重复/额外、member index 和类型快照。
 - 已发布/归档版本在数据库层不可变：assignment、版本行和命令历史的直接写入均被触发器拒绝，legacy 身份未验证的候选不能发布。
+- 活动组编码按 `term_id + code` 唯一；一个教学需求最多属于一个活动组，旧库若存在跨活动组重复成员会由 V30 阻止升级并报告需求 ID，需先人工确认归属。
+
+## Solver benchmark
+
+普通测试默认跳过规模基准。需要评估真实规模求解时，可显式开启约 240 个课次、5 个教学日、12 间教室和 typed rules 的 benchmark。3 秒模式用于快速检查是否完成分配；需要验证硬约束收敛时使用更长预算并开启 `require-zero-hard`：
+
+```bash
+mvn -Drun.solver.benchmark=true -Dsolver.benchmark.termination-ms=3000 -Dtest=SolverBenchmarkTest test
+mvn -Drun.solver.benchmark=true -Dsolver.benchmark.termination-ms=10000 -Dsolver.benchmark.require-zero-hard=true -Dtest=SolverBenchmarkTest test
+```
 - typed rule 支持 `TEACHER_DAILY_MAX`、`STUDENT_GROUP_DAILY_MAX`、`SUBJECT_DAILY_MAX`、`SUBJECT_MIN_SPREAD_DAYS`、`TEACHER_GAP_POLICY`、`TEACHER_PREFERRED_PERIOD`，以及 `HARD/MEDIUM/SOFT`、`weight`、整数/文本参数和资源作用域校验；规则已进入求解器按 severity 分层计分，HARD 阻止发布，MEDIUM/SOFT 进入验证报告。
 
 尚未完成的生产功能和发布前人工门槛：
@@ -113,4 +123,10 @@ mvn package
 cd ../frontend
 npm run test:run
 npm run build
+```
+
+镜像构建使用 `docker-build` Maven profile，运行不依赖 Docker daemon 的单元测试；Testcontainers/Flyway 集成测试必须先在具备 Docker daemon 的 CI 测试任务中通过，再构建后端镜像：
+
+```bash
+docker build -t class-schedule-api:local .
 ```

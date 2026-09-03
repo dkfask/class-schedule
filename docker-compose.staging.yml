@@ -54,7 +54,7 @@ services:
       api:
         condition: service_healthy
     ports:
-      - "${STAGING_FRONTEND_PORT:-5174}:80"
+      - "${STAGING_FRONTEND_PORT:-5174}:8080"
 
 volumes:
   staging_postgres:

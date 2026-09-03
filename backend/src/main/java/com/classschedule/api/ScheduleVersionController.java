@@ -29,6 +29,7 @@ public class ScheduleVersionController {
         try {
             ScheduleVersionView version = repository.findVersion(versionId);
             if (isPublishedOnlyViewer(authentication) && !Set.of("PUBLISHED").contains(version.status())) return ResponseEntity.status(403).build();
+            if (!repository.canAccessVersion(versionId, authentication.getName())) return ResponseEntity.notFound().build();
             return ResponseEntity.ok(version);
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.notFound().build();

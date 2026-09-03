@@ -42,6 +42,7 @@ public class ScheduleRuleValidator {
         Map<Integer, PeriodInfo> periodInfos = new LinkedHashMap<>();
         Map<String, PeriodInfo> periodsByCode = new LinkedHashMap<>();
         Map<String, String> nextPeriodCodes = new LinkedHashMap<>();
+        Set<String> unavailablePeriods = new LinkedHashSet<>();
         if (termId != null) {
             List<PeriodInfo> loadedPeriods = jdbc.query("SELECT weekday, period_no, code, continuity_group, break_after FROM period_template WHERE term_id = ? ORDER BY weekday, period_no",
                     (rs, rowNum) -> new PeriodInfo(rs.getInt("weekday"), rs.getInt("period_no"), rs.getString("code"), rs.getString("continuity_group"), rs.getBoolean("break_after")), termId);
@@ -50,6 +51,11 @@ public class ScheduleRuleValidator {
                 periodsByCode.put(item.code(), item);
             });
             nextPeriodCodes.putAll(PeriodContinuity.nextCodes(loadedPeriods.stream().map(item -> new PeriodContinuity.Segment(item.code(), item.weekday(), item.period(), item.continuityGroup(), item.breakAfter())).toList()));
+            unavailablePeriods.addAll(jdbc.query(
+                    "SELECT 'TEACHER' AS resource_type, t.code AS resource_code, a.period_code FROM teacher_availability a JOIN teacher t ON t.id = a.teacher_id WHERE a.term_id = ? AND a.available = FALSE "
+                            + "UNION ALL SELECT 'STUDENT_GROUP', g.code, a.period_code FROM student_group_availability a JOIN student_group g ON g.id = a.student_group_id WHERE a.term_id = ? AND a.available = FALSE "
+                            + "UNION ALL SELECT 'ROOM', r.code, a.period_code FROM room_availability a JOIN room r ON r.id = a.room_id WHERE a.term_id = ? AND a.available = FALSE",
+                    (rs, rowNum) -> availabilityKey(rs.getString("resource_type"), rs.getString("resource_code"), rs.getString("period_code")), termId, termId, termId));
         }
 
         Set<String> emitted = new LinkedHashSet<>();
@@ -69,13 +75,13 @@ public class ScheduleRuleValidator {
                 }
                 String periodCode = period.code();
                 if (termId != null) {
-                    if (unavailable("teacher_availability", "teacher", assignment.teacherCode(), termId, periodCode)) {
+                    if (unavailablePeriods.contains(availabilityKey("TEACHER", assignment.teacherCode(), periodCode))) {
                         add(violations, emitted, "TEACHER_UNAVAILABLE", "教师在目标节次不可用", assignment.teacherCode(), assignment.occurrenceKey());
                     }
-                    if (unavailable("student_group_availability", "student_group", assignment.studentGroupCode(), termId, periodCode)) {
+                    if (unavailablePeriods.contains(availabilityKey("STUDENT_GROUP", assignment.studentGroupCode(), periodCode))) {
                         add(violations, emitted, "STUDENT_GROUP_UNAVAILABLE", "班级在目标节次不可用", assignment.studentGroupCode(), assignment.occurrenceKey());
                     }
-                    if (assignment.roomCode() != null && unavailable("room_availability", "room", assignment.roomCode(), termId, periodCode)) {
+                    if (assignment.roomCode() != null && unavailablePeriods.contains(availabilityKey("ROOM", assignment.roomCode(), periodCode))) {
                         add(violations, emitted, "ROOM_UNAVAILABLE", "教室在目标节次不可用", assignment.roomCode(), assignment.occurrenceKey());
                     }
                 }
@@ -116,7 +122,7 @@ public class ScheduleRuleValidator {
                             || current.activityMemberIndex() != previous.activityMemberIndex() + 1
                             || previous.activityIndex() != current.activityIndex()
                             || previous.weekday() != current.weekday()
-                            || !isAdjacent(previous, current, nextPeriodCodes)) {
+                            || !PeriodContinuity.isConsecutive(nextPeriodCodes, previous.timeslotCode(), current.timeslotCode(), previous.duration())) {
                         add(violations, emitted, "ACTIVITY_GROUP_NOT_CONSECUTIVE", "连续活动成员必须在同一天连续节次", code, blockKey);
                         break;
                     }
@@ -131,9 +137,7 @@ public class ScheduleRuleValidator {
     }
 
     private String occupancyCode(String startCode, Map<String, String> nextCodes, int offset) {
-        String code = startCode;
-        for (int index = 0; index < offset && code != null; index++) code = nextCodes.get(code);
-        return code;
+        return PeriodContinuity.codeAfter(nextCodes, startCode, offset);
     }
 
     private int occupancyPeriod(ScheduleAssignmentView assignment, Map<String, String> nextCodes, int offset) {
@@ -210,11 +214,6 @@ public class ScheduleRuleValidator {
     }
 
     private record RequirementBaseline(long id, String code, int weeklyPeriods, int durationPeriods, String pinnedPeriodCode) {}
-    private boolean isAdjacent(ScheduleAssignmentView previous, ScheduleAssignmentView current, Map<String, String> nextPeriodCodes) {
-        String code = occupancyCode(previous.timeslotCode(), nextPeriodCodes, Math.max(1, previous.duration()));
-        return code != null && code.equals(current.timeslotCode());
-    }
-
     private void validateActivityGroupCompleteness(long termId, List<ScheduleAssignmentView> assignments,
             List<Violation> violations, Set<String> emitted) {
         List<Map<String, Object>> rows = jdbc.queryForList(
@@ -330,9 +329,9 @@ public class ScheduleRuleValidator {
                 String field = "TEACHER_DAILY_MAX".equals(code) ? "teacherCode" : "STUDENT_GROUP_DAILY_MAX".equals(code) ? "studentGroupCode" : "subjectCode";
                 Map<String, Integer> counts = version.assignments().stream().filter(a -> a.timeslotCode() != null)
                         .filter(a -> effectiveScopeCode == null || effectiveScopeCode.equals("TEACHER_DAILY_MAX".equals(code) ? a.teacherCode() : "STUDENT_GROUP_DAILY_MAX".equals(code) ? a.studentGroupCode() : a.subjectCode()))
-                        .collect(java.util.stream.Collectors.groupingBy(a -> ("TEACHER_DAILY_MAX".equals(code) ? a.teacherCode() : "STUDENT_GROUP_DAILY_MAX".equals(code) ? a.studentGroupCode() : a.subjectCode()) + "|" + a.weekday(), java.util.stream.Collectors.summingInt(a -> Math.max(1, a.duration()))));
+                        .collect(java.util.stream.Collectors.groupingBy(a -> dailyGroupingKey(code, a), java.util.stream.Collectors.summingInt(a -> Math.max(1, a.duration()))));
                 counts.forEach((key, count) -> {
-                    if (count > limit) addRuleViolation(violations, emitted, code, field + "每日课时超过上限 " + limit, key.split("\\|")[0], key, severity, weight);
+                    if (count > limit) addRuleViolation(violations, emitted, code, field + "每日课时超过上限 " + limit, dailyResourceCode(code, key), key, severity, weight * (count - limit));
                 });
             }
         }
@@ -344,10 +343,24 @@ public class ScheduleRuleValidator {
         Map<String, Set<Integer>> days = new LinkedHashMap<>();
         version.assignments().stream().filter(a -> a.timeslotCode() != null)
                 .filter(a -> scopeCode == null || scopeCode.equals(a.subjectCode()))
-                .forEach(a -> days.computeIfAbsent(a.subjectCode(), ignored -> new LinkedHashSet<>()).add(a.weekday()));
-        days.forEach((subject, occupiedDays) -> {
-            if (occupiedDays.size() < minimumDays) addRuleViolation(violations, emitted, "SUBJECT_MIN_SPREAD_DAYS", "科目至少应分散到 " + minimumDays + " 个工作日，当前为 " + occupiedDays.size(), subject, subject, severity, weight);
+                .forEach(a -> days.computeIfAbsent(a.studentGroupCode() + "|" + a.subjectCode(), ignored -> new LinkedHashSet<>()).add(a.weekday()));
+        days.forEach((groupSubject, occupiedDays) -> {
+            if (occupiedDays.size() < minimumDays) addRuleViolation(violations, emitted, "SUBJECT_MIN_SPREAD_DAYS", "科目至少应分散到 " + minimumDays + " 个工作日，当前为 " + occupiedDays.size(), groupSubject, groupSubject, severity, weight * (minimumDays - occupiedDays.size()));
         });
+    }
+
+    private String dailyGroupingKey(String code, ScheduleAssignmentView assignment) {
+        String resource = "TEACHER_DAILY_MAX".equals(code) ? assignment.teacherCode()
+                : "STUDENT_GROUP_DAILY_MAX".equals(code) ? assignment.studentGroupCode()
+                : assignment.studentGroupCode() + "|" + assignment.subjectCode();
+        return resource + "|" + assignment.weekday();
+    }
+
+    private String dailyResourceCode(String code, String groupingKey) {
+        if (!"SUBJECT_DAILY_MAX".equals(code)) return groupingKey.substring(0, groupingKey.lastIndexOf('|'));
+        int separator = groupingKey.lastIndexOf('|');
+        String groupSubject = groupingKey.substring(0, separator);
+        return groupSubject.substring(groupSubject.indexOf('|') + 1);
     }
 
     private void validateTeacherGaps(ScheduleVersionView version, String scopeCode, String policy, String severity, int weight,
@@ -390,10 +403,8 @@ public class ScheduleRuleValidator {
         }
     }
 
-    private boolean unavailable(String availabilityTable, String resourceTable, String resourceCode, long termId, String periodCode) {
-        String sql = "SELECT COUNT(*) FROM " + availabilityTable + " a JOIN " + resourceTable + " r ON r.id = a." + resourceTable + "_id WHERE r.code = ? AND a.term_id = ? AND a.period_code = ? AND a.available = FALSE";
-        Integer count = jdbc.queryForObject(sql, Integer.class, resourceCode, termId, periodCode);
-        return count != null && count > 0;
+    private String availabilityKey(String resourceType, String resourceCode, String periodCode) {
+        return resourceType + "\u0000" + resourceCode + "\u0000" + periodCode;
     }
 
     private void add(List<Violation> violations, Set<String> emitted, String code, String message, String resource, String key) {

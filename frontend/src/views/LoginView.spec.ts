@@ -1,12 +1,22 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createRouter, createMemoryHistory } from 'vue-router'
+import { createRouter, createMemoryHistory, routerKey } from 'vue-router'
 import { clearCsrfToken } from '../api/http'
 import { useAuthStore } from '../stores/auth'
 import { createPinia, setActivePinia } from 'pinia'
 import LoginView from './LoginView.vue'
 
 afterEach(() => { clearCsrfToken(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
+
+function createLoginRouter() {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/login', component: { template: '<div />' } },
+      { path: '/workspace', component: { template: '<div />' } },
+    ],
+  })
+}
 
 describe('LoginView and auth store', () => {
   it('logs in with credentials and stores the authenticated user', async () => {
@@ -15,7 +25,7 @@ describe('LoginView and auth store', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 1, username: 'planner', displayName: '排课员', enabled: true, roles: ['PLANNER'] }) })
     vi.stubGlobal('fetch', fetchMock)
-    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/workspace', component: { template: '<div />' } }] })
+    const router = createLoginRouter()
     await router.push('/login')
     await router.isReady()
     const wrapper = mount(LoginView, { global: { plugins: [createPinia(), router] } })
@@ -38,7 +48,7 @@ describe('LoginView and auth store', () => {
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' }) })
       .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ message: '用户名或密码错误' }) }))
-    const wrapper = mount(LoginView, { global: { plugins: [createPinia()] } })
+    const wrapper = mount(LoginView, { global: { plugins: [createPinia()], provide: { [routerKey]: { push: vi.fn() } } } })
     const vm = wrapper.vm as any
     vm.username = 'bad'
     vm.password = 'bad'

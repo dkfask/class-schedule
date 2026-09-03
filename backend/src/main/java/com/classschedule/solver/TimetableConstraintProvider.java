@@ -14,6 +14,7 @@ public class TimetableConstraintProvider implements ConstraintProvider {
             studentGroupConflict(factory),
             roomConflict(factory),
             unassignedOccurrence(factory),
+            pinnedPeriod(factory),
             roomCapacity(factory),
             roomFeatures(factory),
             resourceAvailability(factory),
@@ -67,6 +68,14 @@ public class TimetableConstraintProvider implements ConstraintProvider {
             .asConstraint("教学任务未分配");
     }
 
+    private Constraint pinnedPeriod(ConstraintFactory factory) {
+        return factory.forEach(LessonOccurrence.class)
+                .filter(item -> item.getPinnedPeriodCode() != null && !item.getPinnedPeriodCode().isBlank()
+                        && (item.getTimeslot() == null || !item.getPinnedPeriodCode().equals(item.getTimeslot().getId())))
+                .penalize(HardMediumSoftScore.ONE_HARD)
+                .asConstraint("固定节次不可变更");
+    }
+
     private Constraint roomCapacity(ConstraintFactory factory) {
         return factory.forEach(LessonOccurrence.class)
             .filter(item -> item.getRoom() != null && item.getStudentCount() > 0 && item.getStudentCount() > item.getRoom().getCapacity())
@@ -95,7 +104,7 @@ public class TimetableConstraintProvider implements ConstraintProvider {
             if (code == null || (!item.getAvailablePeriodCodes().isEmpty() && !item.getAvailablePeriodCodes().contains(code))) return true;
             if (item.getUnavailablePeriodCodes().contains(code) || (item.getRoom() != null && item.getRoom().getUnavailablePeriodCodes().contains(code))) return true;
             if (offset < Math.max(1, item.getDuration()) - 1) {
-                String next = nextPeriodCode(item, code);
+                String next = PeriodContinuity.codeAfter(item.getNextPeriodCodes(), code, 1);
                 if (next == null || item.getBreakAfterPeriodCodes().contains(code)) return true;
                 code = next;
             }
@@ -103,19 +112,6 @@ public class TimetableConstraintProvider implements ConstraintProvider {
         return false;
     }
     boolean resourceAvailabilityForTest(LessonOccurrence item) { return durationUsesUnavailablePeriod(item); }
-
-    private String nextPeriodCode(LessonOccurrence item, String currentCode) {
-        String configured = item.getNextPeriodCodes().get(currentCode);
-        if (configured != null) return configured;
-        if (!item.getNextPeriodCodes().isEmpty()) return null;
-        int separator = currentCode == null ? -1 : currentCode.lastIndexOf('-');
-        if (separator < 0) return null;
-        try {
-            return currentCode.substring(0, separator + 1) + (Integer.parseInt(currentCode.substring(separator + 1)) + 1);
-        } catch (NumberFormatException exception) {
-            return null;
-        }
-    }
 
     private boolean sameTimeslot(LessonOccurrence left, LessonOccurrence right) {
         return left.getTimeslot() != null && right.getTimeslot() != null
@@ -167,17 +163,17 @@ public class TimetableConstraintProvider implements ConstraintProvider {
     }
     private boolean consecutive(LessonOccurrence left, LessonOccurrence right) {
         if (left.getTimeslot() == null || right.getTimeslot() == null) return false;
-        LessonOccurrence first = left.getActivityMemberIndex() < right.getActivityMemberIndex() ? left : right;
+        LessonOccurrence first = consecutiveOrder(left, right) <= 0 ? left : right;
         LessonOccurrence second = first == left ? right : left;
-        String code = first.getTimeslot().getId();
-        for (int offset = 0; offset < Math.max(1, first.getDuration()); offset++) {
-            if (offset == Math.max(1, first.getDuration()) - 1) {
-                return java.util.Objects.equals(code, second.getTimeslot().getId());
-            }
-            code = nextPeriodCode(first, code);
-            if (code == null) return false;
+        return PeriodContinuity.isConsecutive(first.getNextPeriodCodes(), first.getTimeslot().getId(),
+                second.getTimeslot().getId(), first.getDuration());
+    }
+
+    private int consecutiveOrder(LessonOccurrence left, LessonOccurrence right) {
+        if (left.getActivityMemberIndex() >= 0 && right.getActivityMemberIndex() >= 0) {
+            return Integer.compare(left.getActivityMemberIndex(), right.getActivityMemberIndex());
         }
-        return false;
+        return Integer.compare(left.getActivityIndex(), right.getActivityIndex());
     }
 
     boolean overlaps(LessonOccurrence left, LessonOccurrence right) {
@@ -213,7 +209,7 @@ public class TimetableConstraintProvider implements ConstraintProvider {
         return "TEACHER_DAILY_MAX".equals(code) || "STUDENT_GROUP_DAILY_MAX".equals(code) || "SUBJECT_DAILY_MAX".equals(code);
     }
 
-    private String dailyResource(TypedScheduleRule rule, LessonOccurrence occurrence) {
+    private String dailyScopeResource(TypedScheduleRule rule, LessonOccurrence occurrence) {
         return switch (rule.ruleCode()) {
             case "TEACHER_DAILY_MAX" -> occurrence.getTeacherCode();
             case "STUDENT_GROUP_DAILY_MAX" -> occurrence.getStudentGroupCode();
@@ -221,23 +217,25 @@ public class TimetableConstraintProvider implements ConstraintProvider {
         };
     }
 
-    private String dailyKey(TypedScheduleRule rule, String resource, int weekday) {
-        return rule.ruleCode() + "|" + rule.limit() + "|" + rule.weight() + "|" + resource + "|" + weekday;
+    private String dailyGroupingResource(TypedScheduleRule rule, LessonOccurrence occurrence) {
+        return "SUBJECT_DAILY_MAX".equals(rule.ruleCode())
+                ? occurrence.getStudentGroupCode() + "|" + occurrence.getSubjectCode()
+                : dailyScopeResource(rule, occurrence);
     }
 
-    private int limitFromDailyKey(String key) { return Integer.parseInt(key.split("\\|")[1]); }
-    private int weightFromDailyKey(String key) { return Integer.parseInt(key.split("\\|")[2]); }
+    private record DailyKey(String ruleCode, int limit, int weight, String resource, int weekday) {}
 
     Constraint typedDailyMax(ConstraintFactory factory, String layer) {
         return factory.forEach(TypedScheduleRule.class)
                 .filter(rule -> matchesLayer(rule, layer) && isDailyMax(rule.ruleCode()))
                 .join(LessonOccurrence.class)
                 .filter((rule, occurrence) -> occurrence.getTimeslot() != null
-                        && rule.appliesTo(dailyResource(rule, occurrence)))
-                .groupBy((rule, occurrence) -> dailyKey(rule, dailyResource(rule, occurrence), occurrence.getTimeslot().getWeekday()),
+                        && rule.appliesTo(dailyScopeResource(rule, occurrence)))
+                .groupBy((rule, occurrence) -> new DailyKey(rule.ruleCode(), rule.limit(), rule.weight(),
+                                dailyGroupingResource(rule, occurrence), occurrence.getTimeslot().getWeekday()),
                         ConstraintCollectors.toList((rule, occurrence) -> occurrence))
-                .filter((key, occurrences) -> occurrences.stream().mapToInt(item -> Math.max(1, item.getDuration())).sum() > limitFromDailyKey(key))
-                .penalize(layerScore(layer), (key, occurrences) -> weightFromDailyKey(key))
+                .filter((key, occurrences) -> occurrences.stream().mapToInt(item -> Math.max(1, item.getDuration())).sum() > key.limit())
+                .penalize(layerScore(layer), (key, occurrences) -> key.weight() * (occurrences.stream().mapToInt(item -> Math.max(1, item.getDuration())).sum() - key.limit()))
                 .asConstraint("typed-daily-max-" + layer);
     }
 
@@ -247,12 +245,15 @@ public class TimetableConstraintProvider implements ConstraintProvider {
                 .join(LessonOccurrence.class)
                 .filter((rule, occurrence) -> occurrence.getTimeslot() != null
                         && rule.appliesTo(occurrence.getSubjectCode()))
-                .groupBy((rule, occurrence) -> rule.ruleCode() + "|" + rule.limit() + "|" + rule.weight() + "|" + occurrence.getSubjectCode(),
+                .groupBy((rule, occurrence) -> new SpreadKey(rule.ruleCode(), rule.limit(), rule.weight(),
+                                occurrence.getStudentGroupCode(), occurrence.getSubjectCode()),
                         ConstraintCollectors.toList((rule, occurrence) -> occurrence))
-                .filter((key, occurrences) -> occurrences.stream().map(item -> item.getTimeslot().getWeekday()).collect(java.util.stream.Collectors.toSet()).size() < Integer.parseInt(key.split("\\|")[1]))
-                .penalize(layerScore(layer), (key, occurrences) -> Integer.parseInt(key.split("\\|")[2]))
+                .filter((key, occurrences) -> occurrences.stream().map(item -> item.getTimeslot().getWeekday()).collect(java.util.stream.Collectors.toSet()).size() < key.minimumDays())
+                .penalize(layerScore(layer), (key, occurrences) -> key.weight() * (key.minimumDays() - (int) occurrences.stream().map(item -> item.getTimeslot().getWeekday()).collect(java.util.stream.Collectors.toSet()).size()))
                 .asConstraint("typed-spread-" + layer);
     }
+
+    private record SpreadKey(String ruleCode, int minimumDays, int weight, String studentGroupCode, String subjectCode) {}
 
     private boolean hasGap(java.util.List<LessonOccurrence> occurrences) {
         if (occurrences.size() < 2) return false;

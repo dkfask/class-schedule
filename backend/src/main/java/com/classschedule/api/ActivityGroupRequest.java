@@ -12,10 +12,10 @@ public record ActivityGroupRequest(
         @NotEmpty List<String> requirementCodes,
         @Size(max = 64) String termCode) {
     public ActivityGroupRequest(String code, String name, String activityType, List<String> requirementCodes) {
-        this(code, name, activityType, requirementCodes, "2026-FALL");
+        this(code, name, activityType, requirementCodes, null);
     }
 
     public String normalizedTermCode() {
-        return termCode == null || termCode.isBlank() ? "2026-FALL" : termCode.trim();
+        return termCode == null || termCode.isBlank() ? null : termCode.trim();
     }
 }

@@ -1,5 +1,6 @@
 package com.classschedule.api;
 
+import com.classschedule.solver.SolveReadinessException;
 import com.classschedule.solver.worker.SolveJobDetails;
 import com.classschedule.solver.worker.SolveJobHandle;
 import com.classschedule.solver.worker.SolveJobRepository;
@@ -24,11 +25,15 @@ public class PersistentSolveJobController {
     public PersistentSolveJobController(SolveJobRepository jobs) { this.jobs = jobs; }
 
     @PostMapping
-    public Map<String, Object> enqueue(@RequestBody(required = false) SubmitSolveJobRequest request, Authentication authentication) {
+    public ResponseEntity<?> enqueue(@RequestBody(required = false) SubmitSolveJobRequest request, Authentication authentication) {
         String key = request == null ? null : request.idempotencyKey();
-        String termCode = request == null || request.termCode() == null || request.termCode().isBlank() ? "2026-FALL" : request.termCode().trim();
-        SolveJobHandle handle = jobs.enqueue(key, authentication.getName(), termCode);
-        return Map.of("jobId", handle.jobId(), "versionId", handle.versionId(), "status", handle.status());
+        String termCode = request == null ? null : request.termCode();
+        try {
+            SolveJobHandle handle = jobs.enqueue(key, authentication.getName(), termCode);
+            return ResponseEntity.ok(Map.of("jobId", handle.jobId(), "versionId", handle.versionId(), "status", handle.status()));
+        } catch (SolveReadinessException exception) {
+            return SolveReadinessController.blocked(exception);
+        }
     }
 
     @GetMapping("/{jobId}")

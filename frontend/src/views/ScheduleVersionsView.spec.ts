@@ -34,7 +34,7 @@ function createFetchMock(initialVersions: unknown[]) {
 }
 
 function mountView() {
-  return mount(ScheduleVersionsView, { global: { stubs: { 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
+  return mount(ScheduleVersionsView, { global: { directives: { loading: () => undefined }, stubs: { 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
 }
 
 describe('ScheduleVersionsView', () => {

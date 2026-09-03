@@ -21,7 +21,7 @@ public class ScheduleRuleController {
     public ScheduleRuleController(ScheduleRuleRepository repository) { this.repository = repository; }
 
     @GetMapping
-    public Object list(@RequestParam(defaultValue = "2026-FALL") String termCode) { return repository.list(termCode); }
+    public Object list(@RequestParam(required = false) String termCode) { return repository.list(termCode); }
 
     @GetMapping("/catalog")
     public Object catalog() { return repository.catalog(); }

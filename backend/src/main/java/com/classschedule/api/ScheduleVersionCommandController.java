@@ -78,12 +78,21 @@ public class ScheduleVersionCommandController {
     }
 
     @GetMapping("/{versionId}/adjustments/commands")
-    public ResponseEntity<?> commandHistory(@PathVariable long versionId) {
+    public ResponseEntity<?> commandHistory(@PathVariable long versionId, Authentication authentication) {
         try {
+            if (isPublishedOnlyViewer(authentication)) return ResponseEntity.status(403).body(Map.of("code", "VIEWER_PUBLISHED_ONLY", "message", "只读用户不能读取内部命令历史"));
+            if (!repository.canAccessVersion(versionId, authentication.getName())) return ResponseEntity.notFound().build();
             return ResponseEntity.ok(repository.commandHistory(versionId));
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", exception.getMessage()));
         }
+    }
+
+    private boolean isPublishedOnlyViewer(Authentication authentication) {
+        if (authentication == null) return false;
+        boolean viewer = authentication.getAuthorities().stream().anyMatch(a -> "ROLE_VIEWER".equals(a.getAuthority()));
+        boolean planner = authentication.getAuthorities().stream().anyMatch(a -> "ROLE_PLANNER".equals(a.getAuthority()));
+        return viewer && !planner;
     }
 
     @PostMapping("/{versionId}/adjustments/commands/{groupId}/undo")
@@ -121,8 +130,9 @@ public class ScheduleVersionCommandController {
     }
 
     @PostMapping("/{versionId}/adjustments/exchange-candidates")
-    public ResponseEntity<?> exchangeCandidates(@PathVariable long versionId, @Valid @RequestBody ExchangeCandidatesRequest request) {
+    public ResponseEntity<?> exchangeCandidates(@PathVariable long versionId, @Valid @RequestBody ExchangeCandidatesRequest request, Authentication authentication) {
         try {
+            if (!repository.canAccessVersion(versionId, authentication.getName())) return ResponseEntity.notFound().build();
             return ResponseEntity.ok(repository.exchangeCandidates(versionId, request));
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", exception.getMessage()));

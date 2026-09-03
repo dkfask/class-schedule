@@ -41,7 +41,7 @@ describe('RuleFactsView', () => {
       if (String(input) === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       return response({ message: '资源不存在' }, false)
     }))
-    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } } })
+    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' } } } })
     const vm = wrapper.vm as any
     await vm.saveAvailability()
     await flushPromises()

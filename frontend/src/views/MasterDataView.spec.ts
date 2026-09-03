@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { routerKey } from 'vue-router'
 import MasterDataView from './MasterDataView.vue'
 
 function response(body: unknown, ok = true) {
@@ -9,6 +10,7 @@ function response(body: unknown, ok = true) {
 function mountMasterData() {
   return mount(MasterDataView, {
     global: {
+      provide: { [routerKey]: { push: vi.fn() } },
       directives: { loading: () => undefined },
       stubs: {
         'el-button': { template: '<button @click="$emit(\'click\')"><slot /></button>' },

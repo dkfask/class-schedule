@@ -2,6 +2,7 @@ package com.classschedule.schedule;
 
 import com.classschedule.api.AdjustmentPreviewRequest;
 import com.classschedule.api.AdjustmentPreviewResponse;
+import com.classschedule.masterdata.AcademicTermResolver;
 import com.classschedule.solver.LessonOccurrence;
 import com.classschedule.solver.Timetable;
 import java.sql.ResultSet;
@@ -25,26 +26,35 @@ public class ScheduleRepository {
     private final JdbcTemplate jdbc;
     private final ScheduleRuleValidator ruleValidator;
     private final ScheduleSnapshotHashService snapshots;
+    private final AcademicTermResolver terms;
 
-    public ScheduleRepository(JdbcTemplate jdbc, ScheduleRuleValidator ruleValidator, ScheduleSnapshotHashService snapshots) {
+    public ScheduleRepository(JdbcTemplate jdbc, ScheduleRuleValidator ruleValidator, ScheduleSnapshotHashService snapshots, AcademicTermResolver terms) {
         this.jdbc = jdbc;
         this.ruleValidator = ruleValidator;
         this.snapshots = snapshots;
+        this.terms = terms;
     }
 
     public long createScenarioAndVersion() {
+        return createScenarioAndVersion("system");
+    }
+
+    public long createScenarioAndVersion(String actor) {
+        String owner = normalizedActor(actor);
+        requireKnownUser(owner);
+        String termCode = terms.resolve(null);
         Long scenarioId = jdbc.queryForObject(
-                "INSERT INTO schedule_scenario (term_id, name) SELECT id, '默认排课场景' FROM academic_term WHERE code = '2026-FALL' RETURNING id",
-                Long.class);
-        ScheduleSnapshotHashService.Snapshot snapshot = snapshots.snapshot("2026-FALL");
+                "INSERT INTO schedule_scenario (term_id, name, owner_user_id) SELECT id, '默认排课场景', (SELECT id FROM app_user WHERE username = ?) FROM academic_term WHERE code = ? RETURNING id",
+                Long.class, owner, termCode);
+        ScheduleSnapshotHashService.Snapshot snapshot = snapshots.snapshot(termCode);
         return jdbc.queryForObject(
-                "INSERT INTO schedule_version (scenario_id, status, solver_version, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at, legacy_identity_unverified) VALUES (?, 'SOLVING', 'timefold-1.17.0', ?, ?, ?, CURRENT_TIMESTAMP, TRUE) RETURNING id",
-                Long.class, scenarioId, snapshot.termCode(), snapshot.inputHash(), snapshot.ruleHash());
+                "INSERT INTO schedule_version (scenario_id, owner_user_id, status, solver_version, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at, legacy_identity_unverified) VALUES (?, (SELECT owner_user_id FROM schedule_scenario WHERE id = ?), 'SOLVING', 'timefold-1.17.0', ?, ?, ?, CURRENT_TIMESTAMP, TRUE) RETURNING id",
+                Long.class, scenarioId, scenarioId, snapshot.termCode(), snapshot.inputHash(), snapshot.ruleHash());
     }
 
     public long createJob(long versionId) {
         return jdbc.queryForObject(
-                "INSERT INTO solve_job (schedule_version_id, status) VALUES (?, 'RUNNING') RETURNING id",
+                "INSERT INTO solve_job (schedule_version_id, status, submitted_by_user_id) VALUES (?, 'RUNNING', (SELECT id FROM app_user WHERE username = 'system')) RETURNING id",
                 Long.class, versionId);
     }
 
@@ -91,6 +101,14 @@ public class ScheduleRepository {
         return findVersion(versionId);
     }
 
+    public boolean canAccessVersion(long versionId, String actor) {
+        if (actor == null || actor.isBlank()) return false;
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM schedule_version v JOIN schedule_scenario s ON s.id = v.scenario_id LEFT JOIN app_user owner ON owner.id = v.owner_user_id WHERE v.id = ? AND (? = 'system' OR (owner.username = ? AND owner.enabled = TRUE AND s.owner_user_id = v.owner_user_id) OR (v.status = 'PUBLISHED' AND EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user viewer ON viewer.id = ur.user_id WHERE viewer.username = ? AND viewer.enabled = TRUE AND r.code = 'VIEWER' AND r.active = TRUE)) OR EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user admin ON admin.id = ur.user_id WHERE admin.username = ? AND admin.enabled = TRUE AND r.code = 'USER_ADMIN' AND r.active = TRUE))",
+                Integer.class, versionId, actor, actor, actor, actor);
+        return count != null && count > 0;
+    }
+
     public void markCancelled(long jobId) {
         int updated = jdbc.update(
                 "UPDATE solve_job SET status = 'CANCELLED', finished_at = CURRENT_TIMESTAMP WHERE id = ? AND status IN ('QUEUED', 'RUNNING')",
@@ -105,7 +123,7 @@ public class ScheduleRepository {
     public ScheduleVersionView findVersion(long versionId) {
         try {
             List<ScheduleAssignmentView> assignments = jdbc.query(
-                    "SELECT occurrence_id, teaching_requirement_id, requirement_code, COALESCE(occurrence_key, occurrence_id::varchar) AS occurrence_key, activity_index, activity_member_index, pinned_period_code, activity_type_snapshot, subject_code, subject_name, teacher_code, teacher_name, student_group_code, student_group_name, timeslot_code, timeslot_label, weekday, period_no, room_code, room_name, source, locked, duration, activity_group_code, COALESCE(activity_type_snapshot, (SELECT activity_type FROM activity_group WHERE code = schedule_assignment.activity_group_code)) AS activity_type, student_count, required_features, room_features, room_capacity FROM schedule_assignment WHERE schedule_version_id = ? ORDER BY occurrence_id",
+                    "SELECT a.occurrence_id, a.teaching_requirement_id, a.requirement_code, COALESCE(a.occurrence_key, a.occurrence_id::varchar) AS occurrence_key, a.activity_index, a.activity_member_index, a.pinned_period_code, a.activity_type_snapshot, a.subject_code, a.subject_name, a.teacher_code, a.teacher_name, a.student_group_code, a.student_group_name, a.timeslot_code, a.timeslot_label, a.weekday, a.period_no, a.room_code, a.room_name, a.source, a.locked, a.duration, a.activity_group_code, COALESCE(a.activity_type_snapshot, ag.activity_type) AS activity_type, a.student_count, a.required_features, a.room_features, a.room_capacity FROM schedule_assignment a JOIN schedule_version v ON v.id = a.schedule_version_id JOIN schedule_scenario s ON s.id = v.scenario_id LEFT JOIN activity_group ag ON ag.code = a.activity_group_code AND ag.term_id = s.term_id WHERE a.schedule_version_id = ? ORDER BY a.occurrence_id",
                     (rs, rowNum) -> mapAssignment(rs), versionId);
             return jdbc.queryForObject(
                     "SELECT v.id, v.status, v.score, v.legacy_identity_unverified, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.edit_lock_reason, v.snapshot_term_code, v.input_snapshot_hash, v.rule_snapshot_hash, v.input_snapshot_at, COUNT(a.id) AS assignment_count, COUNT(a.timeslot_code) AS assigned_timeslots, COUNT(a.room_code) AS assigned_rooms FROM schedule_version v LEFT JOIN schedule_assignment a ON v.id = a.schedule_version_id WHERE v.id = ? GROUP BY v.id, v.status, v.score, v.legacy_identity_unverified, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.edit_lock_reason, v.snapshot_term_code, v.input_snapshot_hash, v.rule_snapshot_hash, v.input_snapshot_at",
@@ -123,9 +141,10 @@ public class ScheduleRepository {
                         boolean editLocked = rs.getBoolean("edit_locked");
                         String editLockOwner = rs.getString("edit_lock_owner");
                         String editLockReason = rs.getString("edit_lock_reason");
-                        boolean publishable = "CANDIDATE".equals(status)
+                        boolean scoreReady = "CANDIDATE".equals(status) && parsedScore.hardFeasible();
+                        boolean adjustedDraftReady = "DRAFT".equals(status) && score == null;
+                        boolean publishable = (scoreReady || adjustedDraftReady)
                                 && !legacyIdentityUnverified
-                                && parsedScore.hardFeasible()
                                 && assignmentCount > 0
                                 && assignmentCount == assignedTimeslots
                                 && assignmentCount == assignedRooms
@@ -342,7 +361,9 @@ public class ScheduleRepository {
                         : item.occurrenceId() == right.occurrenceId() ? rightAfter : item)
                 .toList();
         List<ScheduleRuleValidator.Violation> violations = ruleValidator.validateAssignments(versionId, afterAssignments);
-        if (!violations.isEmpty()) throw new IllegalArgumentException("交换后违反排课规则: " + violations.get(0).message());
+        if (violations.stream().anyMatch(ScheduleRuleValidator.Violation::blocking)) {
+            throw new IllegalArgumentException("交换后违反排课规则: " + violations.stream().filter(ScheduleRuleValidator.Violation::blocking).findFirst().orElseThrow().message());
+        }
 
         updateAssignmentLocation(versionId, leftAfter);
         updateAssignmentLocation(versionId, rightAfter);
@@ -378,38 +399,55 @@ public class ScheduleRepository {
     }
     @Transactional
     public long fork(long versionId, String name) {
-        return fork(versionId, name, "planner");
+        return fork(versionId, name, "system");
     }
 
     @Transactional
     public long fork(long versionId, String name, String actor) {
+        String owner = normalizedActor(actor);
+        requireKnownUser(owner);
         Map<String, Object> source = versionRowForUpdate(versionId);
+        requireOwner(source, versionId, owner);
         String status = String.valueOf(source.get("status"));
         if (!("CANDIDATE".equals(status) || "PUBLISHED".equals(status) || "ARCHIVED".equals(status))) {
             throw new VersionMutationException("VERSION_NOT_FORKABLE", versionId, ((Number) source.get("revision")).longValue(), "当前版本不可创建分支: " + status);
         }
         Long scenarioId = jdbc.queryForObject("SELECT scenario_id FROM schedule_version WHERE id = ?", Long.class, versionId);
-        Long newScenarioId = jdbc.queryForObject("INSERT INTO schedule_scenario (term_id, name, parent_version_id) SELECT term_id, ?, ? FROM schedule_scenario WHERE id = ? RETURNING id", Long.class, name, versionId, scenarioId);
-        Long newVersionId = jdbc.queryForObject("INSERT INTO schedule_version (scenario_id, parent_version_id, status, score, solver_version, random_seed, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at, legacy_identity_unverified) SELECT ?, id, 'DRAFT', NULL, solver_version, random_seed, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at, legacy_identity_unverified FROM schedule_version WHERE id = ? RETURNING id", Long.class, newScenarioId, versionId);
+        Long newScenarioId = jdbc.queryForObject("INSERT INTO schedule_scenario (term_id, name, parent_version_id, owner_user_id) SELECT term_id, ?, ?, (SELECT id FROM app_user WHERE username = ?) FROM schedule_scenario WHERE id = ? RETURNING id", Long.class, name, versionId, owner, scenarioId);
+        Long newVersionId = jdbc.queryForObject("INSERT INTO schedule_version (scenario_id, owner_user_id, parent_version_id, status, score, solver_version, random_seed, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at, legacy_identity_unverified) SELECT ?, (SELECT id FROM app_user WHERE username = ?), id, 'DRAFT', NULL, solver_version, random_seed, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at, legacy_identity_unverified FROM schedule_version WHERE id = ? RETURNING id", Long.class, newScenarioId, owner, versionId);
         jdbc.update("INSERT INTO schedule_assignment (schedule_version_id, occurrence_id, teaching_requirement_id, requirement_code, occurrence_key, activity_index, activity_member_index, pinned_period_code, activity_type_snapshot, subject_code, subject_name, teacher_code, teacher_name, student_group_code, student_group_name, timeslot_code, timeslot_label, weekday, period_no, room_code, room_name, source, locked, duration, activity_group_code, student_count, required_features, room_features, room_capacity) SELECT ?, occurrence_id, teaching_requirement_id, requirement_code, COALESCE(occurrence_key, occurrence_id::varchar), activity_index, activity_member_index, pinned_period_code, activity_type_snapshot, subject_code, subject_name, teacher_code, teacher_name, student_group_code, student_group_name, timeslot_code, timeslot_label, weekday, period_no, room_code, room_name, source, locked, duration, activity_group_code, student_count, required_features, room_features, room_capacity FROM schedule_assignment WHERE schedule_version_id = ?", newVersionId, versionId);
-        insertAudit(newVersionId, "FORK", 0, String.valueOf(versionId), actor);
+        insertAudit(newVersionId, "FORK", 0, String.valueOf(versionId), owner);
         return newVersionId;
     }
 
     public ScheduleVersionRepositoryModels.VersionPage listVersions(String termCode, String status, int page, int size) {
+        return listVersions(termCode, status, page, size, null);
+    }
+
+    public ScheduleVersionRepositoryModels.VersionPage listVersions(String termCode, String status, int page, int size, String actor) {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(100, Math.max(1, size));
-        String normalizedTerm = termCode == null || termCode.isBlank() ? "2026-FALL" : termCode;
+        String normalizedTerm = terms.resolve(termCode);
         String normalizedStatus = status == null ? "" : status.trim();
+        String ownerFilter = actor == null || actor.isBlank() ? "" : " AND (? = 'system' OR (owner.username = ? AND owner.enabled = TRUE AND s.owner_user_id = v.owner_user_id) OR (v.status = 'PUBLISHED' AND EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user viewer ON viewer.id = ur.user_id WHERE viewer.username = ? AND viewer.enabled = TRUE AND r.code = 'VIEWER' AND r.active = TRUE)) OR EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user admin ON admin.id = ur.user_id WHERE admin.username = ? AND admin.enabled = TRUE AND r.code = 'USER_ADMIN' AND r.active = TRUE))";
         String statusFilter = normalizedStatus.isBlank() ? "" : " AND v.status = ?";
-        String countSql = "SELECT COUNT(*) FROM schedule_version v JOIN schedule_scenario s ON s.id = v.scenario_id JOIN academic_term t ON t.id = s.term_id WHERE t.code = ?" + statusFilter;
-        Long total = normalizedStatus.isBlank()
-                ? jdbc.queryForObject(countSql, Long.class, normalizedTerm)
-                : jdbc.queryForObject(countSql, Long.class, normalizedTerm, normalizedStatus);
-        String listSql = "SELECT v.id, v.status, v.score, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.parent_version_id, v.created_at, s.term_id FROM schedule_version v JOIN schedule_scenario s ON s.id = v.scenario_id JOIN academic_term t ON t.id = s.term_id WHERE t.code = ?" + statusFilter + " ORDER BY v.created_at DESC, v.id DESC LIMIT ? OFFSET ?";
-        List<ScheduleVersionRepositoryModels.VersionSummary> items = normalizedStatus.isBlank()
-                ? jdbc.query(listSql, (rs, row) -> versionSummary(rs), normalizedTerm, safeSize, safePage * safeSize)
-                : jdbc.query(listSql, (rs, row) -> versionSummary(rs), normalizedTerm, normalizedStatus, safeSize, safePage * safeSize);
+        String from = " FROM schedule_version v JOIN schedule_scenario s ON s.id = v.scenario_id JOIN academic_term t ON t.id = s.term_id LEFT JOIN app_user owner ON owner.id = v.owner_user_id";
+        String where = " WHERE t.code = ?" + statusFilter + ownerFilter;
+        List<Object> baseParams = new ArrayList<>();
+        baseParams.add(normalizedTerm);
+        if (!normalizedStatus.isBlank()) baseParams.add(normalizedStatus);
+        if (actor != null && !actor.isBlank()) {
+            baseParams.add(actor);
+            baseParams.add(actor);
+            baseParams.add(actor);
+            baseParams.add(actor);
+        }
+        Long total = jdbc.queryForObject("SELECT COUNT(*)" + from + where, Long.class, baseParams.toArray());
+        String listSql = "SELECT v.id, v.status, v.score, v.legacy_identity_unverified, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.parent_version_id, v.created_at, COUNT(a.id) AS assignment_count, COUNT(a.timeslot_code) AS assigned_timeslots, COUNT(a.room_code) AS assigned_rooms" + from + " LEFT JOIN schedule_assignment a ON a.schedule_version_id = v.id" + where + " GROUP BY v.id, v.status, v.score, v.legacy_identity_unverified, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.parent_version_id, v.created_at ORDER BY v.created_at DESC, v.id DESC LIMIT ? OFFSET ?";
+        List<Object> listParams = new ArrayList<>(baseParams);
+        listParams.add(safeSize);
+        listParams.add(safePage * safeSize);
+        List<ScheduleVersionRepositoryModels.VersionSummary> items = jdbc.query(listSql, (rs, row) -> versionSummary(rs), listParams.toArray());
         return new ScheduleVersionRepositoryModels.VersionPage(items, safePage, safeSize, total == null ? 0 : total);
     }
 
@@ -449,9 +487,17 @@ public class ScheduleRepository {
     }
 
     private ScheduleVersionRepositoryModels.VersionSummary versionSummary(ResultSet rs) throws SQLException {
+        long assignmentCount = rs.getLong("assignment_count");
+        long assignedTimeslots = rs.getLong("assigned_timeslots");
+        long assignedRooms = rs.getLong("assigned_rooms");
+        ScheduleScoreView parsedScore = ScheduleScoreView.parse(rs.getString("score"));
+        boolean publishable = (("CANDIDATE".equals(rs.getString("status")) && parsedScore.hardFeasible())
+                || ("DRAFT".equals(rs.getString("status")) && rs.getString("score") == null))
+                && !rs.getBoolean("legacy_identity_unverified")
+                && assignmentCount > 0 && assignmentCount == assignedTimeslots && assignmentCount == assignedRooms;
         return new ScheduleVersionRepositoryModels.VersionSummary(
                 rs.getLong("id"), rs.getString("status"), rs.getString("score"),
-                findVersion(rs.getLong("id")).publishable(),
+                publishable,
                 rs.getObject("parent_version_id", Long.class),
                 rs.getObject("created_at", java.time.OffsetDateTime.class),
                 rs.getLong("revision"),
@@ -507,11 +553,12 @@ public class ScheduleRepository {
     private LockedVersion lockEditableVersion(long versionId, Long expectedRevision, String actor) {
         Map<String, Object> row;
         try {
-            row = jdbc.queryForMap("SELECT revision, status, edit_locked, edit_lock_owner FROM schedule_version WHERE id = ? FOR UPDATE", versionId);
+            row = jdbc.queryForMap("SELECT revision, status, edit_locked, edit_lock_owner, owner_user_id FROM schedule_version WHERE id = ? FOR UPDATE", versionId);
         } catch (EmptyResultDataAccessException exception) {
             throw new IllegalArgumentException("版本不存在: " + versionId, exception);
         }
         long revision = ((Number) row.get("revision")).longValue();
+        requireOwner(row, versionId, actor);
         String status = String.valueOf(row.get("status"));
         boolean editLocked = Boolean.TRUE.equals(row.get("edit_locked"));
         String lockOwner = (String) row.get("edit_lock_owner");
@@ -669,7 +716,9 @@ public class ScheduleRepository {
             restoredAssignments.add(restored);
             next.replaceAll(item -> item.occurrenceId() == row.occurrenceId() ? restored : item);
         }
-        if (!ruleValidator.validateAssignments(versionId, next).isEmpty()) throw new IllegalArgumentException("撤销后违反排课规则");
+        if (ruleValidator.validateAssignments(versionId, next).stream().anyMatch(ScheduleRuleValidator.Violation::blocking)) {
+            throw new IllegalArgumentException("撤销后违反排课规则");
+        }
         restoredAssignments.forEach(item -> updateAssignmentLocation(versionId, item));
         long resultRevision = locked.revision() + 1;
         jdbc.update("UPDATE adjustment_command_group SET state = 'UNDONE', updated_at = CURRENT_TIMESTAMP WHERE id = ?", groupId);
@@ -700,7 +749,9 @@ public class ScheduleRepository {
             appliedAssignments.add(applied);
             next.replaceAll(item -> item.occurrenceId() == row.occurrenceId() ? applied : item);
         }
-        if (!ruleValidator.validateAssignments(versionId, next).isEmpty()) throw new IllegalArgumentException("重做后违反排课规则");
+        if (ruleValidator.validateAssignments(versionId, next).stream().anyMatch(ScheduleRuleValidator.Violation::blocking)) {
+            throw new IllegalArgumentException("重做后违反排课规则");
+        }
         appliedAssignments.forEach(item -> updateAssignmentLocation(versionId, item));
         long resultRevision = locked.revision() + 1;
         jdbc.update("UPDATE adjustment_command_group SET state = 'APPLIED', updated_at = CURRENT_TIMESTAMP WHERE id = ?", groupId);
@@ -732,6 +783,7 @@ public class ScheduleRepository {
         String normalizedOwner = owner == null || owner.isBlank() ? "planner" : owner.trim();
         Map<String, Object> row = versionRowForUpdate(versionId);
         long revision = ((Number) row.get("revision")).longValue();
+        requireOwner(row, versionId, normalizedOwner);
         requireExpectedRevision(versionId, revision, expectedRevision);
         String status = String.valueOf(row.get("status"));
         if (!("DRAFT".equals(status) || "CANDIDATE".equals(status))) {
@@ -752,6 +804,7 @@ public class ScheduleRepository {
         String normalizedOwner = owner == null || owner.isBlank() ? "planner" : owner.trim();
         Map<String, Object> row = versionRowForUpdate(versionId);
         long revision = ((Number) row.get("revision")).longValue();
+        requireOwner(row, versionId, normalizedOwner);
         requireExpectedRevision(versionId, revision, expectedRevision);
         if (!Boolean.TRUE.equals(row.get("edit_locked"))) return true;
         if (!normalizedOwner.equals(row.get("edit_lock_owner"))) {
@@ -767,6 +820,7 @@ public class ScheduleRepository {
     public boolean archive(long versionId, Long expectedRevision, String actor) {
         Map<String, Object> row = versionRowForUpdate(versionId);
         long revision = ((Number) row.get("revision")).longValue();
+        requireOwner(row, versionId, actor);
         requireExpectedRevision(versionId, revision, expectedRevision);
         if (!"PUBLISHED".equals(row.get("status"))) {
             throw new VersionMutationException("VERSION_NOT_ARCHIVABLE", versionId, revision, "只有已发布版本可以归档");
@@ -779,7 +833,7 @@ public class ScheduleRepository {
 
     private Map<String, Object> versionRowForUpdate(long versionId) {
         try {
-            return jdbc.queryForMap("SELECT revision, status, edit_locked, edit_lock_owner FROM schedule_version WHERE id = ? FOR UPDATE", versionId);
+            return jdbc.queryForMap("SELECT revision, status, edit_locked, edit_lock_owner, owner_user_id FROM schedule_version WHERE id = ? FOR UPDATE", versionId);
         } catch (EmptyResultDataAccessException exception) {
             throw new IllegalArgumentException("版本不存在: " + versionId, exception);
         }
@@ -799,11 +853,15 @@ public class ScheduleRepository {
     public boolean publish(long versionId, Long expectedRevision, String actor) {
         Map<String, Object> row;
         try {
-            row = jdbc.queryForMap("SELECT revision, status, edit_locked, legacy_identity_unverified FROM schedule_version WHERE id = ? FOR UPDATE", versionId);
+            row = jdbc.queryForMap("SELECT revision, status, edit_locked, edit_lock_owner, owner_user_id, legacy_identity_unverified FROM schedule_version WHERE id = ? FOR UPDATE", versionId);
         } catch (EmptyResultDataAccessException exception) {
             return false;
         }
-        if (!"CANDIDATE".equals(row.get("status")) || Boolean.TRUE.equals(row.get("edit_locked"))) return false;
+        String status = String.valueOf(row.get("status"));
+        requireOwner(row, versionId, actor);
+        if (!("CANDIDATE".equals(status) || "DRAFT".equals(status))) return false;
+        if (Boolean.TRUE.equals(row.get("edit_locked"))
+                && (actor == null || !actor.equals(row.get("edit_lock_owner")))) return false;
         if (Boolean.TRUE.equals(row.get("legacy_identity_unverified"))) {
             throw new VersionMutationException("LEGACY_IDENTITY_UNVERIFIED", versionId, ((Number) row.get("revision")).longValue(), "版本缺少可信的教学需求身份，请重新求解");
         }
@@ -820,10 +878,34 @@ public class ScheduleRepository {
         ScheduleVersionView version = findVersion(versionId);
         if (!version.publishable()) return false;
         requireExpectedRevision(versionId, revision, expectedRevision);
-        int updated = jdbc.update("UPDATE schedule_version SET status = 'PUBLISHED', published_at = CURRENT_TIMESTAMP, revision = revision + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'CANDIDATE' AND revision = ?", versionId, revision);
+        int updated = jdbc.update("UPDATE schedule_version SET status = 'PUBLISHED', published_at = CURRENT_TIMESTAMP, revision = revision + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status IN ('DRAFT', 'CANDIDATE') AND revision = ?", versionId, revision);
         if (updated != 1) return false;
         insertAudit(versionId, "PUBLISH", revision + 1, null, actor);
         return true;
+    }
+
+    private void requireOwner(Map<String, Object> row, long versionId, String actor) {
+        if (actor == null || actor.isBlank()) {
+            throw new VersionMutationException("VERSION_NOT_OWNED", versionId,
+                    ((Number) row.get("revision")).longValue(), "无权操作该课表版本");
+        }
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM schedule_version v JOIN schedule_scenario s ON s.id = v.scenario_id WHERE v.id = ? AND (? = 'system' OR (v.owner_user_id = (SELECT id FROM app_user WHERE username = ? AND enabled = TRUE) AND s.owner_user_id = v.owner_user_id) OR EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user admin ON admin.id = ur.user_id WHERE admin.username = ? AND admin.enabled = TRUE AND r.code = 'USER_ADMIN' AND r.active = TRUE))",
+                Integer.class, versionId, actor, actor, actor);
+        if (count == null || count == 0) {
+            throw new VersionMutationException("VERSION_NOT_OWNED", versionId,
+                    ((Number) row.get("revision")).longValue(), "无权操作该课表版本");
+        }
+    }
+
+    private String normalizedActor(String actor) {
+        return actor == null || actor.isBlank() ? "system" : actor.trim();
+    }
+
+    private void requireKnownUser(String actor) {
+        if (jdbc.queryForObject("SELECT COUNT(*) FROM app_user WHERE username = ? AND enabled = TRUE", Integer.class, actor) == 0) {
+            throw new IllegalArgumentException("用户不存在或已停用: " + actor);
+        }
     }
 
     private ScheduleAssignmentView mapAssignment(ResultSet rs) throws SQLException {
@@ -840,4 +922,3 @@ public class ScheduleRepository {
                 rs.getInt("activity_index"), rs.getInt("activity_member_index"), rs.getString("pinned_period_code"), rs.getString("activity_type_snapshot"));
     }
 }
-

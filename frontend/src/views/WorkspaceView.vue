@@ -57,6 +57,15 @@ interface SolveDetails {
   deadlineAt?: string
 }
 
+interface SolveReadiness {
+  termCode: string
+  ready: boolean
+  timeslotCount: number
+  roomCount: number
+  requirementCount: number
+  issues: Array<{ code: string; message: string }>
+}
+
 const term = useTermStore()
 const router = useRouter()
 const loading = ref(false)
@@ -79,6 +88,8 @@ const hardScore = ref<number | null>(null)
 const mediumScore = ref<number | null>(null)
 const softScore = ref<number | null>(null)
 const errorMessage = ref('')
+const readiness = ref<SolveReadiness | null>(null)
+const readinessLoading = ref(false)
 const occurrences = ref<Occurrence[]>([])
 const filteredOccurrences = ref<Occurrence[]>([])
 const viewType = ref<WorkspaceViewType>('CLASS')
@@ -101,7 +112,7 @@ const dragOccurrence = ref<Occurrence | null>(null)
 const selectedExchangeCandidate = ref<{ occurrenceId: number; occurrenceKey: string; subjectName: string; studentGroupCode: string; teacherCode: string; roomCode: string; timeslotCode: string } | null>(null)
 const searchQuery = ref('')
 const message = ref('')
-const termName = ref('2026 秋季学期')
+const termName = ref('')
 const masterDataSummary = ref({ teachers: 0, studentGroups: 0, subjects: 0, rooms: 0 })
 const backendPublishable = ref(false)
 const activeView = computed(() => ({ CLASS: '班级课表', TEACHER: '教师课表', ROOM: '教室课表' })[viewType.value])
@@ -125,6 +136,7 @@ const gridStyle = computed(() => ({ gridTemplateColumns: `58px repeat(${Math.max
 const canCancel = computed(() => canCancelSolve(jobId.value, jobStatus.value, cancelling.value))
 const statusLabel = computed(() => getStatusLabel(jobStatus.value, versionStatus.value))
 let pollTimer: number | undefined
+let pollGeneration = 0
 
 function clearPollTimer() {
   if (pollTimer !== undefined) {
@@ -137,6 +149,29 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return http<T>(url, init)
 }
 
+function setSolveError(text: string) {
+  errorMessage.value = text
+  message.value = text
+}
+
+async function loadReadiness() {
+  if (!term.hasValidTerm.value) {
+    readiness.value = null
+    return null
+  }
+  readinessLoading.value = true
+  try {
+    readiness.value = await requestJson<SolveReadiness>(`/api/solve-readiness?termCode=${encodeURIComponent(term.selectedTermCode.value)}`)
+    return readiness.value
+  } catch (error) {
+    readiness.value = null
+    setSolveError(error instanceof Error ? `排课前置检查失败：${error.message}` : '排课前置检查失败，请重试')
+    return null
+  } finally {
+    readinessLoading.value = false
+  }
+}
+
 async function loadMasterData() {
   await term.loadTerms()
   if (!term.hasValidTerm.value) {
@@ -144,6 +179,7 @@ async function loadMasterData() {
     termName.value = term.error.value || '暂无可用学期'
     return
   }
+  termName.value = term.terms.value.find(item => item.code === term.selectedTermCode.value)?.name ?? ''
   try {
     const data = await requestJson<{ terms?: Array<{ code: string; name: string }>; teachers?: unknown[]; studentGroups?: unknown[]; subjects?: unknown[]; rooms?: unknown[] }>('/api/master-data/overview')
     const currentTerm = data.terms?.find(item => item.code === term.selectedTermCode.value) ?? data.terms?.[0]
@@ -155,8 +191,9 @@ async function loadMasterData() {
       rooms: data.rooms?.length ?? 0
     }
   } catch {
-    message.value = '基础数据暂时无法读取，仍可提交求解任务'
+    setSolveError('基础数据暂时无法读取，无法安全开始排课')
   }
+  await loadReadiness()
 }
 
 async function loadVersion(id = versionId.value) {
@@ -400,9 +437,18 @@ async function redoLatest() {
 
 async function startSolve() {
   if (!term.hasValidTerm.value) {
-    message.value = term.error.value || '暂无可用学期，无法开始排课'
+    setSolveError(term.error.value || '暂无可用学期，无法开始排课')
     return
   }
+  const checked = readiness.value ?? await loadReadiness()
+  if (!checked) return
+  if (!checked.ready) {
+    jobStatus.value = '数据未就绪'
+    setSolveError(checked.issues.map(issue => issue.message).join('；') || '当前学期排课基础数据未就绪')
+    return
+  }
+  pollGeneration += 1
+  const generation = pollGeneration
   clearPollTimer()
   loading.value = true
   jobStatus.value = 'QUEUED'
@@ -433,17 +479,19 @@ async function startSolve() {
     })
     jobId.value = created.jobId
     versionId.value = created.versionId
-    void poll(created.jobId)
+    void poll(created.jobId, generation)
   } catch (error) {
     loading.value = false
     jobStatus.value = 'FAILED'
-    message.value = error instanceof Error ? error.message : '无法提交求解任务，请检查后端服务'
+    setSolveError(error instanceof Error ? error.message : '无法提交求解任务，请检查后端服务')
   }
 }
 
-async function poll(id: number) {
+async function poll(id: number, generation = pollGeneration) {
+  if (generation !== pollGeneration) return
   try {
     const result = await requestJson<SolveDetails>(`/api/solve-jobs/${id}`)
+    if (generation !== pollGeneration) return
     jobStatus.value = result.jobStatus
     versionStatus.value = result.versionStatus
     progress.value = result.progress
@@ -457,15 +505,23 @@ async function poll(id: number) {
     if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(result.jobStatus)) {
       clearPollTimer()
       loading.value = false
-      if (result.jobStatus === 'COMPLETED') await loadVersion(result.versionId)
+      if (result.jobStatus === 'COMPLETED') {
+        try {
+          await loadVersion(result.versionId)
+        } catch (error) {
+          if (generation !== pollGeneration) return
+          setSolveError(error instanceof Error ? `求解已完成，但课表结果加载失败：${error.message}` : '求解已完成，但课表结果加载失败')
+        }
+      }
       return
     }
-    pollTimer = window.setTimeout(() => void poll(id), 700)
+    pollTimer = window.setTimeout(() => void poll(id, generation), 700)
   } catch (error) {
+    if (generation !== pollGeneration) return
     clearPollTimer()
     loading.value = false
-    jobStatus.value = 'FAILED'
-    message.value = error instanceof Error ? error.message : '无法读取求解状态'
+    jobStatus.value = '状态读取失败'
+    setSolveError(error instanceof Error ? error.message : '无法读取求解状态')
   }
 }
 
@@ -504,6 +560,7 @@ onMounted(() => {
 })
 
 watch(() => term.selectedTermCode.value, () => {
+  pollGeneration += 1
   clearPollTimer()
   jobId.value = null
   versionId.value = null
@@ -519,12 +576,14 @@ watch(() => term.selectedTermCode.value, () => {
   occurrences.value = []
   filteredOccurrences.value = []
   options.value = { timeslots: [], rooms: [], studentGroups: [], teachers: [] }
+  readiness.value = null
   backendPublishable.value = false
   selectedOccurrence.value = null
   void loadMasterData()
 })
 
 onBeforeUnmount(() => {
+  pollGeneration += 1
   if (pollTimer !== undefined) window.clearTimeout(pollTimer)
 })
 </script>
@@ -539,7 +598,7 @@ onBeforeUnmount(() => {
       <span class="sync-state">● {{ errorMessage ? '需要处理' : '数据已同步' }}</span>
       <el-button plain @click="router.push('/import')">导入数据</el-button>
       <el-button v-if="canCancel" plain :loading="cancelling" @click="cancelSolve">取消求解</el-button>
-      <el-button data-testid="start-solve" type="primary" :loading="loading" :disabled="loading" @click="startSolve">{{ loading ? `正在求解 ${progress}%` : '开始自动排课' }}</el-button>
+      <el-button data-testid="start-solve" type="primary" :loading="loading" :disabled="loading || readinessLoading || readiness === null || !readiness.ready" @click="startSolve">{{ loading ? `正在求解 ${progress}%` : (readinessLoading ? '检查排课条件…' : '开始自动排课') }}</el-button>
       <div class="avatar">教</div>
     </div>
   </header>
@@ -592,7 +651,7 @@ onBeforeUnmount(() => {
 
     <aside class="detail-panel panel">
       <div class="panel-heading"><div><span class="eyebrow">DETAIL</span><h2>排课提示</h2></div><span class="readonly-badge">{{ canEditVersion ? (versionEditLocked ? '锁定' : '可编辑') : '只读' }}</span></div>
-      <div class="notice" :class="{ success: publishable, warning: !publishable }"><span>{{ publishable ? '✓' : 'i' }}</span><div><strong>{{ publishable ? '后端发布门禁已通过' : '等待完整结果' }}</strong><small>{{ publishable ? '全部任务已分配，基础资源冲突为零' : '完成自动排课后可检查版本发布条件' }}</small></div></div>
+      <div v-if="readiness" class="notice" :class="{ success: readiness.ready, warning: !readiness.ready }"><span>{{ readiness.ready ? '✓' : '!' }}</span><div><strong>{{ readiness.ready ? '排课条件已就绪' : '排课条件未就绪' }}</strong><small>节次 {{ readiness.timeslotCount }} · 启用教室 {{ readiness.roomCount }} · 有效教学需求 {{ readiness.requirementCount }}<span v-if="!readiness.ready">；{{ readiness.issues.map(issue => issue.message).join('；') }}</span></small></div></div>
       <div class="notice"><span>↗</span><div><strong>点击课程进行调整</strong><small>先选择目标节次和教室，后端会显示冲突及受影响课程</small></div></div>
       <div v-if="errorMessage" class="import-issues"><strong>{{ errorMessage }}</strong></div>
       <div v-if="message" class="inline-message">{{ message }}</div>

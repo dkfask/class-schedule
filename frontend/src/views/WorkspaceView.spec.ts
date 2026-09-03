@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { routerKey } from 'vue-router'
 import WorkspaceView from './WorkspaceView.vue'
 import { resetTermStore } from '../stores/term'
 
@@ -43,6 +44,7 @@ function createFetchMock(previewResponses: unknown[] = []) {
     if (url === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'test-csrf' })
     if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
     if (url.endsWith('/api/master-data/overview')) return response({ terms: [{ name: '2026 秋季学期' }], teachers: [], studentGroups: [], subjects: [], rooms: [] })
+    if (url.includes('/api/solve-readiness')) return response({ termCode: '2026-FALL', ready: true, timeslotCount: 4, roomCount: 2, requirementCount: 3, issues: [] })
     if (url.endsWith('/api/solve-jobs') && init?.method === 'POST') return response({ jobId: 9, versionId: 43, status: 'QUEUED' })
     if (url.endsWith('/api/imports/confirm') && init?.method === 'POST') return response({ batchId: 9, status: 'IMPORTED', importedRows: 5 })
     if (url.endsWith('/api/imports/preview') && init?.method === 'POST') return response({ batchId: 10, status: 'VALIDATED', issues: [] })
@@ -68,7 +70,7 @@ function createFetchMock(previewResponses: unknown[] = []) {
 }
 
 function mountWorkspace() {
-  return mount(WorkspaceView, { global: { stubs: {
+  return mount(WorkspaceView, { global: { provide: { [routerKey]: { push: vi.fn() } }, stubs: {
     'el-button': { template: '<button><slot /></button>' }, 'el-select': { template: '<select><slot /></select>' }, 'el-option': { template: '<option><slot /></option>' }, 'el-drawer': { template: '<div><slot /></div>' }, 'el-form': { template: '<form><slot /></form>' }, 'el-form-item': { template: '<label><slot /></label>' }, 'el-input': { template: '<textarea />' }, 'el-tag': { template: '<span><slot /></span>' },
   } } })
 }
@@ -107,7 +109,23 @@ describe('WorkspaceView API workflow', () => {
 
   it('clears stale schedule data before submitting a new solve', async () => {
     const { calls } = createFetchMock(); const wrapper = mountWorkspace(); await flushPromises(); const vm = wrapper.vm as any
-    await vm.loadVersion(42); expect(vm.occurrences).toHaveLength(1); const solve = vm.startSolve(); expect(vm.occurrences).toEqual([]); expect(vm.filteredOccurrences).toEqual([]); expect(vm.options.timeslots).toEqual([]); await solve; expect(calls.some(call => call.url.endsWith('/api/solve-jobs'))).toBe(true); wrapper.unmount()
+    await vm.loadReadiness(); await vm.loadVersion(42); expect(vm.occurrences).toHaveLength(1); const solve = vm.startSolve(); expect(vm.occurrences).toEqual([]); expect(vm.filteredOccurrences).toEqual([]); expect(vm.options.timeslots).toEqual([]); await solve; expect(calls.some(call => call.url.endsWith('/api/solve-jobs'))).toBe(true); wrapper.unmount()
+  })
+
+  it('blocks solve submission when the current term is not ready', async () => {
+    const { calls } = createFetchMock(); const readinessCall = calls
+    const originalFetch = globalThis.fetch
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.includes('/api/solve-readiness')) return response({ termCode: '2026-FALL', ready: false, timeslotCount: 4, roomCount: 0, requirementCount: 3, issues: [{ code: 'NO_ACTIVE_ROOMS', message: '尚未配置启用教室，请先新增或导入教室' }] })
+      return (originalFetch as any)(input, init)
+    }))
+    const wrapper = mountWorkspace(); await flushPromises(); const vm = wrapper.vm as any
+    await vm.loadReadiness(); await vm.startSolve()
+    expect(vm.jobStatus).toBe('数据未就绪')
+    expect(vm.errorMessage).toContain('尚未配置启用教室')
+    expect(readinessCall.some((call: any) => call.url.endsWith('/api/solve-jobs'))).toBe(false)
+    wrapper.unmount()
   })
 
   it('filters pending tasks by the search query', async () => {

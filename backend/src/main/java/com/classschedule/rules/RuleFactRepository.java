@@ -4,6 +4,7 @@ import com.classschedule.api.ActivityGroupRequest;
 import com.classschedule.api.AvailabilityRequest;
 import com.classschedule.api.RequirementFeatureRequest;
 import com.classschedule.api.RoomFeatureRequest;
+import com.classschedule.masterdata.AcademicTermResolver;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -12,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public class RuleFactRepository {
     private final JdbcTemplate jdbc;
-    public RuleFactRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    private final AcademicTermResolver terms;
+    public RuleFactRepository(JdbcTemplate jdbc, AcademicTermResolver terms) { this.jdbc = jdbc; this.terms = terms; }
 
     @Transactional
     public void upsertAvailability(String resourceType, AvailabilityRequest request) {
@@ -50,17 +52,19 @@ public class RuleFactRepository {
     @Transactional
     public void upsertActivityGroup(ActivityGroupRequest request) {
         if (!List.of("JOINED", "SYNCHRONIZED", "CONSECUTIVE").contains(request.activityType())) throw new IllegalArgumentException("不支持的活动组类型: " + request.activityType());
-        String termCode = request.normalizedTermCode();
+        String termCode = terms.resolve(request.normalizedTermCode());
         Long termId = jdbc.query("SELECT id FROM academic_term WHERE code=? AND status <> 'ARCHIVED'", (rs, row) -> rs.getLong("id"), termCode).stream().findFirst().orElseThrow(() -> new IllegalArgumentException("学期不存在或已归档: " + termCode));
+        if (new java.util.HashSet<>(request.requirementCodes()).size() != request.requirementCodes().size()) throw new IllegalArgumentException("活动组成员不能重复");
         for (String requirementCode : request.requirementCodes()) {
             if (jdbc.queryForObject("SELECT COUNT(*) FROM teaching_requirement r JOIN academic_term t ON t.id=r.term_id WHERE r.code=? AND r.active=TRUE AND t.id=?", Integer.class, requirementCode, termId) == 0) throw new IllegalArgumentException("教学需求不存在或不属于目标学期: " + requirementCode);
-            if (jdbc.queryForObject("SELECT COUNT(*) FROM activity_group_member m JOIN activity_group g ON g.id=m.activity_group_id WHERE m.teaching_requirement_id=(SELECT id FROM teaching_requirement WHERE code=?) AND g.active=TRUE AND g.term_id=? AND g.code<>?", Integer.class, requirementCode, termId, request.code()) > 0) throw new IllegalArgumentException("教学需求已属于其他活动组: " + requirementCode);
+            if (jdbc.queryForObject("SELECT COUNT(*) FROM activity_group_member m JOIN activity_group g ON g.id=m.activity_group_id WHERE m.teaching_requirement_id=(SELECT id FROM teaching_requirement WHERE code=?) AND NOT (g.term_id=? AND g.code=?)", Integer.class, requirementCode, termId, request.code()) > 0) throw new IllegalArgumentException("教学需求已属于其他活动组: " + requirementCode);
         }
-        jdbc.update("INSERT INTO activity_group(code,name,activity_type,term_id,active) VALUES(?,?,?,?,TRUE) ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name, activity_type=EXCLUDED.activity_type, term_id=EXCLUDED.term_id, active=TRUE", request.code(), request.name(), request.activityType(), termId);
-        jdbc.update("DELETE FROM activity_group_member WHERE activity_group_id=(SELECT id FROM activity_group WHERE code=?)", request.code());
+        jdbc.update("INSERT INTO activity_group(code,name,activity_type,term_id,active) VALUES(?,?,?,?,TRUE) ON CONFLICT(term_id,code) DO UPDATE SET name=EXCLUDED.name, activity_type=EXCLUDED.activity_type, active=TRUE", request.code(), request.name(), request.activityType(), termId);
+        Long groupId = jdbc.queryForObject("SELECT id FROM activity_group WHERE term_id=? AND code=?", Long.class, termId, request.code());
+        jdbc.update("DELETE FROM activity_group_member WHERE activity_group_id=?", groupId);
         int memberIndex = 0;
         for (String requirementCode : request.requirementCodes()) {
-            jdbc.update("INSERT INTO activity_group_member(activity_group_id,teaching_requirement_id,member_index) VALUES((SELECT id FROM activity_group WHERE code=?),(SELECT id FROM teaching_requirement WHERE code=?),?)", request.code(), requirementCode, memberIndex++);
+            jdbc.update("INSERT INTO activity_group_member(activity_group_id,teaching_requirement_id,member_index) VALUES(?,(SELECT id FROM teaching_requirement WHERE code=?),?)", groupId, requirementCode, memberIndex++);
         }
         audit("ACTIVITY_GROUP_UPSERT", request.code());
     }
@@ -115,20 +119,20 @@ public class RuleFactRepository {
     }
 
     public List<ActivityGroupItem> listActivityGroups(String termCode) {
-        return jdbc.query("SELECT a.code, a.name, a.activity_type, COALESCE(array_agg(r.code ORDER BY m.member_index) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]) AS requirement_codes FROM activity_group a LEFT JOIN activity_group_member m ON m.activity_group_id=a.id LEFT JOIN teaching_requirement r ON r.id=m.teaching_requirement_id WHERE a.active=TRUE AND a.term_id=(SELECT id FROM academic_term WHERE code=?) GROUP BY a.id, a.code, a.name, a.activity_type ORDER BY a.code", (rs, row) -> new ActivityGroupItem(rs.getString("code"), rs.getString("name"), rs.getString("activity_type"), List.of((String[]) rs.getArray("requirement_codes").getArray())), termCode);
+        return jdbc.query("SELECT a.code, a.name, a.activity_type, COALESCE(array_agg(r.code ORDER BY m.member_index) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]) AS requirement_codes FROM activity_group a LEFT JOIN activity_group_member m ON m.activity_group_id=a.id LEFT JOIN teaching_requirement r ON r.id=m.teaching_requirement_id WHERE a.active=TRUE AND a.term_id=(SELECT id FROM academic_term WHERE code=?) GROUP BY a.id, a.code, a.name, a.activity_type ORDER BY a.code", (rs, row) -> new ActivityGroupItem(rs.getString("code"), rs.getString("name"), rs.getString("activity_type"), List.of((String[]) rs.getArray("requirement_codes").getArray())), terms.resolve(termCode));
     }
 
-    public List<ActivityGroupItem> listActivityGroups() { return listActivityGroups("2026-FALL"); }
+    public List<ActivityGroupItem> listActivityGroups() { return listActivityGroups(terms.resolve(null)); }
 
     @Transactional
-    public void deleteActivityGroup(String code) {
-        int updated = jdbc.update("UPDATE activity_group SET active=FALSE WHERE code=? AND active=TRUE", code);
+    public void deleteActivityGroup(String code, String termCode) {
+        int updated = jdbc.update("UPDATE activity_group SET active=FALSE WHERE code=? AND term_id=(SELECT id FROM academic_term WHERE code=?) AND active=TRUE", code, terms.resolve(termCode));
         if (updated == 0) throw new IllegalArgumentException("活动组不存在: " + code);
     }
 
 
     public List<AvailabilityItem> listAvailability(String termCode) {
-        Long termId = jdbc.query("SELECT id FROM academic_term WHERE code=?", (rs, row) -> rs.getLong("id"), termCode)
+        Long termId = jdbc.query("SELECT id FROM academic_term WHERE code=?", (rs, row) -> rs.getLong("id"), terms.resolve(termCode))
                 .stream().findFirst().orElseThrow(() -> new IllegalArgumentException("学期不存在: " + termCode));
         List<AvailabilityItem> items = new java.util.ArrayList<>();
         items.addAll(jdbc.query("SELECT r.code, a.period_code, a.available FROM teacher_availability a JOIN teacher r ON r.id=a.teacher_id WHERE a.term_id=? ORDER BY r.code, a.period_code",

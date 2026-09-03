@@ -54,7 +54,7 @@ public class WorkbookImportService {
                 sheet.createFreezePane(0, 1);
                 if ("说明".equals(definition.name())) {
                     sheet.createRow(1).createCell(0).setCellValue(
-                            "MASTER_DATA v1；学期和节次只校验引用，不在本模板写入；缺少的行不会删除已有数据。");
+                            "MASTER_DATA v1；必填 Sheet：教师、班级、课程、教学需求；教室、资源可用性、特征目录、教室特征、教学需求特征和活动组可省略或留空；学期和节次只校验引用，不在本模板写入；缺少的行不会删除已有数据。");
                 }
             }
             workbook.write(output);
@@ -69,6 +69,10 @@ public class WorkbookImportService {
     }
 
     public ImportPreview preview(MultipartFile file, String actor) {
+        return preview(file, actor, null);
+    }
+
+    public ImportPreview preview(MultipartFile file, String actor, String expectedTermCode) {
         if (file == null || file.isEmpty()) {
             return invalidPreview("EMPTY_FILE", "上传文件为空");
         }
@@ -78,7 +82,7 @@ public class WorkbookImportService {
         try {
             byte[] bytes = file.getBytes();
             String sha256 = sha256(bytes);
-            ParseResult parsed = parse(bytes);
+            ParseResult parsed = parse(bytes, expectedTermCode);
             long batchId = saveBatch(file.getOriginalFilename(), bytes, sha256, parsed, actor);
             return new ImportPreview(batchId, parsed.issues().isEmpty() ? "VALIDATED" : "INVALID", sha256,
                     parsed.sheets(), parsed.issues(), parsed.templateType(), parsed.templateVersion(),
@@ -141,13 +145,35 @@ public class WorkbookImportService {
     }
 
     private ParseResult parse(byte[] bytes) throws IOException {
+        return parse(bytes, null);
+    }
+
+    private ParseResult parse(byte[] bytes, String expectedTermCode) throws IOException {
         try (InputStream input = new ByteArrayInputStream(bytes); Workbook workbook = new XSSFWorkbook(input)) {
             if (workbook.getNumberOfSheets() > 0 && "说明".equals(workbook.getSheetName(0))) {
-                return parseMasterData(workbook);
+                ParseResult result = parseMasterData(workbook);
+                return expectedTermCode == null || expectedTermCode.isBlank() ? result : addExpectedTermIssue(workbook, result, expectedTermCode.trim());
             }
         }
         return parseLegacy(bytes);
     }
+
+    private ParseResult addExpectedTermIssue(Workbook workbook, ParseResult parsed, String expectedTermCode) {
+        Sheet requirements = workbook.getSheet("教学需求");
+        Set<String> terms = new LinkedHashSet<>();
+        if (requirements != null) {
+            for (int rowIndex = 1; rowIndex <= dataRowLimit(requirements); rowIndex++) {
+                Row row = requirements.getRow(rowIndex);
+                if (!blankRow(row, 10)) terms.add(text(row, 1));
+            }
+        }
+        Set<String> mismatches = terms.stream().filter(code -> !expectedTermCode.equals(code)).collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        if (mismatches.isEmpty()) return parsed;
+        List<ImportIssue> issues = new ArrayList<>(parsed.issues());
+        issues.add(new ImportIssue("教学需求", 0, "B", "TERM_MISMATCH", "教学需求学期必须与当前选择学期一致: " + expectedTermCode + "，文件包含: " + String.join("、", mismatches)));
+        return new ParseResult(parsed.sheets(), issues, parsed.rowCount(), parsed.templateType(), parsed.templateVersion(), parsed.schemaHash(), parsed.sheetStats());
+    }
+
 
     private ParseResult parseForType(byte[] bytes, String templateType) throws IOException {
         if (MasterDataSchemaRegistry.TEMPLATE_TYPE.equals(templateType)) {
@@ -165,30 +191,47 @@ public class WorkbookImportService {
         List<ImportIssue> issues = new BoundedIssueList();
         Map<String, MutableStat> stats = new LinkedHashMap<>();
         Map<String, Map<String, Boolean>> activeCodes = new HashMap<>();
+        Map<String, MasterDataSchemaRegistry.Sheet> definitions = new LinkedHashMap<>();
+        Map<String, Integer> positions = new HashMap<>();
+        for (int index = 0; index < MasterDataSchemaRegistry.SHEETS.size(); index++) {
+            MasterDataSchemaRegistry.Sheet definition = MasterDataSchemaRegistry.SHEETS.get(index);
+            definitions.put(definition.name(), definition);
+            positions.put(definition.name(), index);
+        }
         checkSheetRowLimits(workbook, issues);
         checkFormulas(workbook, issues);
         checkCellTextLengths(workbook, issues);
 
-        if (workbook.getNumberOfSheets() != MasterDataSchemaRegistry.SHEETS.size()) {
-            issues.add(new ImportIssue("", 0, "", "INVALID_SHEET_COUNT",
-                    "MASTER_DATA v1 必须包含且仅包含固定的 " + MasterDataSchemaRegistry.SHEETS.size() + " 个 Sheet"));
-        }
-        int expected = MasterDataSchemaRegistry.SHEETS.size();
-        for (int index = 0; index < expected; index++) {
-            MasterDataSchemaRegistry.Sheet definition = MasterDataSchemaRegistry.SHEETS.get(index);
-            if (index >= workbook.getNumberOfSheets()) {
-                issues.add(new ImportIssue(definition.name(), 0, "", "MISSING_SHEET", "缺少必需 Sheet"));
-                continue;
-            }
+        int previousPosition = -1;
+        Set<String> seenSheets = new HashSet<>();
+        for (int index = 0; index < workbook.getNumberOfSheets(); index++) {
             Sheet sheet = workbook.getSheetAt(index);
-            if (!definition.name().equals(sheet.getSheetName())) {
-                issues.add(new ImportIssue(sheet.getSheetName(), 0, "", "INVALID_SHEET_ORDER",
-                        "Sheet 顺序必须为 " + definition.name()));
+            MasterDataSchemaRegistry.Sheet definition = definitions.get(sheet.getSheetName());
+            if (definition == null) {
+                issues.add(new ImportIssue(sheet.getSheetName(), 0, "", "UNKNOWN_SHEET",
+                        "不支持的 MASTER_DATA Sheet: " + sheet.getSheetName()));
                 continue;
             }
+            if (!seenSheets.add(sheet.getSheetName())) {
+                issues.add(new ImportIssue(sheet.getSheetName(), 0, "", "DUPLICATE_SHEET",
+                        "Sheet 不能重复: " + sheet.getSheetName()));
+                continue;
+            }
+            int position = positions.get(sheet.getSheetName());
+            if (position < previousPosition) {
+                issues.add(new ImportIssue(sheet.getSheetName(), 0, "", "INVALID_SHEET_ORDER",
+                        "Sheet 顺序必须遵循 MASTER_DATA v1 模板顺序"));
+                continue;
+            }
+            previousPosition = position;
             if (!validateHeader(sheet, definition.headers(), issues)) continue;
             if (!"说明".equals(definition.name())) {
                 validateMasterRows(sheet, activeCodes, issues, stats);
+            }
+        }
+        for (MasterDataSchemaRegistry.Sheet definition : MasterDataSchemaRegistry.SHEETS) {
+            if (definition.required() && !seenSheets.contains(definition.name())) {
+                issues.add(new ImportIssue(definition.name(), 0, "", "MISSING_SHEET", "缺少必需 Sheet"));
             }
         }
         validateMasterReferences(workbook, activeCodes, issues);
@@ -280,6 +323,8 @@ public class WorkbookImportService {
                 }
                 case "活动组" -> {
                     String code = text(row, 0);
+                    String termCode = text(row, 3);
+                    String activityKey = termCode + "|" + code;
                     requireText(row, 0, sheet, rowIndex, "MISSING_CODE", "活动组编码不能为空", issues);
                     requireText(row, 1, sheet, rowIndex, "MISSING_NAME", "名称不能为空", issues);
                     String activityType = text(row, 2);
@@ -290,17 +335,17 @@ public class WorkbookImportService {
                     nonNegativeInt(row, 4, sheet, rowIndex, "INVALID_MEMBER_INDEX", issues);
                     requireText(row, 5, sheet, rowIndex, "MISSING_REQUIREMENT", "教学需求编码不能为空", issues);
                     Boolean active = booleanValue(row, 6, sheet, rowIndex, issues);
-                    String definition = text(row, 1) + "\t" + activityType + "\t" + text(row, 3);
-                    String prior = activityDefinitions.putIfAbsent(code, definition);
+                    String definition = text(row, 1) + "\t" + activityType + "\t" + termCode;
+                    String prior = activityDefinitions.putIfAbsent(activityKey, definition);
                     if (prior != null && !prior.equals(definition)) {
                         issues.add(new ImportIssue(sheet.getSheetName(), rowIndex + 1, "A", "INCONSISTENT_ACTIVITY", "同一活动组的名称、类型和学期必须一致"));
                     }
-                    Boolean priorActive = activityActives.putIfAbsent(code, active);
+                    Boolean priorActive = activityActives.putIfAbsent(activityKey, active);
                     if (priorActive != null && !priorActive.equals(active)) {
                         issues.add(new ImportIssue(sheet.getSheetName(), rowIndex + 1, "G", "INCONSISTENT_ACTIVITY_ACTIVE", "同一活动组的 active 值必须一致"));
                     }
-                    relationKey(row, List.of(0, 4), relationKeys, sheet, rowIndex, issues);
-                    relationKey(row, List.of(0, 5), keys, sheet, rowIndex, issues);
+                    relationKey(row, List.of(3, 0, 4), relationKeys, sheet, rowIndex, issues);
+                    relationKey(row, List.of(3, 0, 5), keys, sheet, rowIndex, issues);
                 }
                 default -> throw new IllegalStateException("未处理的 MASTER_DATA Sheet: " + sheet.getSheetName());
             }
@@ -367,11 +412,26 @@ public class WorkbookImportService {
 
         Sheet activityGroups = workbook.getSheet("活动组");
         if (activityGroups != null) {
+            Map<String, String> importedRequirementGroups = new HashMap<>();
             for (int rowIndex = 1; rowIndex <= dataRowLimit(activityGroups); rowIndex++) {
                 Row row = activityGroups.getRow(rowIndex);
                 if (blankRow(row, 7)) continue;
                 checkTerm(activityGroups, rowIndex, text(row, 3), issues);
                 String requirementCode = text(row, 5);
+                String termCode = text(row, 3);
+                String groupCode = text(row, 0);
+                if (booleanValue(text(row, 6))) {
+                    String requirementKey = termCode + "|" + requirementCode;
+                    String previousGroup = importedRequirementGroups.putIfAbsent(requirementKey, groupCode);
+                    if (previousGroup != null && !previousGroup.equals(groupCode)) {
+                        issues.add(new ImportIssue(activityGroups.getSheetName(), rowIndex + 1, "F", "REQUIREMENT_MULTIPLE_ACTIVITY_GROUPS", "同一教学需求不能属于多个活动组"));
+                    }
+                    if (jdbc.queryForObject(
+                                    "SELECT COUNT(*) FROM activity_group_member m JOIN activity_group g ON g.id=m.activity_group_id WHERE m.teaching_requirement_id=(SELECT id FROM teaching_requirement WHERE code=?) AND NOT (g.term_id=(SELECT id FROM academic_term WHERE code=?) AND g.code=?)",
+                                    Integer.class, requirementCode, termCode, groupCode) > 0) {
+                        issues.add(new ImportIssue(activityGroups.getSheetName(), rowIndex + 1, "F", "REQUIREMENT_MULTIPLE_ACTIVITY_GROUPS", "同一教学需求不能属于多个活动组"));
+                    }
+                }
                 Boolean importedActive = activeCodes.getOrDefault("教学需求", Map.of()).get(requirementCode);
                 if (importedActive != null) {
                     if (!importedActive || !text(row, 3).equals(requirementTerms.get(requirementCode))) {
@@ -720,18 +780,21 @@ public class WorkbookImportService {
             stat.rows++;
             String code = text(row, 0), termCode = text(row, 3), requirementCode = text(row, 5);
             boolean active = booleanValue(text(row, 6));
-            boolean existing = exists("activity_group", "code", code);
+            Long termId = jdbc.queryForObject("SELECT id FROM academic_term WHERE code=?", Long.class, termCode);
+            boolean existing = jdbc.queryForObject("SELECT COUNT(*) FROM activity_group WHERE term_id=? AND code=?", Integer.class, termId, code) > 0;
             if (existing) {
-                jdbc.update("UPDATE activity_group SET name=?, activity_type=?, term_id=(SELECT id FROM academic_term WHERE code=?), active=? WHERE code=?", text(row, 1), text(row, 2), termCode, active, code);
+                jdbc.update("UPDATE activity_group SET name=?, activity_type=?, active=? WHERE term_id=? AND code=?", text(row, 1), text(row, 2), active, termId, code);
                 stat.updated++;
             } else {
-                jdbc.update("INSERT INTO activity_group(code,name,activity_type,term_id,active) VALUES(?,?,?,(SELECT id FROM academic_term WHERE code=?),?)", code, text(row, 1), text(row, 2), termCode, active);
+                jdbc.update("INSERT INTO activity_group(code,name,activity_type,term_id,active) VALUES(?,?,?,?,?)", code, text(row, 1), text(row, 2), termId, active);
                 stat.created++;
             }
             if (active) {
-                int memberUpdated = jdbc.update("UPDATE activity_group_member SET member_index=? WHERE activity_group_id=(SELECT id FROM activity_group WHERE code=?) AND teaching_requirement_id=(SELECT id FROM teaching_requirement WHERE code=?)", Integer.parseInt(text(row, 4)), code, requirementCode);
+                Long groupId = jdbc.queryForObject("SELECT id FROM activity_group WHERE term_id=? AND code=?", Long.class, termId, code);
+                Long requirementId = jdbc.queryForObject("SELECT id FROM teaching_requirement WHERE code=?", Long.class, requirementCode);
+                int memberUpdated = jdbc.update("UPDATE activity_group_member SET member_index=? WHERE activity_group_id=? AND teaching_requirement_id=?", Integer.parseInt(text(row, 4)), groupId, requirementId);
                 if (memberUpdated == 0) {
-                    jdbc.update("INSERT INTO activity_group_member(activity_group_id,teaching_requirement_id,member_index) VALUES((SELECT id FROM activity_group WHERE code=?),(SELECT id FROM teaching_requirement WHERE code=?),?)", code, requirementCode, Integer.parseInt(text(row, 4)));
+                    jdbc.update("INSERT INTO activity_group_member(activity_group_id,teaching_requirement_id,member_index) VALUES(?,?,?)", groupId, requirementId, Integer.parseInt(text(row, 4)));
                     stat.created++;
                 } else stat.updated++;
             } else {
@@ -840,7 +903,7 @@ public class WorkbookImportService {
     }
 
     private int dataRowLimit(Sheet sheet) {
-        return Math.min(sheet.getLastRowNum(), MAX_ROWS_PER_SHEET);
+        return sheet == null ? 0 : Math.min(sheet.getLastRowNum(), MAX_ROWS_PER_SHEET);
     }
 
     private void checkSheetRowLimits(Workbook workbook, List<ImportIssue> issues) {
@@ -959,6 +1022,7 @@ public class WorkbookImportService {
     }
 
     private void forEachDataRow(Sheet sheet, RowConsumer consumer) {
+        if (sheet == null) return;
         for (int index = 1; index <= dataRowLimit(sheet); index++) {
             Row row = sheet.getRow(index);
             if (row != null && row.getLastCellNum() >= 1 && !blankRow(row, MasterDataSchemaRegistry.headers(sheet.getSheetName()).size())) consumer.accept(row);
