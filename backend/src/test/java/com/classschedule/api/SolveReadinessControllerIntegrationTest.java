@@ -55,7 +55,7 @@ class SolveReadinessControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.termCode").value("2026-FALL"))
                 .andExpect(jsonPath("$.ready").value(true))
-                .andExpect(jsonPath("$.timeslotCount").value(4))
+                .andExpect(jsonPath("$.timeslotCount").value(30))
                 .andExpect(jsonPath("$.roomCount").value(2))
                 .andExpect(jsonPath("$.requirementCount").value(3))
                 .andExpect(jsonPath("$.issues").isArray())

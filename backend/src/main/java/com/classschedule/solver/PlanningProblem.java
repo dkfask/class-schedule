@@ -17,6 +17,8 @@ public record PlanningProblem(
     }
 
     public Timetable toTimetable() {
-        return new Timetable(timeslots, rooms, occurrences, availabilities, rules);
+        Timetable timetable = new Timetable(timeslots, rooms, occurrences, availabilities, rules);
+        timetable.initializeGreedyAssignments();
+        return timetable;
     }
 }

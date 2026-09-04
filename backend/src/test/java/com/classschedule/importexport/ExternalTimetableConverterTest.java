@@ -76,7 +76,7 @@ class ExternalTimetableConverterTest {
                     <class id="10" offering="100" classLimit="25">
                       <instructor id="7"/><time days="1000000" start="1" length="1"/>
                     </class>
-                    <class id="11" offering="100" classLimit="20"><time days="0100000" start="2" length="1"/></class>
+                    <class id="11" offering="100" classLimit="20" nrRooms="0"><time days="0100000" start="2" length="1"/></class>
                     <class id="12" parent="10" classLimit="25"/>
                   </classes>
                   <students><student id="1"/><student id="2"/></students>
@@ -106,7 +106,59 @@ class ExternalTimetableConverterTest {
         assertThat(result.requirementCount()).isEqualTo(2);
         assertThat(result.warnings()).anyMatch(item -> item.contains("候选集合"));
         assertThat(result.warnings()).anyMatch(item -> item.contains("辅助 class"));
+        assertThat(result.warnings()).anyMatch(item -> item.contains("明确声明无需教室"));
+        try (XSSFWorkbook workbook = new XSSFWorkbook(Files.newInputStream(output))) {
+            org.apache.poi.ss.usermodel.Sheet groups = workbook.getSheet("班级");
+            org.apache.poi.ss.usermodel.Sheet requirements = workbook.getSheet("教学需求");
+            assertThat(findNumericCell(groups, "UT-GROUP-11", 3)).isEqualTo(0);
+            assertThat(findNumericCell(requirements, "UT-REQ-11", 7)).isEqualTo(0);
+        }
         assertMasterDataWorkbook(output, 2, 2, 1, 1, 2);
+    }
+
+    @Test
+    void addsLogicalCapacityRoomWhenNoCandidateRoomCanHoldClassLimit() throws Exception {
+        Path directory = Files.createTempDirectory("unitime-logical-room-test-");
+        Path input = directory.resolve("unitime.zip");
+        Path output = directory.resolve("unitime.xlsx");
+        String xml =
+                """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <timetable term="2026-FALL">
+                  <rooms><room id="1" capacity="30"/></rooms>
+                  <classes>
+                    <class id="10" offering="100" classLimit="35" nrRooms="1">
+                      <room id="1"/>
+                    </class>
+                  </classes>
+                </timetable>
+                """;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                ZipOutputStream zip = new ZipOutputStream(bytes)) {
+            zip.putNextEntry(new ZipEntry("tiny.xml"));
+            zip.write(xml.getBytes(StandardCharsets.UTF_8));
+            zip.closeEntry();
+            zip.finish();
+            Files.write(input, bytes.toByteArray());
+        }
+
+        ExternalTimetableConverter.ConversionResult result =
+                ExternalTimetableConverter.convert(
+                        ExternalTimetableConverter.SourceFormat.UNITIME,
+                        input,
+                        output,
+                        "2026-FALL",
+                        "2026 秋季学期");
+
+        assertThat(result.roomCount()).isEqualTo(2);
+        assertThat(result.warnings()).anyMatch(item -> item.contains("逻辑容量教室"));
+        try (XSSFWorkbook workbook = new XSSFWorkbook(Files.newInputStream(output))) {
+            org.apache.poi.ss.usermodel.Sheet rooms = workbook.getSheet("教室");
+            assertThat(dataRows(rooms)).isEqualTo(2);
+            assertThat(rooms.getRow(2).getCell(0).getStringCellValue())
+                    .isEqualTo("UT-LOGICAL-ROOM-10");
+            assertThat(rooms.getRow(2).getCell(2).getNumericCellValue()).isEqualTo(35);
+        }
     }
 
     private void assertMasterDataWorkbook(
@@ -153,5 +205,16 @@ class ExternalTimetableConverterTest {
                         .isEqualTo(definition.headers().get(column));
             }
         }
+    }
+
+    private double findNumericCell(
+            org.apache.poi.ss.usermodel.Sheet sheet, String code, int cellIndex) {
+        for (org.apache.poi.ss.usermodel.Row row : sheet) {
+            if (row.getRowNum() == 0 || row.getCell(0) == null) continue;
+            if (code.equals(row.getCell(0).getStringCellValue())) {
+                return row.getCell(cellIndex).getNumericCellValue();
+            }
+        }
+        throw new AssertionError("Missing row: " + code);
     }
 }

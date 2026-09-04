@@ -57,6 +57,11 @@ interface SolveDetails {
   deadlineAt?: string
 }
 
+interface WorkspaceState {
+  jobId?: number | null
+  versionId?: number | null
+}
+
 interface SolveReadiness {
   termCode: string
   ready: boolean
@@ -137,6 +142,61 @@ const canCancel = computed(() => canCancelSolve(jobId.value, jobStatus.value, ca
 const statusLabel = computed(() => getStatusLabel(jobStatus.value, versionStatus.value))
 let pollTimer: number | undefined
 let pollGeneration = 0
+const restorePromises = new Map<string, Promise<void>>()
+
+const workspaceStatePrefix = 'class-schedule.workspace:'
+
+function workspaceStateKey(termCode = term.selectedTermCode.value) {
+  return `${workspaceStatePrefix}${termCode}`
+}
+
+function readWorkspaceState(termCode = term.selectedTermCode.value): WorkspaceState | null {
+  if (typeof window === 'undefined' || !termCode) return null
+  try {
+    const raw = window.localStorage.getItem(workspaceStateKey(termCode))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as WorkspaceState
+    const validId = (value: unknown) => value === null || value === undefined || (typeof value === 'number' && Number.isInteger(value) && value > 0)
+    if (!validId(parsed.jobId) || !validId(parsed.versionId) || (!parsed.jobId && !parsed.versionId)) return null
+    return { jobId: parsed.jobId ?? null, versionId: parsed.versionId ?? null }
+  } catch {
+    return null
+  }
+}
+
+function persistWorkspaceState(state: WorkspaceState, termCode = term.selectedTermCode.value) {
+  if (typeof window === 'undefined' || !termCode) return
+  try {
+    window.localStorage.setItem(workspaceStateKey(termCode), JSON.stringify({ jobId: state.jobId ?? null, versionId: state.versionId ?? null }))
+  } catch {
+    // Browser storage can be unavailable or disabled; the current session still works.
+  }
+}
+
+function clearWorkspaceState(termCode = term.selectedTermCode.value) {
+  if (typeof window === 'undefined' || !termCode) return
+  try {
+    window.localStorage.removeItem(workspaceStateKey(termCode))
+  } catch {
+    // Browser storage can be unavailable or disabled; the current session still works.
+  }
+}
+
+function applySolveDetails(result: SolveDetails) {
+  jobId.value = result.jobId
+  versionId.value = result.versionId
+  jobStatus.value = result.jobStatus
+  versionStatus.value = result.versionStatus
+  progress.value = result.progress
+  attempt.value = result.attempt
+  jobDeadline.value = result.deadlineAt ?? ''
+  score.value = result.score === '等待结果' ? null : result.score ?? null
+  hardScore.value = result.hardScore ?? parseScore(result.score).hard
+  mediumScore.value = result.mediumScore ?? parseScore(result.score).medium
+  softScore.value = result.softScore ?? parseScore(result.score).soft
+  errorMessage.value = result.errorMessage ?? ''
+  persistWorkspaceState({ jobId: result.jobId, versionId: result.versionId })
+}
 
 function clearPollTimer() {
   if (pollTimer !== undefined) {
@@ -194,6 +254,63 @@ async function loadMasterData() {
     setSolveError('基础数据暂时无法读取，无法安全开始排课')
   }
   await loadReadiness()
+  await restoreWorkspaceState()
+}
+
+async function restoreWorkspaceState(termCode = term.selectedTermCode.value) {
+  if (!term.hasValidTerm.value || !termCode) return
+  const existing = restorePromises.get(termCode)
+  if (existing) return existing
+
+  const promise = (async () => {
+    const state = readWorkspaceState(termCode)
+    if (!state) return
+    try {
+      if (state.jobId) {
+        const result = await requestJson<SolveDetails>(`/api/solve-jobs/${state.jobId}`)
+        if (termCode !== term.selectedTermCode.value) return
+        applySolveDetails(result)
+        if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(result.jobStatus)) {
+          loading.value = false
+          if (result.jobStatus === 'COMPLETED') await loadVersion(result.versionId)
+          return
+        }
+        clearPollTimer()
+        pollGeneration += 1
+        const generation = pollGeneration
+        loading.value = true
+        void poll(result.jobId, generation)
+        return
+      }
+      if (state.versionId && termCode === term.selectedTermCode.value) await loadVersion(state.versionId)
+    } catch {
+      if (termCode !== term.selectedTermCode.value) return
+      clearWorkspaceState(termCode)
+      clearPollTimer()
+      jobId.value = null
+      versionId.value = null
+      jobStatus.value = '待开始'
+      versionStatus.value = ''
+      progress.value = 0
+      attempt.value = 0
+      jobDeadline.value = ''
+      score.value = null
+      hardScore.value = null
+      mediumScore.value = null
+      softScore.value = null
+      occurrences.value = []
+      filteredOccurrences.value = []
+      options.value = { timeslots: [], rooms: [], studentGroups: [], teachers: [] }
+      backendPublishable.value = false
+      loading.value = false
+    }
+  })()
+  restorePromises.set(termCode, promise)
+  try {
+    await promise
+  } finally {
+    if (restorePromises.get(termCode) === promise) restorePromises.delete(termCode)
+  }
 }
 
 async function loadVersion(id = versionId.value) {
@@ -471,6 +588,7 @@ async function startSolve() {
   backendPublishable.value = false
   errorMessage.value = ''
   message.value = ''
+  clearWorkspaceState()
   try {
     const created = await requestJson<{ jobId: number; versionId: number }>('/api/solve-jobs', {
       method: 'POST',
@@ -479,6 +597,7 @@ async function startSolve() {
     })
     jobId.value = created.jobId
     versionId.value = created.versionId
+    persistWorkspaceState({ jobId: created.jobId, versionId: created.versionId })
     void poll(created.jobId, generation)
   } catch (error) {
     loading.value = false
@@ -492,16 +611,7 @@ async function poll(id: number, generation = pollGeneration) {
   try {
     const result = await requestJson<SolveDetails>(`/api/solve-jobs/${id}`)
     if (generation !== pollGeneration) return
-    jobStatus.value = result.jobStatus
-    versionStatus.value = result.versionStatus
-    progress.value = result.progress
-    attempt.value = result.attempt
-    jobDeadline.value = result.deadlineAt ?? ''
-    score.value = result.score === '等待结果' ? null : result.score ?? null
-    hardScore.value = result.hardScore ?? parseScore(result.score).hard
-    mediumScore.value = result.mediumScore ?? parseScore(result.score).medium
-    softScore.value = result.softScore ?? parseScore(result.score).soft
-    errorMessage.value = result.errorMessage ?? ''
+    applySolveDetails(result)
     if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(result.jobStatus)) {
       clearPollTimer()
       loading.value = false

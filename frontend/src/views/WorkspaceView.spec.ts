@@ -48,9 +48,11 @@ function createFetchMock(previewResponses: unknown[] = []) {
     if (url.endsWith('/api/solve-jobs') && init?.method === 'POST') return response({ jobId: 9, versionId: 43, status: 'QUEUED' })
     if (url.endsWith('/api/imports/confirm') && init?.method === 'POST') return response({ batchId: 9, status: 'IMPORTED', importedRows: 5 })
     if (url.endsWith('/api/imports/preview') && init?.method === 'POST') return response({ batchId: 10, status: 'VALIDATED', issues: [] })
+    if (url.endsWith('/api/solve-jobs/9')) return response({ jobId: 9, versionId: 42, jobStatus: 'COMPLETED', versionStatus: 'CANDIDATE', progress: 100, score: '0hard/0soft', hardScore: 0, mediumScore: 0, softScore: 0, scoreValid: true, attempt: 1 })
     if (url.endsWith('/api/schedule-versions/42')) return response(version)
     if (url.endsWith('/api/schedule-versions/43')) return response({ ...version, id: 43, status: 'SOLVING', score: null, publishable: false, assignments: [] })
     if (url.endsWith('/api/schedule-versions/42/options') || url.endsWith('/api/schedule-versions/43/options')) return response(options)
+    if (url.endsWith('/api/schedule-versions/42/adjustments/commands')) return response([])
     if (url.includes('/api/schedule-versions/42/filtered')) return response({ ...version, assignments: [assignment] })
     if (url.includes('/api/schedule-versions/43/filtered')) return response({ ...version, id: 43, assignments: [] })
     if (url.includes('/adjustments/preview')) return response(previewResponses.shift() ?? {
@@ -75,7 +77,7 @@ function mountWorkspace() {
   } } })
 }
 
-afterEach(() => { resetTermStore(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
+afterEach(() => { resetTermStore(); window.localStorage.clear(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe('WorkspaceView API workflow', () => {
   it('loads a version, switches to teacher view, and filters by stable code', async () => {
@@ -110,6 +112,21 @@ describe('WorkspaceView API workflow', () => {
   it('clears stale schedule data before submitting a new solve', async () => {
     const { calls } = createFetchMock(); const wrapper = mountWorkspace(); await flushPromises(); const vm = wrapper.vm as any
     await vm.loadReadiness(); await vm.loadVersion(42); expect(vm.occurrences).toHaveLength(1); const solve = vm.startSolve(); expect(vm.occurrences).toEqual([]); expect(vm.filteredOccurrences).toEqual([]); expect(vm.options.timeslots).toEqual([]); await solve; expect(calls.some(call => call.url.endsWith('/api/solve-jobs'))).toBe(true); wrapper.unmount()
+  })
+
+  it('restores the persisted completed workspace after reload', async () => {
+    window.localStorage.setItem('class-schedule.workspace:2026-FALL', JSON.stringify({ jobId: 9, versionId: 42 }))
+    const { calls } = createFetchMock()
+    const wrapper = mountWorkspace()
+    await flushPromises()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    expect(calls.some(call => call.url.endsWith('/api/solve-jobs/9'))).toBe(true)
+    expect(vm.jobId).toBe(9)
+    expect(vm.versionId).toBe(42)
+    expect(vm.jobStatus).toBe('COMPLETED')
+    expect(vm.occurrences).toHaveLength(1)
+    wrapper.unmount()
   })
 
   it('blocks solve submission when the current term is not ready', async () => {

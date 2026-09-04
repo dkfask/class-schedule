@@ -34,6 +34,7 @@ public class LessonOccurrence {
     private java.util.Map<String, String> nextPeriodCodes = new java.util.LinkedHashMap<>();
     private List<Timeslot> timeslotPool = List.of();
     private List<Timeslot> timeslotRange = List.of();
+    private List<Room> roomRange = List.of();
     private boolean pinned;
 
     @PlanningVariable(valueRangeProviderRefs = "timeslotRange")
@@ -89,6 +90,7 @@ public class LessonOccurrence {
         copy.nextPeriodCodes = new java.util.LinkedHashMap<>(nextPeriodCodes);
         copy.timeslotPool = List.copyOf(timeslotPool);
         copy.timeslotRange = List.copyOf(timeslotRange);
+        copy.roomRange = List.copyOf(roomRange);
         copy.pinned = pinned;
         copy.timeslot = timeslot;
         copy.room = room;
@@ -303,6 +305,15 @@ public class LessonOccurrence {
     public void setTimeslotPool(List<Timeslot> timeslotPool) {
         this.timeslotPool = timeslotPool == null ? List.of() : List.copyOf(timeslotPool);
         refreshTimeslotRange();
+    }
+
+    @ValueRangeProvider(id = "roomRange")
+    public List<Room> getRoomRange() {
+        return roomRange;
+    }
+
+    public void setRoomRange(List<Room> roomRange) {
+        this.roomRange = roomRange == null ? List.of() : List.copyOf(roomRange);
     }
 
     public boolean isPinned() {
