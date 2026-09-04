@@ -25,6 +25,8 @@ The converter only reads the source and writes the requested workbook. It does n
 ## Mapping
 
 - UniTime rooms become rooms, classes become synthetic student groups and teaching requirements, offerings become subjects, and instructor IDs become teachers.
+- If a UniTime class cannot fit in any single candidate room, the converter adds a clearly named, class-specific logical-capacity room. This keeps the current one-room-per-occurrence model's capacity hard constraint explicit; the logical room is not presented as an original physical room.
+- UniTime classes with `nrRooms="0"` are retained as zero-enrollment time-allocation placeholders because the current template has no separate "room not required" column. Their generated schedule must not be interpreted as a physical-room assignment.
 - ITC2007 courses become subjects and teaching requirements, rooms become rooms, and curricula become student groups.
 - `--term-code` defaults to `2026-FALL`; the target term must already exist when the workbook is imported.
 - The converter emits all 11 template sheets in the same order as `MasterDataSchemaRegistry`.
@@ -36,3 +38,4 @@ The converter only reads the source and writes the requested workbook. It does n
 - ITC2007 allows one course to belong to multiple curricula. Because the current template permits one student group per teaching requirement, the converter keeps the first curriculum and reports the dropped memberships.
 - ITC2007 course unavailability constraints are reported but not imported because the current template models resource availability, not per-course forbidden periods.
 - These workbooks are demand fixtures for the current importer and solver. They are not claims that the converted output preserves every original benchmark constraint.
+- The default `2026-FALL` term supplies a five-day, six-period teaching week so a real-sized converted fixture is not accidentally evaluated against the four-period demo seed.

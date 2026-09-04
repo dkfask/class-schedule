@@ -22,7 +22,7 @@ server:
 
 app:
   solver:
-    termination-spent: ${SOLVER_TERMINATION_SPENT:3s}
+    termination-spent: ${SOLVER_TERMINATION_SPENT:30s}
   auth:
     bootstrap:
       username: ${APP_AUTH_BOOTSTRAP_USERNAME:}

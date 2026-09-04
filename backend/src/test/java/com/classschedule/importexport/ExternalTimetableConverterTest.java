@@ -109,6 +109,51 @@ class ExternalTimetableConverterTest {
         assertMasterDataWorkbook(output, 2, 2, 1, 1, 2);
     }
 
+    @Test
+    void addsLogicalCapacityRoomWhenNoCandidateRoomCanHoldClassLimit() throws Exception {
+        Path directory = Files.createTempDirectory("unitime-logical-room-test-");
+        Path input = directory.resolve("unitime.zip");
+        Path output = directory.resolve("unitime.xlsx");
+        String xml =
+                """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <timetable term="2026-FALL">
+                  <rooms><room id="1" capacity="30"/></rooms>
+                  <classes>
+                    <class id="10" offering="100" classLimit="35" nrRooms="1">
+                      <room id="1"/>
+                    </class>
+                  </classes>
+                </timetable>
+                """;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                ZipOutputStream zip = new ZipOutputStream(bytes)) {
+            zip.putNextEntry(new ZipEntry("tiny.xml"));
+            zip.write(xml.getBytes(StandardCharsets.UTF_8));
+            zip.closeEntry();
+            zip.finish();
+            Files.write(input, bytes.toByteArray());
+        }
+
+        ExternalTimetableConverter.ConversionResult result =
+                ExternalTimetableConverter.convert(
+                        ExternalTimetableConverter.SourceFormat.UNITIME,
+                        input,
+                        output,
+                        "2026-FALL",
+                        "2026 秋季学期");
+
+        assertThat(result.roomCount()).isEqualTo(2);
+        assertThat(result.warnings()).anyMatch(item -> item.contains("逻辑容量教室"));
+        try (XSSFWorkbook workbook = new XSSFWorkbook(Files.newInputStream(output))) {
+            org.apache.poi.ss.usermodel.Sheet rooms = workbook.getSheet("教室");
+            assertThat(dataRows(rooms)).isEqualTo(2);
+            assertThat(rooms.getRow(2).getCell(0).getStringCellValue())
+                    .isEqualTo("UT-LOGICAL-ROOM-10");
+            assertThat(rooms.getRow(2).getCell(2).getNumericCellValue()).isEqualTo(35);
+        }
+    }
+
     private void assertMasterDataWorkbook(
             Path path,
             int teacherRows,

@@ -94,7 +94,12 @@ public final class ExternalTimetableConverter {
     private record UnitimeRoom(String id, int capacity) {}
 
     private record UnitimeClass(
-            String id, String offeringId, String instructorId, int classLimit) {}
+            String id,
+            String offeringId,
+            String instructorId,
+            int classLimit,
+            List<String> roomIds,
+            int requestedRoomCount) {}
 
     private record UnitimeData(
             String term,
@@ -229,8 +234,10 @@ public final class ExternalTimetableConverter {
 
     private static ModelData buildUnitimeModel(UnitimeData data) {
         ModelData model = new ModelData();
+        Map<String, Integer> roomCapacities = new LinkedHashMap<>();
         for (UnitimeRoom room : data.rooms()) {
             String code = "UT-ROOM-" + room.id();
+            roomCapacities.put(room.id(), Math.max(1, room.capacity()));
             model.rooms.put(
                     code, new Room(code, "UniTime 教室 " + room.id(), Math.max(1, room.capacity())));
         }
@@ -264,6 +271,8 @@ public final class ExternalTimetableConverter {
             model.subjects.put(code, new Subject(code, "UniTime 课程 " + offeringCode));
         }
 
+        int logicalRoomCount = 0;
+        int explicitNoRoomCount = 0;
         for (UnitimeClass timetableClass : data.classes()) {
             String groupCode = "UT-GROUP-" + timetableClass.id();
             String teacherCode =
@@ -276,6 +285,26 @@ public final class ExternalTimetableConverter {
                             groupCode,
                             "UniTime 班次 " + timetableClass.id(),
                             Math.max(0, timetableClass.classLimit())));
+            int largestCandidateCapacity =
+                    timetableClass.roomIds().stream()
+                            .map(roomCapacities::get)
+                            .filter(java.util.Objects::nonNull)
+                            .mapToInt(Integer::intValue)
+                            .max()
+                            .orElse(0);
+            if (timetableClass.roomIds().isEmpty()
+                    && timetableClass.requestedRoomCount() == 0) {
+                explicitNoRoomCount++;
+            } else if (timetableClass.classLimit() > largestCandidateCapacity) {
+                String logicalRoomCode = "UT-LOGICAL-ROOM-" + timetableClass.id();
+                model.rooms.put(
+                        logicalRoomCode,
+                        new Room(
+                                logicalRoomCode,
+                                "UniTime 逻辑容量教室 " + timetableClass.id(),
+                                Math.max(1, timetableClass.classLimit())));
+                logicalRoomCount++;
+            }
             model.requirements.add(
                     new Requirement(
                             "UT-REQ-" + timetableClass.id(),
@@ -284,6 +313,18 @@ public final class ExternalTimetableConverter {
                             teacherCode,
                             1,
                             Math.max(0, timetableClass.classLimit())));
+        }
+        if (logicalRoomCount > 0) {
+            model.warnings.add(
+                    "UniTime 有 "
+                            + logicalRoomCount
+                            + " 个班次的 classLimit 超出单个候选教室容量；当前模型只支持单教室，已生成同班次专用的逻辑容量教室以保留人数硬约束。逻辑容量教室不是原始物理教室。");
+        }
+        if (explicitNoRoomCount > 0) {
+            model.warnings.add(
+                    "UniTime 有 "
+                            + explicitNoRoomCount
+                            + " 个班次明确声明无需教室；当前模板没有独立的无需教室字段，已保留零人数占位并由求解器完成时间分配，不能据此解释为物理教室安排。");
         }
         if (classesWithoutInstructor > 0) {
             model.warnings.add(
@@ -514,6 +555,8 @@ public final class ExternalTimetableConverter {
                                         new UnitimeRoom(
                                                 id,
                                                 integer(attribute(reader, "capacity", "1"), id)));
+                            } else if (currentClass != null && "classes".equals(section)) {
+                                currentClass.roomIds.add(requireAttribute(reader, "id", "room"));
                             }
                         }
                         case "class" -> {
@@ -527,7 +570,8 @@ public final class ExternalTimetableConverter {
                                             new UnitimeClassBuilder(
                                                     id,
                                                     offeringId,
-                                                    attribute(reader, "classLimit", "0"));
+                                                    attribute(reader, "classLimit", "0"),
+                                                    attribute(reader, "nrRooms", "-1"));
                                 }
                             }
                         }
@@ -568,16 +612,26 @@ public final class ExternalTimetableConverter {
         private final String id;
         private final String offeringId;
         private final int classLimit;
+        private final int requestedRoomCount;
+        private final List<String> roomIds = new ArrayList<>();
         private String instructorId;
 
-        private UnitimeClassBuilder(String id, String offeringId, String classLimit) {
+        private UnitimeClassBuilder(
+                String id, String offeringId, String classLimit, String requestedRoomCount) {
             this.id = id;
             this.offeringId = offeringId;
             this.classLimit = integer(classLimit, id);
+            this.requestedRoomCount = integer(requestedRoomCount, id);
         }
 
         private UnitimeClass build() {
-            return new UnitimeClass(id, offeringId, instructorId, classLimit);
+            return new UnitimeClass(
+                    id,
+                    offeringId,
+                    instructorId,
+                    classLimit,
+                    List.copyOf(roomIds),
+                    requestedRoomCount < 0 ? roomIds.size() : requestedRoomCount);
         }
     }
 
