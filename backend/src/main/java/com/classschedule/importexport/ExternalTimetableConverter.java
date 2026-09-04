@@ -279,12 +279,15 @@ public final class ExternalTimetableConverter {
                     timetableClass.instructorId() == null || timetableClass.instructorId().isBlank()
                             ? "UT-CLASS-TEACHER-" + timetableClass.id()
                             : "UT-TEACHER-" + timetableClass.instructorId();
+            boolean noRoomPlaceholder =
+                    timetableClass.roomIds().isEmpty()
+                            && timetableClass.requestedRoomCount() == 0;
             model.studentGroups.put(
                     groupCode,
                     new StudentGroup(
                             groupCode,
                             "UniTime 班次 " + timetableClass.id(),
-                            Math.max(0, timetableClass.classLimit())));
+                            noRoomPlaceholder ? 0 : Math.max(0, timetableClass.classLimit())));
             int largestCandidateCapacity =
                     timetableClass.roomIds().stream()
                             .map(roomCapacities::get)
@@ -292,8 +295,7 @@ public final class ExternalTimetableConverter {
                             .mapToInt(Integer::intValue)
                             .max()
                             .orElse(0);
-            if (timetableClass.roomIds().isEmpty()
-                    && timetableClass.requestedRoomCount() == 0) {
+            if (noRoomPlaceholder) {
                 explicitNoRoomCount++;
             } else if (timetableClass.classLimit() > largestCandidateCapacity) {
                 String logicalRoomCode = "UT-LOGICAL-ROOM-" + timetableClass.id();
@@ -312,7 +314,7 @@ public final class ExternalTimetableConverter {
                             "UT-SUBJECT-" + timetableClass.offeringId(),
                             teacherCode,
                             1,
-                            Math.max(0, timetableClass.classLimit())));
+                            noRoomPlaceholder ? 0 : Math.max(0, timetableClass.classLimit())));
         }
         if (logicalRoomCount > 0) {
             model.warnings.add(
