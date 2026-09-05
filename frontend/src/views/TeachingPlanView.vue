@@ -60,7 +60,7 @@ async function loadOptions() {
     return
   }
   try {
-    options.value = await http<Overview>('/api/master-data/overview')
+    options.value = await http<Overview>(`/api/master-data/overview?termCode=${encodeURIComponent(term.selectedTermCode.value)}`)
   } catch {
     options.value = {}
   }
@@ -136,7 +136,7 @@ async function deactivate(item: Requirement) {
 function changePage(nextPage: number) { page.value = nextPage - 1; void loadItems() }
 function changePageSize(nextSize: number) { size.value = nextSize; page.value = 0; void loadItems() }
 
-watch(() => term.selectedTermCode.value, () => { page.value = 0; void loadItems() })
+watch(() => term.selectedTermCode.value, async () => { page.value = 0; await loadOptions(); await loadItems() })
 onMounted(async () => {
   await term.loadTerms()
   await loadOptions()
