@@ -83,8 +83,12 @@ public class MasterDataCrudController {
 
     @PostMapping("/{resource}/{id}/activate")
     public ResponseEntity<?> activate(@PathVariable String resource, @PathVariable long id) {
-        try { repository.activate(MasterDataResource.parse(resource), id); return ResponseEntity.noContent().build(); }
-        catch (IllegalArgumentException exception) { return problem(HttpStatus.NOT_FOUND, "NOT_FOUND", exception.getMessage()); }
+        try {
+            repository.activate(MasterDataResource.parse(resource), id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException exception) {
+            return problem(HttpStatus.NOT_FOUND, "NOT_FOUND", exception.getMessage());
+        }
     }
 
     private ResponseEntity<Map<String, String>> problem(

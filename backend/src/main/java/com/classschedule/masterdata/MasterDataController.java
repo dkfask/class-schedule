@@ -17,12 +17,16 @@ public class MasterDataController {
     }
 
     @GetMapping("/overview")
-    public Map<String, Object> overview(@org.springframework.web.bind.annotation.RequestParam(required = false) String termCode) {
+    public Map<String, Object> overview(
+            @org.springframework.web.bind.annotation.RequestParam(required = false)
+                    String termCode) {
         return Map.of(
                 "terms", rows("SELECT code, name, status FROM academic_term ORDER BY id"),
                 "periods",
                         rows(
-                                "SELECT p.code, p.weekday, p.period_no AS period, p.label FROM period_template p JOIN academic_term t ON t.id=p.term_id WHERE (? IS NULL OR t.code=?) ORDER BY p.weekday, p.period_no", termCode, termCode),
+                                "SELECT p.code, p.weekday, p.period_no AS period, p.label FROM period_template p JOIN academic_term t ON t.id=p.term_id WHERE (? IS NULL OR t.code=?) ORDER BY p.weekday, p.period_no",
+                                termCode,
+                                termCode),
                 "teachers",
                         rows("SELECT code, name FROM teacher WHERE active = TRUE ORDER BY code"),
                 "studentGroups",

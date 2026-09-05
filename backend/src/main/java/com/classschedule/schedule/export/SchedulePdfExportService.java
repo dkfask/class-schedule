@@ -79,43 +79,47 @@ public class SchedulePdfExportService {
             PDFont regular = loadFont(document, false);
             PDFont heading = loadFont(document, true);
             int index = 0;
-            while (index < version.assignments().size() || index == 0) {
+            do {
                 PDPage page = new PDPage(PDRectangle.A4);
                 document.addPage(page);
                 try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
-                stream.beginText();
-                stream.setFont(heading, 16);
-                stream.newLineAtOffset(48, 770);
-                stream.showText(
-                        renderText(
-                                "课表版本 v" + version.id() + " / revision " + version.revision(),
-                                heading));
-                stream.setFont(regular, 9);
-                stream.newLineAtOffset(0, -22);
-                stream.showText(
-                        renderText(
-                                "状态：" + version.status() + " | 课程数：" + version.assignments().size(),
-                                regular));
-                int y = 720;
-                while (index < version.assignments().size() && y >= 48) {
-                    var assignment = version.assignments().get(index++);
-                    stream.newLineAtOffset(0, -16);
+                    stream.beginText();
+                    stream.setFont(heading, 16);
+                    stream.newLineAtOffset(48, 770);
                     stream.showText(
                             renderText(
-                                    assignment.subjectName()
-                                            + " | "
-                                            + assignment.teacherCode()
-                                            + " | "
-                                            + assignment.studentGroupCode()
-                                            + " | "
-                                            + assignment.timeslotCode()
-                                            + " | "
-                                            + assignment.roomCode(),
+                                    "课表版本 v" + version.id() + " / revision " + version.revision(),
+                                    heading));
+                    stream.setFont(regular, 9);
+                    stream.newLineAtOffset(0, -22);
+                    stream.showText(
+                            renderText(
+                                    "状态："
+                                            + version.status()
+                                            + " | 课程数："
+                                            + version.assignments().size(),
                                     regular));
+                    int y = 720;
+                    while (index < version.assignments().size() && y >= 48) {
+                        var assignment = version.assignments().get(index++);
+                        stream.newLineAtOffset(0, -16);
+                        stream.showText(
+                                renderText(
+                                        assignment.subjectName()
+                                                + " | "
+                                                + assignment.teacherCode()
+                                                + " | "
+                                                + assignment.studentGroupCode()
+                                                + " | "
+                                                + assignment.timeslotCode()
+                                                + " | "
+                                                + assignment.roomCode(),
+                                        regular));
+                        y -= 16;
+                    }
+                    stream.endText();
                 }
-                stream.endText();
-                }
-            }
+            } while (index < version.assignments().size());
             document.save(output);
             return output.toByteArray();
         } catch (IOException exception) {
