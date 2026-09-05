@@ -84,6 +84,10 @@ async function deactivate(item: Item) {
     ElMessage.error(error instanceof Error ? error.message : '停用失败')
   }
 }
+async function activate(item: Item) {
+  try { await http<void>(`/api/master-data/${activeResource.value}/${item.id}/activate`, { method: 'POST' }); ElMessage.success('已启用'); await loadItems() }
+  catch (error) { ElMessage.error(error instanceof Error ? error.message : '启用失败') }
+}
 onMounted(() => void loadItems())
 </script>
 

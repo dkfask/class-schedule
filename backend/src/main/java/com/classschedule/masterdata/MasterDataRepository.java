@@ -175,6 +175,12 @@ public class MasterDataRepository {
                 String.valueOf(id));
     }
 
+    public void activate(MasterDataResource resource, long id) {
+        get(resource, id);
+        jdbc.update("UPDATE " + resource.table() + " SET active = TRUE WHERE id = ?", id);
+        jdbc.update("INSERT INTO audit_event (action, aggregate_type, aggregate_id) VALUES ('ACTIVATE', ?, ?)", resource.name(), String.valueOf(id));
+    }
+
     private MasterDataItem item(java.sql.ResultSet rs, MasterDataResource resource)
             throws java.sql.SQLException {
         Map<String, Object> attributes =

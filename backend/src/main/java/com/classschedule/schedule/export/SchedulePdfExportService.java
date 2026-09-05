@@ -36,11 +36,11 @@ public class SchedulePdfExportService {
             com.classschedule.schedule.report.ValidationReportService.Report report) {
         try (PDDocument document = new PDDocument();
                 ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            document.addPage(new PDPage(PDRectangle.A4));
             PDFont regular = loadFont(document, false);
             PDFont heading = loadFont(document, true);
-            try (PDPageContentStream stream =
-                    new PDPageContentStream(document, document.getPage(0))) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
                 stream.beginText();
                 stream.setFont(heading, 14);
                 stream.newLineAtOffset(48, 770);
@@ -76,11 +76,13 @@ public class SchedulePdfExportService {
         var version = schedules.findVersionFiltered(versionId, view, resourceCode);
         try (PDDocument document = new PDDocument();
                 ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            document.addPage(new PDPage(PDRectangle.A4));
             PDFont regular = loadFont(document, false);
             PDFont heading = loadFont(document, true);
-            try (PDPageContentStream stream =
-                    new PDPageContentStream(document, document.getPage(0))) {
+            int index = 0;
+            while (index < version.assignments().size() || index == 0) {
+                PDPage page = new PDPage(PDRectangle.A4);
+                document.addPage(page);
+                try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
                 stream.beginText();
                 stream.setFont(heading, 16);
                 stream.newLineAtOffset(48, 770);
@@ -95,8 +97,8 @@ public class SchedulePdfExportService {
                                 "状态：" + version.status() + " | 课程数：" + version.assignments().size(),
                                 regular));
                 int y = 720;
-                for (var assignment : version.assignments()) {
-                    if (y < 48) break;
+                while (index < version.assignments().size() && y >= 48) {
+                    var assignment = version.assignments().get(index++);
                     stream.newLineAtOffset(0, -16);
                     stream.showText(
                             renderText(
@@ -110,9 +112,9 @@ public class SchedulePdfExportService {
                                             + " | "
                                             + assignment.roomCode(),
                                     regular));
-                    y -= 16;
                 }
                 stream.endText();
+                }
             }
             document.save(output);
             return output.toByteArray();
