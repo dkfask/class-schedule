@@ -64,7 +64,8 @@ public class SecurityConfig {
                                                 "/api/schedule-rules/**",
                                                 "/api/imports/**",
                                                 "/api/solve-jobs/**",
-                                                "/api/legacy-solve-jobs/**")
+                                                "/api/legacy-solve-jobs/**",
+                                                "/api/ai-assist/**")
                                         .hasRole("PLANNER")
                                         .anyRequest()
                                         .authenticated())

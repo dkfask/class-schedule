@@ -16,6 +16,7 @@ import {
   type WorkspaceViewType,
 } from '../utils/workspace'
 import { http } from '../api/http'
+import { aiDiagnostics, type AiDiagnosis } from '../api/ai'
 import { parseScore } from '../utils/score'
 import { useTermStore } from '../stores/term'
 
@@ -83,6 +84,28 @@ const versionLockOwner = ref('')
 const versionArchived = ref(false)
 const commandHistory = ref<Array<{ groupId: string; commandType: string; state: string; reason: string; resultRevision: number; commands: Array<{ occurrenceId: number; sequence: number }> }>>([])
 const historyLoading = ref(false)
+const aiLoading = ref(false)
+const aiResult = ref<AiDiagnosis | null>(null)
+const aiError = ref('')
+
+async function runAiDiagnostics() {
+  if (!versionId.value || aiLoading.value) return
+  aiLoading.value = true
+  aiError.value = ''
+  aiResult.value = null
+  try {
+    aiResult.value = await aiDiagnostics(versionId.value)
+  } catch (error) {
+    aiError.value = error instanceof Error ? error.message : '诊断生成失败'
+  } finally {
+    aiLoading.value = false
+  }
+}
+
+watch(() => versionId.value, () => {
+  aiResult.value = null
+  aiError.value = ''
+})
 const jobStatus = ref('待开始')
 const versionStatus = ref('')
 const progress = ref(0)
@@ -767,6 +790,17 @@ onBeforeUnmount(() => {
       <div v-if="message" class="inline-message">{{ message }}</div>
       <div v-if="versionId && commandHistory.length" class="command-history"><div class="history-heading"><strong>最近调整</strong><span>revision {{ versionRevision }}</span></div><div v-for="command in commandHistory.slice(0, 3)" :key="command.groupId" class="history-row"><span>{{ command.commandType }}</span><small>{{ command.reason }} · {{ command.state }}</small></div><div class="history-actions"><el-button size="small" plain :disabled="!latestAppliedCommand || !canEditVersion" @click="undoLatest">撤销</el-button><el-button size="small" plain :disabled="!latestUndoneCommand || !canEditVersion" @click="redoLatest">重做</el-button></div></div>
       <div class="quality"><div><span>方案完整度</span><strong>{{ qualityPercent }}%</strong></div><div class="quality-track"><i :style="{ width: `${qualityPercent}%` }"></i></div></div>
+      <div v-if="versionId" class="ai-block">
+        <el-button size="small" plain :disabled="aiLoading" :loading="aiLoading" @click="runAiDiagnostics">AI 诊断</el-button>
+        <div v-if="aiError" class="error-message">{{ aiError }}</div>
+        <template v-if="aiResult">
+          <div v-for="(finding, index) in aiResult.findings" :key="index" class="ai-finding" :class="finding.severity.toLowerCase()">
+            <span class="ai-severity">{{ finding.severity }}</span>
+            <div><strong>{{ finding.title }}</strong><small>{{ finding.detail }}</small></div>
+          </div>
+          <ul v-if="aiResult.suggestions.length" class="ai-suggestions"><li v-for="s in aiResult.suggestions" :key="s">{{ s }}</li></ul>
+        </template>
+      </div>
       <el-button class="publish-btn" type="primary" plain :disabled="!publishable || jobStatus === 'PUBLISHED'" @click="publishVersion">{{ jobStatus === 'PUBLISHED' ? '版本已发布' : '发布候选版本' }}</el-button>
     </aside>
   </section>
@@ -792,3 +826,17 @@ onBeforeUnmount(() => {
     </template>
   </el-drawer>
 </template>
+
+<style scoped>
+.ai-block { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.ai-finding { display: flex; gap: 8px; align-items: flex-start; padding: 8px; border-radius: 8px; background: var(--el-fill-color-light); }
+.ai-finding.high { background: var(--el-color-danger-light-9); }
+.ai-finding.medium { background: var(--el-color-warning-light-9); }
+.ai-severity { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; color: #fff; background: var(--el-color-info); flex-shrink: 0; }
+.ai-finding.high .ai-severity { background: var(--el-color-danger); }
+.ai-finding.medium .ai-severity { background: var(--el-color-warning); }
+.ai-finding.low .ai-severity { background: var(--el-color-info); }
+.ai-finding strong { display: block; font-size: 12px; }
+.ai-finding small { color: var(--el-text-color-secondary); font-size: 11px; line-height: 1.5; display: block; }
+.ai-suggestions { margin: 0; padding-left: 18px; font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.7; }
+</style>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, watch } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
+import AiChatPanel from './components/AiChatPanel.vue'
 import { useAuthStore } from './stores/auth'
 import { useTermStore } from './stores/term'
 
@@ -47,6 +48,7 @@ async function logout() {
       <div class="sidebar-foot"><span class="status-dot"></span>本地环境已连接<button class="logout-button" @click="logout">退出登录</button></div>
     </aside>
     <main class="workspace"><RouterView /></main>
+    <AiChatPanel v-if="auth.isAuthenticated" />
   </div>
   <RouterView v-else />
 </template>
