@@ -8,7 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-/** 公开注册：新账号默认只读角色，排课员仍由引导账号/管理员控制。 */
+/** 公开注册：默认赋予排课员角色（支持注册即可排课），也可通过配置调整为 VIEWER。 */
 @Service
 public class RegistrationService {
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z0-9_-]{3,64}$");
@@ -24,12 +24,12 @@ public class RegistrationService {
             PasswordEncoder encoder,
             AppUserRepository users,
             @Value("${app.auth.registration.enabled:true}") boolean enabled,
-            @Value("${app.auth.registration.default-role:VIEWER}") String defaultRole) {
+            @Value("${app.auth.registration.default-role:PLANNER}") String defaultRole) {
         this.jdbc = jdbc;
         this.encoder = encoder;
         this.users = users;
         this.enabled = enabled;
-        this.defaultRole = defaultRole == null ? "VIEWER" : defaultRole.trim();
+        this.defaultRole = defaultRole == null ? "PLANNER" : defaultRole.trim();
     }
 
     /** 注册被拒绝时抛出；status/code 供控制器映射响应。 */

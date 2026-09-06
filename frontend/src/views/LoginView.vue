@@ -36,7 +36,7 @@ async function submitRegister() {
         displayName: displayName.value.trim(),
       }),
     })
-    notice.value = '注册成功，请使用新账号登录（新账号为只读角色）'
+    notice.value = '注册成功，请使用新账号登录'
     mode.value = 'login'
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '注册失败'
@@ -56,7 +56,7 @@ function switchMode(target: 'login' | 'register') {
       <div class="brand"><span class="brand-mark">排</span><div><strong>排课工作台</strong><small>独立校务工具</small></div></div>
       <p class="eyebrow">ACCOUNT / {{ mode === 'login' ? 'SIGN IN' : 'SIGN UP' }}</p>
       <h1>{{ mode === 'login' ? '登录排课系统' : '注册新账号' }}</h1>
-      <p class="login-caption">{{ mode === 'login' ? '使用排课员或只读账号继续。' : '注册后为只读角色，可查看已发布课表；排课员账号由管理员分配。' }}</p>
+      <p class="login-caption">{{ mode === 'login' ? '使用排课员或只读账号继续。' : '注册后可直接进入排课工作台进行排课、求解与课表调整。' }}</p>
       <form @submit.prevent="mode === 'login' ? submit() : submitRegister()">
         <label>用户名<input v-model="username" autocomplete="username" required /></label>
         <label v-if="mode === 'register'">显示名称<input v-model="displayName" autocomplete="name" placeholder="可选，默认同用户名" /></label>

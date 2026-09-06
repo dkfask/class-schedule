@@ -87,9 +87,8 @@ npm run dev
 - `APP_AUTH_BOOTSTRAP_USERNAME` / `APP_AUTH_BOOTSTRAP_PASSWORD`：首次本地启动时创建排课员账号；生产环境必须通过密钥管理注入并及时修改。
 - 账号注册机制：
   - 支持公开注册新账号（`/api/auth/register`）。
-  - 为保障排课排期与基础数据安全，公开注册默认分配 `VIEWER`（只读）角色，可查阅已发布的学期课表并下载/打印；
-  - `PLANNER`（排课员）具备工作台求解、手动调整、规则设定、数据导入与版本发布等控制权限，仅由系统预置引导账号或管理员分配。
-  - 可通过 `app.auth.registration.enabled` 开关注册功能，或由 `app.auth.registration.default-role` 调整默认角色。
+  - 开箱即用：注册用户默认分配 `PLANNER`（排课员）角色，登录后可直接进入排课工作台，进行规则事实维护、数据导入、自动求解与课表微调；
+  - 如需只读审计模式，可通过环境变量 `APP_AUTH_REGISTRATION_DEFAULT_ROLE=VIEWER` 调整默认角色，或者使用 `APP_AUTH_REGISTRATION_ENABLED=false` 关闭自主注册。
 - `APP_PDF_FONT_PATH`：可选 CJK TTF/TTC 字体路径。未配置时 PDF 使用西文字体回退，中文字符不保证可显示。
 
 ## 设计原则
