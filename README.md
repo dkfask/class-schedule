@@ -50,7 +50,7 @@ mvn -Drun.solver.benchmark=true -Dsolver.benchmark.termination-ms=10000 -Dsolver
 - 完整用户管理和正式跨用户 RBAC 策略
 - 复杂合班拆分、分层走班和跨午休可配置规则
 - 更复杂的规则求解优化、完整教师空档可视化和教室容量/特征业务边界
-- Playwright 浏览器自动化验收和真实中型数据性能基准
+- 其余模块的 Playwright 浏览器自动化用例扩展（导入模块已落地：`frontend/e2e`，`npm run e2e`，真实 Chrome 通道含原生文件上传）和真实中型数据性能基准
 - Worker deadline、异常告警、Outbox 和生产部署编排
 - 许可证负责人对应用/基础镜像许可证的最终确认、runtime 数据库最小权限隔离和正式 RPO/RTO/灾备方案
 
