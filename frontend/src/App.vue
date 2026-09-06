@@ -13,7 +13,10 @@ function selectTerm(event: Event) {
 }
 
 onMounted(() => {
-  window.addEventListener('auth:expired', () => { void router.push('/login') })
+  window.addEventListener('auth:expired', () => {
+    auth.user = null
+    void router.push('/login')
+  })
   if (auth.isAuthenticated) void term.loadTerms()
 })
 

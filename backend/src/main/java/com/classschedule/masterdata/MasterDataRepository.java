@@ -1,5 +1,6 @@
 package com.classschedule.masterdata;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -186,16 +187,13 @@ public class MasterDataRepository {
 
     private MasterDataItem item(java.sql.ResultSet rs, MasterDataResource resource)
             throws java.sql.SQLException {
-        Map<String, Object> attributes =
-                resource == MasterDataResource.ROOMS
-                        ? Map.of(
-                                "capacity",
-                                rs.getInt("capacity"),
-                                "roomType",
-                                rs.getString("room_type"))
-                        : resource == MasterDataResource.STUDENT_GROUPS
-                                ? Map.of("studentCount", rs.getInt("student_count"))
-                                : Map.of();
+        Map<String, Object> attributes = new HashMap<>();
+        if (resource == MasterDataResource.ROOMS) {
+            attributes.put("capacity", rs.getInt("capacity"));
+            attributes.put("roomType", rs.getString("room_type"));
+        } else if (resource == MasterDataResource.STUDENT_GROUPS) {
+            attributes.put("studentCount", rs.getInt("student_count"));
+        }
         return new MasterDataItem(
                 rs.getLong("id"),
                 rs.getString("code"),

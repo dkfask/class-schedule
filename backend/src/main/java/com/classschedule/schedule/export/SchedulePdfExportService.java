@@ -131,23 +131,38 @@ public class SchedulePdfExportService {
         if (!fontPath.isBlank()) {
             File file = new File(fontPath);
             if (file.isFile()) {
-                if (fontPath.toLowerCase().endsWith(".ttc")) {
-                    try (TrueTypeCollection collection = new TrueTypeCollection(file)) {
-                        TrueTypeFont selected =
-                                fontName.isBlank()
-                                        ? firstFont(collection)
-                                        : collection.getFontByName(fontName);
-                        if (selected != null) return PDType0Font.load(document, selected, true);
-                    }
-                } else {
-                    return PDType0Font.load(document, file);
-                }
+                PDFont loaded = loadConfiguredFont(document, file);
+                if (loaded != null) return loaded;
             }
         }
         return new PDType1Font(
                 bold
                         ? Standard14Fonts.FontName.HELVETICA_BOLD
                         : Standard14Fonts.FontName.HELVETICA);
+    }
+
+    private PDFont loadConfiguredFont(PDDocument document, File file) {
+        try {
+            if (file.getName().toLowerCase().endsWith(".ttc")) {
+                try (TrueTypeCollection collection = new TrueTypeCollection(file)) {
+                    TrueTypeFont selected = null;
+                    if (!fontName.isBlank()) {
+                        try {
+                            selected = collection.getFontByName(fontName);
+                        } catch (IOException | RuntimeException ignored) {
+                            // 字体名与集合内注册名不一致时回退首个字体
+                        }
+                    }
+                    if (selected == null) selected = firstFont(collection);
+                    if (selected != null) return PDType0Font.load(document, selected, true);
+                }
+            } else {
+                return PDType0Font.load(document, file);
+            }
+        } catch (IOException | RuntimeException ignored) {
+            // 字体装载失败时回退内置字体，导出仍可用（非 ASCII 由 renderText 降级）
+        }
+        return null;
     }
 
     private TrueTypeFont firstFont(TrueTypeCollection collection) throws IOException {
