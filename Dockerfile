@@ -6,6 +6,11 @@ RUN mvn -f backend/pom.xml -Pdocker-build package
 
 FROM eclipse-temurin:17-jre-jammy@sha256:e17d77fb030dd4b642dc078d048a5fb9efcb3676ee20305d905949105a6ccd5a
 WORKDIR /app
+# PDFBox 导出依赖 TrueType 轮廓的 CJK 字体（app.pdf.font-path）；
+# Noto CJK 为 CFF 轮廓，TTFSubsetter 无法子集化（OTF fonts do not have a glyf table）
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends fonts-wqy-microhei \
+    && rm -rf /var/lib/apt/lists/*
 RUN groupadd --system app && useradd --system --gid app --home-dir /app --no-create-home app
 COPY --from=build --chown=app:app /workspace/backend/target/class-schedule-backend-0.1.0-SNAPSHOT.jar app.jar
 USER app

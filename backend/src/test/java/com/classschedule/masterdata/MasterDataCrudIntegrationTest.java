@@ -1,6 +1,7 @@
 package com.classschedule.masterdata;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -122,5 +123,33 @@ class MasterDataCrudIntegrationTest {
                 .andExpect(jsonPath("$.items").isArray())
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(2));
+    }
+
+    @Test
+    void roomListAndDetailTolerateNullRoomType() throws Exception {
+        jdbc.update(
+                "INSERT INTO room(code, name, capacity, room_type, active) VALUES (?, ?, ?, NULL, TRUE)",
+                "RNULLTYPE",
+                "无类型教室",
+                40);
+        mockMvc.perform(get("/api/master-data/rooms?active=false&page=0&size=50"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.code=='RNULLTYPE')]").exists());
+        Long id =
+                jdbc.queryForObject("SELECT id FROM room WHERE code='RNULLTYPE'", Long.class);
+        mockMvc.perform(get("/api/master-data/rooms/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.attributes.roomType").value(nullValue()));
+    }
+
+    @Test
+    void overviewWorksWithAndWithoutTermCode() throws Exception {
+        mockMvc.perform(get("/api/master-data/overview"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.terms").isArray())
+                .andExpect(jsonPath("$.periods").isArray());
+        mockMvc.perform(get("/api/master-data/overview").param("termCode", "2026-FALL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.periods").isArray());
     }
 }
