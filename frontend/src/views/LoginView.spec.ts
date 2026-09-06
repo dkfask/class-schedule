@@ -14,6 +14,7 @@ function createLoginRouter() {
     routes: [
       { path: '/login', component: { template: '<div />' } },
       { path: '/workspace', component: { template: '<div />' } },
+      { path: '/published', component: { template: '<div />' } },
     ],
   })
 }
@@ -56,6 +57,47 @@ describe('LoginView and auth store', () => {
     await flushPromises()
     expect(vm.error).toBe('用户名或密码错误')
     expect(useAuthStore().user).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('registers a new account and returns to the login mode', async () => {
+    setActivePinia(createPinia())
+    const registerSecret = `pw-${Math.random().toString(36).slice(2, 10)}`
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' }) })
+      .mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ id: 9, username: 'new-user', displayName: '新用户', enabled: true, roles: ['VIEWER'] }) })
+    vi.stubGlobal('fetch', fetchMock)
+    const wrapper = mount(LoginView, { global: { plugins: [createPinia()], provide: { [routerKey]: { push: vi.fn() } } } })
+    const vm = wrapper.vm as any
+    vm.mode = 'register'
+    vm.username = 'new-user'
+    vm.password = registerSecret
+    vm.displayName = '新用户'
+    await vm.submitRegister()
+    await flushPromises()
+    expect(vm.mode).toBe('login')
+    expect(vm.notice).toContain('注册成功')
+    expect(vm.error).toBe('')
+    const registerCall = fetchMock.mock.calls.find(([url]) => String(url).includes('/api/auth/register'))
+    expect(registerCall).toBeTruthy()
+    expect(JSON.parse((registerCall![1] as RequestInit).body as string).password).toBe(registerSecret)
+    wrapper.unmount()
+  })
+
+  it('surfaces registration rejections from the backend', async () => {
+    setActivePinia(createPinia())
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' }) })
+      .mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({ code: 'USERNAME_EXISTS', message: '用户名已被占用' }) }))
+    const wrapper = mount(LoginView, { global: { plugins: [createPinia()], provide: { [routerKey]: { push: vi.fn() } } } })
+    const vm = wrapper.vm as any
+    vm.mode = 'register'
+    vm.username = 'taken'
+    vm.password = 'x'.repeat(12)
+    await vm.submitRegister()
+    await flushPromises()
+    expect(vm.mode).toBe('register')
+    expect(vm.error).toBe('用户名已被占用')
     wrapper.unmount()
   })
 })
