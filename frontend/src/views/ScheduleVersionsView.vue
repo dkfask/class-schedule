@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import { http, jsonRequest } from '../api/http'
 import { resolveScore } from '../utils/score'
 import { useTermStore } from '../stores/term'
@@ -40,6 +41,7 @@ const editable = computed(() => selectedSummary.value != null && ['DRAFT', 'CAND
 const canLock = computed(() => selectedSummary.value != null && editable.value && !selectedSummary.value.editLocked)
 const canUnlock = computed(() => selectedSummary.value != null && Boolean(selectedSummary.value.editLocked))
 const canArchive = computed(() => selectedSummary.value != null && selectedSummary.value.status === 'PUBLISHED' && !selectedSummary.value.archivedAt)
+const canFork = computed(() => selectedSummary.value != null && ['CANDIDATE', 'PUBLISHED', 'ARCHIVED'].includes(selectedSummary.value.status))
 const latestApplied = computed(() => history.value.find(item => item.state === 'APPLIED'))
 const latestUndone = computed(() => history.value.find(item => item.state === 'UNDONE'))
 
@@ -150,6 +152,21 @@ function archiveVersion() {
   }))
 }
 
+function forkVersion() {
+  const source = selectedVersion.value
+  if (!source) return
+  void ElMessageBox.prompt('新草稿名称', `复制版本 v${source} 为新草稿`, {
+    confirmButtonText: '创建草稿',
+    cancelButtonText: '取消',
+    inputValue: `v${source} 副本`,
+  })
+    .then(({ value }) => {
+      const name = (value ?? '').trim() || `v${source} 副本`
+      return mutate(() => http(`/api/schedule-versions/${source}/fork`, jsonRequest('POST', { name })))
+    })
+    .catch(() => undefined)
+}
+
 function undoCommand(groupId: string) {
   return mutate(() => http(`/api/schedule-versions/${selectedVersion.value}/adjustments/commands/${groupId}/undo`, commandRequest(newIdempotencyKey('undo'))))
 }
@@ -186,14 +203,17 @@ onMounted(() => void loadVersions())
         <el-button size="small" plain :disabled="!canLock || mutating" :loading="mutating" @click="lockVersion">锁定编辑</el-button>
         <el-button size="small" plain :disabled="!canUnlock || mutating" :loading="mutating" @click="unlockVersion">解锁</el-button>
         <el-button size="small" plain :disabled="!canArchive || mutating" :loading="mutating" @click="archiveVersion">归档</el-button>
+        <el-button size="small" plain :disabled="!canFork || mutating" :loading="mutating" @click="forkVersion">复制为新草稿</el-button>
       </div>
-      <div v-if="selectedVersion && history.length" class="command-history">
-        <div class="history-heading"><strong>命令历史</strong><span v-if="historyLoading">加载中…</span></div>
-        <div v-for="command in history.slice(0, 5)" :key="command.groupId" class="history-row"><span>{{ command.commandType }} · {{ command.state }}</span><small>{{ command.reason }} · r{{ command.resultRevision }}</small></div>
-        <div class="history-actions">
-          <el-button size="small" plain :disabled="!latestApplied || !editable || mutating" :loading="mutating" @click="latestApplied && undoCommand(latestApplied.groupId)">撤销</el-button>
-          <el-button size="small" plain :disabled="!latestUndone || !editable || mutating" :loading="mutating" @click="latestUndone && redoCommand(latestUndone.groupId)">重做</el-button>
-        </div>
+      <div v-if="selectedVersion" class="command-history">
+        <div class="history-heading"><strong>命令历史</strong><span v-if="historyLoading">加载中…</span><span v-else-if="!history.length">暂无命令记录</span></div>
+        <template v-if="history.length">
+          <div v-for="command in history.slice(0, 5)" :key="command.groupId" class="history-row"><span>{{ command.commandType }} · {{ command.state }}</span><small>{{ command.reason }} · r{{ command.resultRevision }}</small></div>
+          <div class="history-actions">
+            <el-button size="small" plain :disabled="!latestApplied || !editable || mutating" :loading="mutating" @click="latestApplied && undoCommand(latestApplied.groupId)">撤销</el-button>
+            <el-button size="small" plain :disabled="!latestUndone || !editable || mutating" :loading="mutating" @click="latestUndone && redoCommand(latestUndone.groupId)">重做</el-button>
+          </div>
+        </template>
       </div>
       <div v-loading="diffLoading" v-if="visibleDiff.length" class="diff-list"><article v-for="item in visibleDiff" :key="`${item.occurrenceKey}-${item.changeType}`" class="diff-row"><span class="diff-type">{{ item.changeType }}</span><strong>{{ item.occurrenceKey }}</strong><small>{{ item.before?.subjectName ?? item.after?.subjectName ?? '活动' }} · {{ item.before?.timeslotCode ?? '—' }} → {{ item.after?.timeslotCode ?? '—' }} · {{ item.before?.roomCode ?? '—' }} → {{ item.after?.roomCode ?? '—' }}</small></article></div><el-empty v-else description="没有差异或尚未选择版本" />
     </div>
