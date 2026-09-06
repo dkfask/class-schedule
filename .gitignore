@@ -10,3 +10,5 @@ dist/
 .phase6-evidence/
 backups/
 源证书安装
+test-results/
+playwright-report/
