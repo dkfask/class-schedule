@@ -1,0 +1,686 @@
+meta:
+  source_markmap: 测试用例_markmap.md
+  extracted_at: 2026-09-06
+  strategy_ref: 测试策略.md
+modules:
+  - module: "1. 登录与会话"
+    shared_preconditions: []
+  - module: "2. 基础数据管理"
+    shared_preconditions: ["已登录 Planner；从侧边导航进入「基础数据」页（顶部标签：教师/班级/课程/教室）"]
+  - module: "3. 教学计划"
+    shared_preconditions: ["已登录；侧边导航进入「教学计划」页"]
+  - module: "4. 规则事实"
+    shared_preconditions: ["已登录；侧边导航进入「规则事实」页"]
+  - module: "5. 导入与数据集转换"
+    shared_preconditions: ["已登录；侧边导航进入「导入」页；页面顶部学期已选择且有效"]
+  - module: "6. 排课工作台"
+    shared_preconditions: ["已登录；登录后默认进入工作台（侧边导航「工作台」可回到）"]
+  - module: "7. 版本与发布管理"
+    shared_preconditions: ["已登录；侧边导航进入「版本」页（/versions）"]
+  - module: "8. 已发布课表与导出"
+    shared_preconditions: ["已登录；侧边导航进入「已发布课表」页"]
+cases:
+  - id: TC-01-01
+    title: 正确账号密码登录进入工作台
+    module: "1. 登录与会话"
+    priority: P0
+    type: permission
+    execution_model: ui
+    smoke: SMOKE-1
+    preconditions: []
+    steps: ["打开 http://localhost:5173", "在登录页输入账号 planner、密码 change-this-in-local-env", "点击登录按钮"]
+    expected: ["登录成功，跳转到排课工作台页面，页面显示当前学期信息，无错误提示"]
+    test_data: {1: "账号 planner / 密码 change-this-in-local-env"}
+    risk_ref: [R7]
+    code_refs: ["backend/src/main/java/com/classschedule/security/AuthController.java:36-59"]
+    evidence: {level: E2, source: "backend/src/main/java/com/classschedule/security/AuthController.java:36-59", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-01-02
+    title: 错误密码登录被拒绝
+    module: "1. 登录与会话"
+    priority: P1
+    type: exception
+    execution_model: ui
+    preconditions: []
+    steps: ["打开登录页", "输入账号 planner、密码 wrong-password-123", "点击登录"]
+    expected: ["页面显示登录失败类错误提示，停留在登录页，不进入工作台"]
+    test_data: {2: "密码 wrong-password-123"}
+    risk_ref: []
+    code_refs: ["backend/src/main/java/com/classschedule/security/AuthController.java:36-59"]
+    evidence: {level: E2, source: "backend/src/main/java/com/classschedule/security/AuthController.java:36-59", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-01-03
+    title: 登出后访问受保护页面回到登录
+    module: "1. 登录与会话"
+    priority: P1
+    type: security
+    execution_model: ui
+    preconditions: []
+    steps: ["用 planner 登录", "点击登出（或头像菜单中的退出项）", "地址栏直接访问 http://localhost:5173/versions"]
+    expected: ["访问被拦截，呈现登录页或未认证提示，不显示版本数据"]
+    test_data: {3: "直达 URL http://localhost:5173/versions"}
+    risk_ref: [R6]
+    code_refs: ["frontend/src/api/http.ts:49-51", "frontend/src/router.ts"]
+    evidence: {level: E2, source: "frontend/src/api/http.ts:49-51", confidence: high}
+    tags: ["[安全]"]
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-01-04
+    title: 会话过期后操作触发重新登录引导
+    module: "1. 登录与会话"
+    priority: P2
+    type: security
+    execution_model: ui
+    preconditions: ["已登录；服务端重启使会话失效（重启 docker compose 的 api 服务）"]
+    steps: ["重启后端服务使会话失效", "回到浏览器点击任意需要请求后端的操作（如刷新基础数据列表）"]
+    expected: ["页面出现未认证/登录过期类引导（不静默失败也不白屏），5 秒内可观察到"]
+    test_data: {}
+    risk_ref: [R6]
+    code_refs: ["frontend/src/api/http.ts:49-51"]
+    evidence: {level: E2, source: "frontend/src/api/http.ts:49-51", confidence: high}
+    tags: ["[安全]"]
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-01-05
+    title: 无权限角色访问管理接口被拒
+    module: "1. 登录与会话"
+    priority: P2
+    type: permission
+    execution_model: ui
+    preconditions: ["环境存在非 Planner 账号（无则标记环境无数据未执行）"]
+    steps: ["用非 Planner 账号登录", "打开基础数据页执行一次新增"]
+    expected: ["操作被拒绝并显示权限类错误提示"]
+    test_data: {}
+    risk_ref: [R6]
+    code_refs: ["backend/src/main/java/com/classschedule/security/SecurityConfig.java:43-70"]
+    evidence: {level: E2, source: "backend/src/main/java/com/classschedule/security/SecurityConfig.java:43-70", confidence: medium}
+    tags: ["[安全]"]
+    automation: {supported: no, framework: manual}
+    status: active
+  - id: TC-02-01
+    title: 基础数据页加载教师列表
+    module: "2. 基础数据管理"
+    priority: P0
+    type: functional
+    execution_model: ui
+    smoke: SMOKE-2
+    preconditions: []
+    steps: ["进入基础数据页，默认教师标签", "观察列表"]
+    expected: ["列表显示教师行（编码/名称/状态列），状态列显示启用或停用标签，分页显示总数，无错误提示"]
+    test_data: {}
+    risk_ref: [R7]
+    code_refs: ["frontend/src/views/MasterDataView.vue:96"]
+    evidence: {level: E2, source: "frontend/src/views/MasterDataView.vue:96", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-02-02
+    title: 教师停用后启用恢复
+    module: "2. 基础数据管理"
+    priority: P0
+    type: state
+    execution_model: ui
+    smoke: SMOKE-3
+    preconditions: []
+    steps: ["选状态为启用的教师行并记录其编码", "点击该行停用", "在确认弹窗中点击确定", "观察该行状态变化后点击该行启用按钮", "观察状态"]
+    expected: ["停用确认后该行状态标签变停用且出现启用按钮", "点击启用后 3 秒内状态变回启用，出现成功提示已启用，无错误提示"]
+    test_data: {}
+    risk_ref: [R1]
+    code_refs: ["frontend/src/views/MasterDataView.vue:78-89", "backend/src/main/java/com/classschedule/masterdata/MasterDataCrudController.java:83-90"]
+    evidence: {level: E2, source: "commit 6d8eac3 启用接口接线：MasterDataCrudController activate 端点与 MasterDataView 启用按钮", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-02-03
+    title: 教室停用后启用恢复（含容量列渲染）
+    module: "2. 基础数据管理"
+    priority: P1
+    type: state
+    execution_model: ui
+    preconditions: []
+    steps: ["切到教室标签", "任选启用教室执行停用并确认", "再点击启用"]
+    expected: ["教室列表含容量列且数值正常渲染", "停用/启用全程状态标签正确切换，无报错"]
+    test_data: {}
+    risk_ref: [R1]
+    code_refs: ["frontend/src/views/MasterDataView.vue:96"]
+    evidence: {level: E2, source: "frontend/src/views/MasterDataView.vue:96（容量列与启用按钮）", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-02-04
+    title: 停用确认弹窗点取消不改变状态
+    module: "2. 基础数据管理"
+    priority: P1
+    type: exception
+    execution_model: ui
+    preconditions: []
+    steps: ["选启用教师点停用", "在确认弹窗点取消"]
+    expected: ["弹窗关闭，该行状态仍为启用，列表无变化，无停用成功提示"]
+    test_data: {}
+    risk_ref: []
+    code_refs: ["frontend/src/views/MasterDataView.vue:78-84"]
+    evidence: {level: E2, source: "frontend/src/views/MasterDataView.vue:78-84", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-02-05
+    title: 新增教师并出现在列表
+    module: "2. 基础数据管理"
+    priority: P1
+    type: functional
+    execution_model: ui
+    preconditions: []
+    steps: ["基础数据页教师标签点新增教师", "编码输入 T-E2E-001，名称输入 浏览器回归教师", "保存"]
+    expected: ["弹窗关闭，列表出现编码 T-E2E-001 的行，状态启用，有成功提示"]
+    test_data: {2: "编码 T-E2E-001 / 名称 浏览器回归教师"}
+    risk_ref: []
+    code_refs: ["frontend/src/views/MasterDataView.vue:67,97"]
+    evidence: {level: E2, source: "frontend/src/views/MasterDataView.vue:67,97", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-02-06
+    title: 切换资源标签列表正确刷新
+    module: "2. 基础数据管理"
+    priority: P1
+    type: regression
+    execution_model: ui
+    preconditions: []
+    steps: ["依次点击 班级→课程→教室→教师 标签"]
+    expected: ["每次切换后列表标题与表头对应切换（班级含人数列、教室含容量列），数据加载完成无残留上一标签数据"]
+    test_data: {}
+    risk_ref: [R7]
+    code_refs: ["frontend/src/views/MasterDataView.vue:32,47"]
+    evidence: {level: E2, source: "frontend/src/views/MasterDataView.vue:32,47", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-02-07
+    title: 教师分页切换正常
+    module: "2. 基础数据管理"
+    priority: P2
+    type: boundary
+    execution_model: ui
+    preconditions: ["教师总数超过每页条数（不足则标记数据不足未执行）"]
+    steps: ["在教师列表点击下一页", "再点上一页"]
+    expected: ["翻页后列表数据更新且与页码一致，无重复行或空白页"]
+    test_data: {}
+    risk_ref: []
+    code_refs: ["frontend/src/views/MasterDataView.vue:96（分页组件）"]
+    evidence: {level: E2, source: "frontend/src/views/MasterDataView.vue:96", confidence: medium}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-03-01
+    title: 切换学期后节次选项更新
+    module: "3. 教学计划"
+    priority: P1
+    type: functional
+    execution_model: ui
+    preconditions: []
+    steps: ["进入教学计划页，打开新增教学需求弹窗", "记录当前学期下可选节次选项", "关闭弹窗，把页面学期切换到另一学期", "再打开新增弹窗查看节次选项"]
+    expected: ["节次选项集合来自当前所选学期的节次配置（而非上一次所选学期）", "切换后重新打开弹窗 5 秒内加载完成，无空白选项或旧学期残留"]
+    test_data: {}
+    risk_ref: [R4]
+    code_refs: ["frontend/src/views/TeachingPlanView.vue"]
+    evidence: {level: E1, source: "docs/local-test-report-2026-09-05.md 风险#2", confidence: medium}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-03-02
+    title: 新增教学需求成功
+    module: "3. 教学计划"
+    priority: P1
+    type: functional
+    execution_model: ui
+    preconditions: []
+    steps: ["教学计划页点新增教学需求", "选择班级、课程、教师，周课时填 2，时长与人数按表单默认或最小合法值", "保存"]
+    expected: ["弹窗关闭，列表出现新需求行，字段回显正确，无错误提示"]
+    test_data: {2: "周课时 2"}
+    risk_ref: []
+    code_refs: ["frontend/src/views/TeachingPlanView.vue"]
+    evidence: {level: E1, source: "README.md 教学计划功能", confidence: medium}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-03-03
+    title: 快速连续切换两次学期列表无错乱
+    module: "3. 教学计划"
+    priority: P2
+    type: exception
+    execution_model: ui
+    preconditions: []
+    steps: ["在教学计划页学期选择器先切学期A", "立即（1 秒内）切回学期B"]
+    expected: ["最终列表与学期B一致（无两次请求竞态导致的混合数据），5 秒内加载完成，无错误提示"]
+    test_data: {}
+    risk_ref: [R4]
+    code_refs: ["frontend/src/views/TeachingPlanView.vue"]
+    evidence: {level: E1, source: "docs/local-test-report-2026-09-05.md 风险#2（异步请求竞争）", confidence: medium}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-04-01
+    title: 规则事实页各区块加载
+    module: "4. 规则事实"
+    priority: P1
+    type: regression
+    execution_model: ui
+    preconditions: []
+    steps: ["进入规则事实页", "观察资源可用性、教室特征、需求特征、活动组、质量规则各区块"]
+    expected: ["各区块均显示数据或 0 条空态，不出现部分规则事实无法加载或笼统错误提示"]
+    test_data: {}
+    risk_ref: [R7]
+    code_refs: ["backend/src/main/java/com/classschedule/rules/RuleFactController.java:29-100"]
+    evidence: {level: E2, source: "backend/src/main/java/com/classschedule/rules/RuleFactController.java:29-100", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-04-02
+    title: 新增资源可用性并回显
+    module: "4. 规则事实"
+    priority: P1
+    type: functional
+    execution_model: ui
+    preconditions: []
+    steps: ["在资源可用性区新增一条（类型选 TEACHER，对象与时段按表单可选项任选）", "保存后观察列表", "删除该条"]
+    expected: ["列表出现新条目并在 5 秒内回显", "删除后列表移除"]
+    test_data: {1: "类型 TEACHER"}
+    risk_ref: []
+    code_refs: ["backend/src/main/java/com/classschedule/rules/RuleFactController.java:83-100"]
+    evidence: {level: E2, source: "backend/src/main/java/com/classschedule/rules/RuleFactController.java:83-100", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-05-01
+    title: 下载导入模板
+    module: "5. 导入与数据集转换"
+    priority: P0
+    type: functional
+    execution_model: ui
+    smoke: SMOKE-4
+    preconditions: []
+    steps: ["导入页点击下载导入模板"]
+    expected: ["浏览器开始下载 xlsx 模板文件（出现下载项），页面显示模板下载已开始成功提示", "文件可正常打开且含中文列名 Sheet"]
+    test_data: {}
+    risk_ref: [R3]
+    code_refs: ["frontend/src/components/ImportPanel.vue:109,171"]
+    evidence: {level: E2, source: "frontend/src/components/ImportPanel.vue:109,171", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-05-02
+    title: 合法模板上传→预览→确认导入
+    module: "5. 导入与数据集转换"
+    priority: P0
+    type: functional
+    execution_model: ui
+    smoke: SMOKE-5
+    preconditions: ["使用 TC-05-01 下载的模板，在教师 Sheet 填一行：编码 T-IMP-001、名称 导入测试教师（其余 Sheet 留空）"]
+    steps: ["导入页选择该文件上传", "等待预览结果", "预览校验通过后点击确认导入"]
+    expected: ["预览状态显示 VALIDATED（15 秒内返回）", "确认后显示导入成功与各 Sheet 统计", "基础数据页教师列表可查到 T-IMP-001"]
+    test_data: {1: "文件：模板（教师 Sheet 行 T-IMP-001/导入测试教师）"}
+    risk_ref: [R3]
+    code_refs: ["frontend/src/components/ImportPanel.vue:46-75", "backend/src/main/java/com/classschedule/importexport/WorkbookImportService.java:250-330"]
+    evidence: {level: E2, source: "frontend/src/components/ImportPanel.vue:46-75", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-05-03
+    title: 仅含必需 Sheet 的导入不删除已有教室与特征配置
+    module: "5. 导入与数据集转换"
+    priority: P1
+    type: data
+    execution_model: ui
+    preconditions: ["先在基础数据页记录当前教室数量与名称（截图）", "使用附录准备的仅必需 Sheet 工作簿（教师 Sheet 至少一行合法数据）"]
+    steps: ["上传该工作簿并预览", "校验通过后确认导入", "回基础数据页教室标签对比数量与名称"]
+    expected: ["教室数量与名称与导入前完全一致，特征相关数据无丢失（缺省可选 Sheet 不删除已有配置）"]
+    test_data: {1: "文件 /tmp/minimal-master.xlsx"}
+    risk_ref: [R3]
+    code_refs: ["backend/src/main/java/com/classschedule/importexport/WorkbookImportService.java:250-330", "README.md 导入导出节"]
+    evidence: {level: E1, source: "README.md 可选 Sheet 不删除承诺", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-05-04
+    title: 外部数据集转换产物上传预览
+    module: "5. 导入与数据集转换"
+    priority: P1
+    type: functional
+    execution_model: ui
+    preconditions: ["已按附录命令用 datasets 样例生成工作簿（small-feasible → /tmp/e2e-conv.xlsx，学期编码 2026-E2E）"]
+    steps: ["导入页选择 /tmp/e2e-conv.xlsx 上传", "等待预览结果（不做确认导入）"]
+    expected: ["预览在 20 秒内返回且状态 VALIDATED，显示识别出的各 Sheet 统计", "不执行确认，页面无未捕获错误"]
+    test_data: {1: "文件 /tmp/e2e-conv.xlsx"}
+    risk_ref: []
+    code_refs: ["scripts/convert-external-timetable.sh", "backend/src/main/java/com/classschedule/importexport/ExternalTimetableConverter.java"]
+    evidence: {level: E2, source: "scripts/convert-external-timetable.sh 与 docs/external-dataset-converter.md", confidence: medium}
+    tags: ["[集成]"]
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-05-05
+    title: 上传非模板文件返回问题清单
+    module: "5. 导入与数据集转换"
+    priority: P1
+    type: boundary
+    execution_model: ui
+    preconditions: []
+    steps: ["导入页选择一个普通文件（如 echo hello 生成的 /tmp/not-a-template.xlsx）上传"]
+    expected: ["页面显示导入问题/校验失败提示（如不支持的模板类型），不出现崩溃或浏览器报错弹层", "可重新选择文件再次预览"]
+    test_data: {1: "文件 /tmp/not-a-template.xlsx"}
+    risk_ref: []
+    code_refs: ["backend/src/main/java/com/classschedule/importexport/WorkbookImportService.java:240-247"]
+    evidence: {level: E2, source: "WorkbookImportService UNKNOWN_TEMPLATE 分支", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-05-06
+    title: 学期未选择或无效时导入页给出引导
+    module: "5. 导入与数据集转换"
+    priority: P2
+    type: exception
+    execution_model: ui
+    preconditions: []
+    steps: ["打开导入页但不选择学期（或清空学期选择，以页面实际控件为准）", "观察上传入口与提示"]
+    expected: ["页面明确提示需要先选择/确认有效学期（非静默禁用、非无提示的灰色按钮）", "选择有效学期后上传入口可用"]
+    test_data: {}
+    risk_ref: []
+    code_refs: ["frontend/src/components/ImportPanel.vue:46"]
+    evidence: {level: E2, source: "Cx1：学期无效时导入入口可用性未定义（ImportPanel.vue:46）", confidence: medium}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-05-07
+    title: 同一文件重复确认导入被保护
+    module: "5. 导入与数据集转换"
+    priority: P2
+    type: data
+    execution_model: ui
+    preconditions: ["已完成 TC-05-02 的导入"]
+    steps: ["再次上传与 TC-05-02 相同的文件并预览", "校验通过后再次点击确认导入", "到基础数据页核对教师 T-IMP-001 条数"]
+    expected: ["系统给出重复导入的保护响应（拒绝并提示，或按幂等语义返回既有结果）", "教师 T-IMP-001 仅一条，不产生重复数据行"]
+    test_data: {1: "文件：与 TC-05-02 相同的模板"}
+    risk_ref: [R3]
+    code_refs: ["backend/src/main/java/com/classschedule/importexport/WorkbookImportService.java", "README.md 导入失败事务回滚和重复确认保护"]
+    evidence: {level: E1, source: "README.md 重复确认保护", confidence: medium}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-06-01
+    title: 工作台加载显示学期与排课状态
+    module: "6. 排课工作台"
+    priority: P0
+    type: functional
+    execution_model: ui
+    smoke: SMOKE-6
+    preconditions: []
+    steps: ["登录后进入工作台"]
+    expected: ["页面显示当前学期、同步状态、排课状态与任务统计区域，课表网格区域渲染（空态或数据态均算通过），无错误提示"]
+    test_data: {}
+    risk_ref: [R7]
+    code_refs: ["frontend/src/views/WorkspaceView.vue:316"]
+    evidence: {level: E2, source: "frontend/src/views/WorkspaceView.vue:316", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-06-02
+    title: 课表三种视图切换
+    module: "6. 排课工作台"
+    priority: P1
+    type: regression
+    execution_model: ui
+    preconditions: []
+    steps: ["在工作台依次点击 班级课表/教师课表/教室课表 视图切换"]
+    expected: ["三种视图均正常渲染网格", "无数据视图显示完成一次求解后选择资源类引导而非报错"]
+    test_data: {}
+    risk_ref: [R7]
+    code_refs: ["frontend/src/views/WorkspaceView.vue"]
+    evidence: {level: E1, source: "docs/visual-test-report.md 通过项 2/3", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-06-03
+    title: 无教室课次的占位显示
+    module: "6. 排课工作台"
+    priority: P2
+    type: functional
+    execution_model: ui
+    preconditions: ["当前学期存在未分配教室的课次数据（无则标记环境无数据未执行并记录）"]
+    steps: ["打开含该课次的课表视图", "找到该课次格子"]
+    expected: ["该课次显示为无教室占位形态（不显示错误教室名或 undefined），网格其余课次不受影响"]
+    test_data: {}
+    risk_ref: [R5]
+    code_refs: ["commit 5657e4a keep no-room timetable placeholders roomless"]
+    evidence: {level: E2, source: "commit 5657e4a", confidence: medium}
+    tags: []
+    automation: {supported: no, framework: manual}
+    status: active
+  - id: TC-06-04
+    title: 提交求解任务并观察状态轮转
+    module: "6. 排课工作台"
+    priority: P1
+    type: reliability
+    execution_model: ui
+    preconditions: ["当前学期存在有效教学需求数据"]
+    steps: ["工作台点击提交求解的操作按钮（按钮文案以页面实际为准，如开始求解/求解）", "观察任务状态显示", "等待完成"]
+    expected: ["任务进入排队/运行状态并轮转显示", "小数据量下 60 秒内出现完成态与结果版本，页面无未捕获错误；若 60 秒未完成继续等待至 15 分钟超时上限，超过判失败"]
+    test_data: {}
+    risk_ref: []
+    code_refs: ["frontend/src/views/WorkspaceView.vue:555", "backend/src/main/java/com/classschedule/api/PersistentSolveJobController.java:29-50"]
+    evidence: {level: E2, source: "frontend/src/views/WorkspaceView.vue:555", confidence: high}
+    tags: ["[可靠]"]
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-07-01
+    title: 版本列表加载与状态显示
+    module: "7. 版本与发布管理"
+    priority: P0
+    type: regression
+    execution_model: ui
+    smoke: SMOKE-7
+    preconditions: []
+    steps: ["进入版本页"]
+    expected: ["列表显示历史版本行（含草稿/候选/已发布/已归档状态标签），选中版本显示 revision 与详情，无错误提示"]
+    test_data: {}
+    risk_ref: [R7]
+    code_refs: ["backend/src/main/java/com/classschedule/api/ScheduleVersionQueryController.java:27-42"]
+    evidence: {level: E2, source: "backend/src/main/java/com/classschedule/api/ScheduleVersionQueryController.java:27-42", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-07-02
+    title: 版本差异查看与只看变化筛选
+    module: "7. 版本与发布管理"
+    priority: P1
+    type: regression
+    execution_model: ui
+    preconditions: []
+    steps: ["任选一个有差异记录的版本打开差异视图", "切换只看变化开关各一次"]
+    expected: ["差异条目显示（新增/修改/删除类型可辨）", "筛选开关生效（全量与仅变化两种列表），切换无明显卡顿"]
+    test_data: {}
+    risk_ref: []
+    code_refs: ["backend/src/main/java/com/classschedule/api/ScheduleVersionQueryController.java:42-60"]
+    evidence: {level: E1, source: "docs/visual-test-report.md 通过项 7/8", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-07-03
+    title: 候选版本 fork 为新草稿
+    module: "7. 版本与发布管理"
+    priority: P1
+    type: state
+    execution_model: ui
+    preconditions: ["列表存在候选(CANDIDATE)版本"]
+    steps: ["选候选版本点击 fork（复制为新草稿）类操作", "确认后观察列表"]
+    expected: ["列表新增一个草稿状态版本（内容源于候选版本），原候选版本保持不变"]
+    test_data: {}
+    risk_ref: []
+    code_refs: ["backend/src/main/java/com/classschedule/api/ScheduleVersionCommandController.java:31-46"]
+    evidence: {level: E2, source: "backend/src/main/java/com/classschedule/api/ScheduleVersionCommandController.java:31-46", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-07-04
+    title: 草稿版本锁定与解锁
+    module: "7. 版本与发布管理"
+    priority: P1
+    type: state
+    execution_model: ui
+    preconditions: ["列表存在草稿版本（无则用 TC-07-03 产出）"]
+    steps: ["对草稿版本执行锁定", "再执行解锁"]
+    expected: ["锁定后版本显示锁定标识", "解锁后标识消失", "全程无错误提示"]
+    test_data: {}
+    risk_ref: []
+    code_refs: ["backend/src/main/java/com/classschedule/api/ScheduleVersionCommandController.java:46-75"]
+    evidence: {level: E2, source: "backend/src/main/java/com/classschedule/api/ScheduleVersionCommandController.java:46-75", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-07-05
+    title: 已发布版本无修改类入口（观察）
+    module: "7. 版本与发布管理"
+    priority: P2
+    type: state
+    execution_model: ui
+    preconditions: []
+    steps: ["选一个已发布(PUBLISHED)版本查看其可用操作"]
+    expected: ["页面不提供会修改其课表内容的操作入口（如调整/重排）", "若发现可修改入口，记录为疑似缺陷（对照附录 C2）"]
+    test_data: {}
+    risk_ref: []
+    code_refs: ["frontend/src/views/ScheduleVersionsView.vue"]
+    evidence: {level: E2, source: "Cx2：已发布版本 UI 修改入口范围未知", confidence: medium}
+    tags: []
+    automation: {supported: no, framework: manual}
+    status: active
+  - id: TC-07-06
+    title: 命令历史查看与撤销/重做按钮可用
+    module: "7. 版本与发布管理"
+    priority: P2
+    type: state
+    execution_model: ui
+    preconditions: ["存在带调整命令历史的版本（无则标记环境无数据未执行）"]
+    steps: ["打开该版本的命令历史", "对草稿版本执行一次撤销再重做"]
+    expected: ["历史条目可见", "撤销/重做后列表状态刷新且课表内容相应变化，无错误提示"]
+    test_data: {}
+    risk_ref: []
+    code_refs: ["backend/src/main/java/com/classschedule/api/ScheduleVersionCommandController.java:89-164"]
+    evidence: {level: E2, source: "backend/src/main/java/com/classschedule/api/ScheduleVersionCommandController.java:89-164", confidence: high}
+    tags: []
+    automation: {supported: no, framework: manual}
+    status: active
+  - id: TC-07-07
+    title: 候选版本发布成功且状态变为已发布
+    module: "7. 版本与发布管理"
+    priority: P1
+    type: state
+    execution_model: ui
+    preconditions: ["存在本轮 TC-06-04 求解产生的候选(CANDIDATE)版本（仅对该版本执行，不动历史数据）"]
+    steps: ["版本页选中该候选版本", "点击发布类操作并确认"]
+    expected: ["发布成功（或显示明确的门禁拒绝原因列表），版本状态 10 秒内变为已发布", "已发布页随后能看到该版本", "若被门禁拒绝，提示内容具体可读（指明缺失/冲突项），不出现未捕获错误"]
+    test_data: {}
+    risk_ref: []
+    code_refs: ["backend/src/main/java/com/classschedule/api/ScheduleVersionController.java:54"]
+    evidence: {level: E2, source: "backend/src/main/java/com/classschedule/api/ScheduleVersionController.java:54（publish 端点）", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-08-01
+    title: 已发布页加载与只读标识
+    module: "8. 已发布课表与导出"
+    priority: P0
+    type: regression
+    execution_model: ui
+    smoke: SMOKE-8
+    preconditions: []
+    steps: ["进入已发布课表页"]
+    expected: ["显示当前已发布版本信息与只读标识，课表网格渲染，导出按钮（Excel/PDF/打印）可见"]
+    test_data: {}
+    risk_ref: [R7]
+    code_refs: ["frontend/src/views/PublishedView.vue"]
+    evidence: {level: E1, source: "docs/visual-test-report.md 通过项 9", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-08-02
+    title: Excel 导出真实下载
+    module: "8. 已发布课表与导出"
+    priority: P1
+    type: functional
+    execution_model: ui
+    preconditions: []
+    steps: ["点击 Excel 导出按钮", "等待浏览器下载完成", "打开下载的文件"]
+    expected: ["15 秒内开始下载且文件为可打开的 xlsx", "内容含课表数据行，非空文件"]
+    test_data: {}
+    risk_ref: []
+    code_refs: ["backend/src/main/java/com/classschedule/schedule/export/ScheduleExportController.java:36-57"]
+    evidence: {level: E2, source: "backend/src/main/java/com/classschedule/schedule/export/ScheduleExportController.java:36-57", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-08-03
+    title: PDF 导出真实下载
+    module: "8. 已发布课表与导出"
+    priority: P1
+    type: functional
+    execution_model: ui
+    preconditions: []
+    steps: ["点击 PDF 导出按钮", "等待下载完成", "打开文件"]
+    expected: ["15 秒内开始下载且为合法 PDF（可打开、页数≥1）", "内容与页面课表一致"]
+    test_data: {}
+    risk_ref: [R2]
+    code_refs: ["backend/src/main/java/com/classschedule/schedule/export/ScheduleExportController.java:57-76", "backend/src/main/java/com/classschedule/schedule/export/SchedulePdfExportService.java"]
+    evidence: {level: E2, source: "commit 6d8eac3 SchedulePdfExportService 空导出处理改动", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active
+  - id: TC-08-04
+    title: PDF 中文渲染视觉验收
+    module: "8. 已发布课表与导出"
+    priority: P1
+    type: functional
+    execution_model: ui
+    preconditions: ["已完成 TC-08-03 获得 PDF 文件"]
+    steps: ["逐页查看 PDF：中文字符（课程名/教师名/教室名）是否显示为可读汉字", "检查列宽与换行是否溢出或截断", "检查页眉页脚与分页是否把同一行拆断"]
+    expected: ["无方块/乱码字形", "文本不溢出单元格边界", "分页不把一行数据拆到两页", "整体布局与页面预览一致"]
+    test_data: {}
+    risk_ref: [R2]
+    code_refs: ["backend/src/main/java/com/classschedule/schedule/export/SchedulePdfExportService.java"]
+    evidence: {level: E1, source: "docs/local-test-report-2026-09-05.md 风险#3（中文字体/换行未视觉验收）", confidence: high}
+    tags: []
+    automation: {supported: no, framework: manual}
+    status: active
+  - id: TC-08-05
+    title: 空课表版本的 PDF 导出
+    module: "8. 已发布课表与导出"
+    priority: P2
+    type: exception
+    execution_model: ui
+    preconditions: ["存在无课表数据的空版本且页面允许对其导出（无入口则标记 UI 无入口未执行，后端行为已有测试保障）"]
+    steps: ["对空版本执行 PDF 导出", "打开文件"]
+    expected: ["下载成功且 PDF 为一页（空表或提示页），不报服务器错误"]
+    test_data: {}
+    risk_ref: [R2]
+    code_refs: ["backend/src/test/java/com/classschedule/schedule/export/SchedulePdfExportServiceTest.java"]
+    evidence: {level: E3, source: "docs/local-test-report-2026-09-05.md（空课表返回一页已验证）", confidence: medium}
+    tags: []
+    automation: {supported: no, framework: manual}
+    status: active
+  - id: TC-08-06
+    title: 校验报告导出可下载
+    module: "8. 已发布课表与导出"
+    priority: P1
+    type: regression
+    execution_model: ui
+    preconditions: []
+    steps: ["在版本页/已发布页找到校验报告导出入口（Excel 与 PDF）", "分别执行下载"]
+    expected: ["两个文件均开始下载且可打开，内容含校验结论/违规列表区域"]
+    test_data: {}
+    risk_ref: []
+    code_refs: ["backend/src/main/java/com/classschedule/schedule/export/ScheduleExportController.java:76-119"]
+    evidence: {level: E2, source: "backend/src/main/java/com/classschedule/schedule/export/ScheduleExportController.java:76-119", confidence: high}
+    tags: []
+    automation: {supported: partial, framework: manual}
+    status: active

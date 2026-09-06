@@ -12,3 +12,6 @@ backups/
 源证书安装
 test-results/
 playwright-report/
+.codegraph/
+.mimosa/
+.release-*/
