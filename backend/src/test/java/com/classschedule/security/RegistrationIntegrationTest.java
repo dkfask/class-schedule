@@ -42,7 +42,7 @@ class RegistrationIntegrationTest {
     @Autowired PasswordEncoder encoder;
 
     @Test
-    void registerCreatesViewerAccountThatCanLogin() throws Exception {
+    void registerCreatesPlannerAccountThatCanLogin() throws Exception {
         mockMvc.perform(
                         post("/api/auth/register")
                                 .with(csrf())
@@ -52,7 +52,7 @@ class RegistrationIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").value("new-teacher"))
                 .andExpect(jsonPath("$.displayName").value("新老师"))
-                .andExpect(jsonPath("$.roles[0]").value("VIEWER"));
+                .andExpect(jsonPath("$.roles[0]").value("PLANNER"));
         org.assertj.core.api.Assertions.assertThat(
                         jdbc.queryForObject(
                                 "SELECT password_hash = ? FROM app_user WHERE username='new-teacher'",

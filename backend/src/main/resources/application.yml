@@ -29,7 +29,7 @@ app:
       password: ${APP_AUTH_BOOTSTRAP_PASSWORD:}
     registration:
       enabled: ${APP_AUTH_REGISTRATION_ENABLED:true}
-      default-role: ${APP_AUTH_REGISTRATION_DEFAULT_ROLE:VIEWER}
+      default-role: ${APP_AUTH_REGISTRATION_DEFAULT_ROLE:PLANNER}
   pdf:
     font-path: ${APP_PDF_FONT_PATH:}
     font-name: ${APP_PDF_FONT_NAME:}
