@@ -30,6 +30,10 @@ app:
   pdf:
     font-path: ${APP_PDF_FONT_PATH:}
     font-name: ${APP_PDF_FONT_NAME:}
+  ai:
+    base-url: ${APP_AI_BASE_URL:}
+    api-key: ${APP_AI_API_KEY:}
+    model: ${APP_AI_MODEL:}
 
 management:
   endpoints:
