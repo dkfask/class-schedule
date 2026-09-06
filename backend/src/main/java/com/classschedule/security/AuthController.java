@@ -25,13 +25,33 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final AppUserRepository users;
+    private final RegistrationService registration;
     private final SecurityContextRepository securityContexts =
             new HttpSessionSecurityContextRepository();
 
-    public AuthController(AuthenticationManager authenticationManager, AppUserRepository users) {
+    public AuthController(
+            AuthenticationManager authenticationManager,
+            AppUserRepository users,
+            RegistrationService registration) {
         this.authenticationManager = authenticationManager;
         this.users = users;
+        this.registration = registration;
     }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(
+            @org.springframework.validation.annotation.Validated
+                    @RequestBody RegisterRequest request) {
+        try {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                    .body(registration.register(request.username(), request.password(), request.displayName()));
+        } catch (RegistrationService.RegistrationRejected exception) {
+            return ResponseEntity.status(exception.status)
+                    .body(Map.of("code", exception.code, "message", exception.getMessage()));
+        }
+    }
+
+    public record RegisterRequest(String username, String password, String displayName) {}
 
     @PostMapping("/login")
     public ResponseEntity<?> login(
