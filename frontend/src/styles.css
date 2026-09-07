@@ -101,42 +101,44 @@ button, input { font: inherit; }
   flex-shrink: 0;
 }
 
-/* 5 阶段流水线向导卡片 (Pipeline Stepper) */
+/* 5 阶段流水线向导卡片 (Pipeline Stepper - Stitch Style) */
 .pipeline-flow-card {
-  margin: 18px 0 24px;
+  margin: 16px 0 20px;
   padding: 16px 20px;
   background: #ffffff;
-  border: 1px solid #dce6e1;
+  border: 1px solid rgba(23, 59, 54, 0.1);
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(23, 48, 38, 0.03);
+  box-shadow: 0 4px 16px -2px rgba(23, 59, 54, 0.04);
 }
 .pipeline-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #edf3ef;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #edf2ef;
 }
 .pipeline-tag {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  color: #2b7a5a;
+  letter-spacing: 0.08em;
+  color: #173b36;
+  opacity: 0.7;
 }
 .pipeline-title {
   margin: 2px 0 0;
   font-size: 15px;
   font-weight: 700;
-  color: #173b30;
+  color: #173b36;
 }
 .pipeline-guide-hint {
   font-size: 12px;
-  color: #58786b;
-  background: #f0f7f3;
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid #d7e8de;
+  color: #2c694e;
+  background: rgba(174, 238, 203, 0.25);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  border: 1px solid rgba(44, 105, 78, 0.2);
+  font-weight: 500;
 }
 
 .pipeline-steps {
@@ -150,23 +152,24 @@ button, input { font: inherit; }
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: #fafcfb;
-  border: 1px solid #e1ebe5;
+  background: #f8fafa;
+  border: 1px solid #e1e3e3;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .pipeline-step-item:hover {
-  background: #f2f8f4;
-  border-color: #92caa9;
+  background: #ffffff;
+  border-color: #2c694e;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgba(23, 59, 54, 0.08);
 }
 .step-num {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #e2ece6;
-  color: #3b6051;
+  background: #e1e3e3;
+  color: #414846;
   font-size: 11px;
   font-weight: 700;
   display: grid;
@@ -180,7 +183,7 @@ button, input { font: inherit; }
 .step-content strong {
   display: block;
   font-size: 12px;
-  color: #1c3b30;
+  color: #191c1d;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -188,52 +191,102 @@ button, input { font: inherit; }
 .step-content small {
   display: block;
   font-size: 10.5px;
-  color: #7b948a;
+  color: #5d6764;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2px;
 }
 .step-arrow {
-  color: #b5c7bf;
+  color: #9cb2a9;
   font-size: 11px;
   margin-left: auto;
 }
 
 /* 步骤状态修饰 */
 .pipeline-step-item.active {
-  background: #edf8f2;
-  border-color: #2e8a65;
-  box-shadow: 0 0 0 2px rgba(46, 138, 101, 0.15);
+  background: #ffffff;
+  border-color: #173b36;
+  box-shadow: 0 0 0 2px rgba(23, 59, 54, 0.15), 0 4px 12px rgba(23, 59, 54, 0.06);
 }
 .pipeline-step-item.active .step-num {
-  background: #2e8a65;
+  background: #173b36;
   color: #ffffff;
 }
 .pipeline-step-item.completed .step-num {
-  background: #1b5a45;
-  color: #a7f3d0;
+  background: #2c694e;
+  color: #ffffff;
 }
 .pipeline-step-item.warning {
   border-color: #fbd38d;
-  background: #fffaf0;
+  background: #fffdfa;
 }
 .pipeline-step-item.warning .step-num {
   background: #dd6b20;
   color: #ffffff;
 }
 .pipeline-step-item.ready {
-  border-color: #38a169;
-  background: #f0fff4;
+  border-color: #2c694e;
+  background: #f4fbf7;
 }
 .pipeline-step-item.ready .step-num {
-  background: #38a169;
+  background: #2c694e;
   color: #ffffff;
 }
 .pipeline-step-item.loading .step-num {
   background: #3182ce;
   color: #ffffff;
   animation: pulse 1.5s infinite;
+}
+
+/* 现代化课表卡片样式 (Stitch Card Spec) */
+.lesson-card {
+  background: #ffffff;
+  border: 1px solid rgba(23, 59, 54, 0.08);
+  border-left: 3px solid #2c694e;
+  border-radius: 6px;
+  height: 68px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lesson-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(23, 59, 54, 0.08);
+  border-left-color: #173b36;
+}
+.lesson-card strong {
+  color: #191c1d;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.lesson-card small {
+  color: #4a635a;
+  font-size: 10px;
+}
+.lesson-card em {
+  margin-top: auto;
+  color: #7b948a;
+  font-size: 9.5px;
+}
+.lesson-card.locked {
+  border-left-color: #d89b45;
+  background: #fffcf5;
+}
+.lesson-card.locked strong {
+  color: #8c5d1e;
+}
+
+/* 顶部栏毛玻璃效果 */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(193, 200, 197, 0.3);
 }
 
 @keyframes pulse {
