@@ -163,6 +163,16 @@ const pendingOccurrences = computed(() => occurrences.value.filter(item => {
 const gridStyle = computed(() => ({ gridTemplateColumns: `58px repeat(${Math.max(weekdays.value.length, 1)}, minmax(86px, 1fr))` }))
 const canCancel = computed(() => canCancelSolve(jobId.value, jobStatus.value, cancelling.value))
 const statusLabel = computed(() => getStatusLabel(jobStatus.value, versionStatus.value))
+
+// 5 阶段流水线计算（用于步骤明朗化导航）
+const currentPipelineStep = computed(() => {
+  if (versionStatus.value === 'PUBLISHED') return 5
+  if (versionId.value && occurrences.value.length > 0) return 4
+  if (loading.value || (jobId.value && ['QUEUED', 'RUNNING'].includes(jobStatus.value))) return 3
+  if (readiness.value?.ready) return 3
+  if ((readiness.value?.roomCount ?? 0) > 0 && (readiness.value?.timeslotCount ?? 0) > 0) return 2
+  return 1
+})
 let pollTimer: number | undefined
 let pollGeneration = 0
 const restorePromises = new Map<string, Promise<void>>()
@@ -724,8 +734,8 @@ onBeforeUnmount(() => {
 <template>
   <header class="topbar">
     <div>
-      <p class="eyebrow">SCHEDULE / WORKSPACE</p>
-      <h1>排课工作台</h1>
+      <p class="eyebrow">SCHEDULE / WORKSPACE PIPELINE</p>
+      <h1>排课控制台</h1>
     </div>
     <div class="top-actions">
       <span class="sync-state">● {{ errorMessage ? '需要处理' : '数据已同步' }}</span>
@@ -735,6 +745,113 @@ onBeforeUnmount(() => {
       <div class="avatar">教</div>
     </div>
   </header>
+
+  <!-- 5 阶段工作流导航流水线 (Pipeline Flow Stepper) -->
+  <section class="pipeline-flow-card">
+    <div class="pipeline-header">
+      <div>
+        <span class="pipeline-tag">SCHEDULE PIPELINE</span>
+        <h3 class="pipeline-title">全流程排课向导 · 第 {{ currentPipelineStep }} / 5 步</h3>
+      </div>
+      <div class="pipeline-guide-hint">
+        <span v-if="currentPipelineStep === 1">需录入或导入基础教室与时段节次</span>
+        <span v-else-if="currentPipelineStep === 2">需配置班级教学计划与开课规则</span>
+        <span v-else-if="currentPipelineStep === 3">已具备排课条件，可随时执行自动排课</span>
+        <span v-else-if="currentPipelineStep === 4">候选版本已生成，可进行冲突诊断、微调或交换</span>
+        <span v-else>课表已成功发布为正式版，全校只读</span>
+      </div>
+    </div>
+
+    <div class="pipeline-steps">
+      <!-- 步骤 1 -->
+      <div
+        class="pipeline-step-item"
+        :class="{
+          active: currentPipelineStep === 1,
+          completed: currentPipelineStep > 1,
+          warning: (readiness?.timeslotCount ?? 0) === 0 || (readiness?.roomCount ?? 0) === 0
+        }"
+        @click="router.push('/master-data')"
+      >
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>基础数据准备</strong>
+          <small>{{ readiness?.timeslotCount ?? 0 }}节次 · {{ readiness?.roomCount ?? 0 }}教室</small>
+        </div>
+        <span class="step-arrow">➔</span>
+      </div>
+
+      <!-- 步骤 2 -->
+      <div
+        class="pipeline-step-item"
+        :class="{
+          active: currentPipelineStep === 2,
+          completed: currentPipelineStep > 2,
+          warning: (readiness?.requirementCount ?? 0) === 0
+        }"
+        @click="router.push('/teaching-plan')"
+      >
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>计划与规则配置</strong>
+          <small>{{ readiness?.requirementCount ?? 0 }}门计划 · {{ readiness?.ready ? '规则完备' : '待完善' }}</small>
+        </div>
+        <span class="step-arrow">➔</span>
+      </div>
+
+      <!-- 步骤 3 -->
+      <div
+        class="pipeline-step-item"
+        :class="{
+          active: currentPipelineStep === 3,
+          completed: currentPipelineStep > 3,
+          loading: loading
+        }"
+        @click="startSolve"
+      >
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>算法自动求解</strong>
+          <small>{{ loading ? `求解中 ${progress}%` : (readiness?.ready ? '条件已就绪' : '等待前置就绪') }}</small>
+        </div>
+        <span class="step-arrow">➔</span>
+      </div>
+
+      <!-- 步骤 4 -->
+      <div
+        class="pipeline-step-item"
+        :class="{
+          active: currentPipelineStep === 4,
+          completed: currentPipelineStep > 4,
+          attention: versionId && hardScore !== 0
+        }"
+      >
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <strong>冲突诊断与微调</strong>
+          <small>{{ versionId ? `v${versionId} · ${score ?? '未评分'}` : '尚未生成候选' }}</small>
+        </div>
+        <span class="step-arrow">➔</span>
+      </div>
+
+      <!-- 步骤 5 -->
+      <div
+        class="pipeline-step-item"
+        :class="{
+          active: currentPipelineStep === 5,
+          completed: versionStatus === 'PUBLISHED',
+          ready: publishable && versionStatus !== 'PUBLISHED'
+        }"
+        @click="publishVersion"
+      >
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <strong>校验与正式发布</strong>
+          <small>{{ versionStatus === 'PUBLISHED' ? '已正式发布' : (publishable ? '达到发布标准' : '待达标') }}</small>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <section class="summary-row">
     <div class="metric"><span>排课状态</span><strong>{{ statusLabel }}</strong><small>{{ jobId ? `任务 #${jobId} · 尝试 ${attempt}` : '尚未提交求解任务' }}</small></div>
