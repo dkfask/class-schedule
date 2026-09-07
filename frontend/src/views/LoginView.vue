@@ -55,7 +55,7 @@ function switchMode(target: 'login' | 'register') {
     <section class="glass-card login-panel">
       <!-- 品牌区 -->
       <div class="brand-row">
-        <div class="brand-logo">排</div>
+        <img class="brand-logo-img" src="/logo.png" alt="排课工作台 Logo" />
         <div>
           <h2>排课工作台</h2>
           <small>智程校务智能排课系统</small>
@@ -168,6 +168,13 @@ function switchMode(target: 'login' | 'register') {
   align-items: center;
   gap: 12px;
   margin-bottom: 24px;
+}
+.brand-logo-img {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(23, 59, 54, 0.15);
 }
 .brand-logo {
   width: 40px;
