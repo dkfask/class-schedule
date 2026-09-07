@@ -155,7 +155,7 @@ defineExpose({
 </script>
 
 <template>
-  <section class="import-panel panel" data-testid="import-panel">
+  <section class="import-panel canvas-card" data-testid="import-panel">
     <div class="import-panel-heading">
       <div>
         <p class="eyebrow">IMPORT / MASTER DATA</p>
@@ -166,9 +166,19 @@ defineExpose({
       <span class="import-term">{{ term.ready.value ? (term.hasValidTerm.value ? termLabel : '暂无可用学期') : '正在加载学期…' }}</span>
     </div>
 
-    <div class="import-actions">
-      <el-button plain :loading="previewLoading" :disabled="!canImport" @click="openFilePicker">选择 Excel 文件</el-button>
-      <el-button plain @click="downloadTemplate">下载导入模板</el-button>
+    <!-- 上传区域 -->
+    <div class="upload-section">
+      <div class="dropzone-card" @click="openFilePicker">
+        <div class="upload-icon">⇧</div>
+        <p class="upload-title">点击选择文件 或 将 Excel 模板拖拽到此处</p>
+        <p class="upload-subtitle">支持 .xlsx 格式的标准校务基础数据导入模板</p>
+        <div class="import-actions">
+          <el-button type="primary" :loading="previewLoading" :disabled="!canImport" @click.stop="openFilePicker">
+            选择 Excel 文件
+          </el-button>
+          <el-button plain @click.stop="downloadTemplate">下载导入模板</el-button>
+        </div>
+      </div>
       <input ref="fileInput" class="hidden-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" @change="handleFileChange" />
     </div>
 
@@ -180,9 +190,18 @@ defineExpose({
     <div v-if="message" class="import-state" :class="`${messageType}-state`" data-testid="import-message">{{ message }}</div>
 
     <div v-if="preview" class="preview-summary" data-testid="import-preview">
-      <div class="preview-summary-heading"><div><span class="eyebrow">PREVIEW RESULT</span><h3>{{ preview.status === 'VALIDATED' ? '预检通过' : '预检发现问题' }}</h3></div><el-tag :type="preview.status === 'VALIDATED' ? 'success' : 'danger'">{{ preview.status }}</el-tag></div>
+      <div class="preview-summary-heading">
+        <div>
+          <span class="eyebrow">PREVIEW RESULT</span>
+          <h3>{{ preview.status === 'VALIDATED' ? '预检通过' : '预检发现问题' }}</h3>
+        </div>
+        <el-tag :type="preview.status === 'VALIDATED' ? 'success' : 'danger'" effect="plain" round>
+          {{ preview.status }}
+        </el-tag>
+      </div>
       <p v-if="preview.sheets?.length" class="preview-meta">包含 Sheet：{{ preview.sheets.join('、') }}</p>
       <p class="preview-meta">批次 #{{ preview.batchId }} · {{ preview.issues.length ? `共 ${preview.issues.length} 个问题` : '未发现数据问题' }}</p>
+
       <div v-if="preview.issues.length" class="import-issues full-issues" data-testid="import-issues">
         <strong>请修正以下全部问题后重新选择文件</strong>
         <div v-for="(issue, index) in preview.issues" :key="`${issue.sheet}-${issue.row}-${issue.column}-${issue.code}-${index}`" class="issue-row">
@@ -191,39 +210,105 @@ defineExpose({
           <span>{{ issue.message }}</span>
         </div>
       </div>
+
       <div v-if="preview.status === 'VALIDATED'" class="import-confirm">
-        <span>预检通过，批次尚未写入业务数据</span>
-        <el-button type="primary" plain :loading="confirmLoading" :disabled="!canConfirm" @click="confirmImport">确认导入</el-button>
+        <span>数据预检通过，已生成临时批次，尚未写入正式业务数据</span>
+        <el-button type="primary" :loading="confirmLoading" :disabled="!canConfirm" @click="confirmImport">
+          确认导入
+        </el-button>
       </div>
     </div>
 
-      <div v-if="confirmation && confirmation.status === 'IMPORTED'" class="import-state success-state" data-testid="import-success">已完成批次 #{{ confirmation.batchId }} 的导入，共写入 {{ confirmation.importedRows ?? 0 }} 行。请返回工作台检查当前学期排课条件后再开始求解。<el-button link type="primary" @click="router.push('/workspace')">返回工作台</el-button></div>
-
+    <div v-if="confirmation && confirmation.status === 'IMPORTED'" class="import-state success-state" data-testid="import-success">
+      已完成批次 #{{ confirmation.batchId }} 的导入，共写入 {{ confirmation.importedRows ?? 0 }} 行。请返回工作台检查当前学期排课条件后再开始求解。
+      <el-button link type="primary" @click="router.push('/workspace')">返回排课工作台</el-button>
+    </div>
   </section>
 </template>
 
 <style scoped>
-.import-panel { max-width: 920px; margin: 28px auto 0; }
-.import-panel-heading { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; padding: 24px 24px 20px; border-bottom: 1px solid #e5ece8; }
-.import-panel-heading h2 { margin: 0; font-size: 21px; color: #213b32; }
-.import-caption { color: #789087; font-size: 12px; line-height: 1.6; margin: 8px 0 0; }
-.import-caption + .import-caption { margin-top: 3px; }
-.import-term { color: #4e7565; background: #edf8f1; padding: 7px 10px; font-size: 11px; white-space: nowrap; }
-.import-actions { display: flex; flex-wrap: wrap; gap: 10px; padding: 20px 24px 14px; }
-.selected-file { display: flex; align-items: baseline; gap: 12px; margin: 0 24px 14px; padding: 11px 13px; background: #f7faf8; border: 1px solid #e1ebe5; color: #789087; font-size: 11px; }
-.selected-file strong { color: #315d4b; overflow-wrap: anywhere; }
-.import-state { margin: 0 24px 16px; padding: 11px 13px; font-size: 11px; line-height: 1.5; }
-.info-state { background: #f0f7f2; color: #3a7656; }
-.success-state { background: #edf8f1; color: #286d4e; }
-.error-state { background: #fff1f0; color: #a33b35; }
-.preview-summary { margin: 0 24px 24px; border-top: 1px solid #e5ece8; padding-top: 20px; }
-.preview-summary-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.preview-summary h3 { margin: 0; color: #315d4b; font-size: 16px; }
-.preview-meta { color: #789087; font-size: 11px; margin: 8px 0 0; }
-.full-issues { margin: 16px 0 12px; max-height: 360px; overflow: auto; }
-.issue-row { display: grid; grid-template-columns: minmax(110px, .8fr) 150px minmax(0, 1.6fr); gap: 10px; padding: 7px 0; border-top: 1px solid #f0dfcb; }
-.issue-row strong { font-size: 10px; }
-.import-confirm { margin: 0; }
+.canvas-card {
+  background: #ffffff;
+  border: 1px solid rgba(23, 59, 54, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px -2px rgba(23, 59, 54, 0.03);
+}
+.import-panel { max-width: 920px; margin: 28px auto 0; overflow: hidden; }
+.import-panel-heading { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; padding: 24px 28px 20px; border-bottom: 1px solid #edf2ef; }
+.import-panel-heading h2 { margin: 0; font-size: 20px; color: #173b36; font-weight: 700; }
+.import-caption { color: #6a7b74; font-size: 12px; line-height: 1.6; margin: 6px 0 0; }
+.import-caption + .import-caption { margin-top: 2px; }
+.import-term { color: #1e7048; background: #e6f7ef; padding: 6px 12px; font-size: 11.5px; border-radius: 9999px; font-weight: 600; white-space: nowrap; }
+
+.upload-section { padding: 24px 28px 20px; }
+.dropzone-card {
+  border: 2px dashed #cfdbd5;
+  background: #fafcfb;
+  border-radius: 12px;
+  padding: 36px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.dropzone-card:hover {
+  border-color: #2c694e;
+  background: #f2f8f4;
+  transform: translateY(-1px);
+}
+.upload-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #e1f0e8;
+  color: #173b36;
+  font-size: 20px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  margin-bottom: 12px;
+}
+.upload-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #191c1d;
+}
+.upload-subtitle {
+  margin: 4px 0 16px;
+  font-size: 12px;
+  color: #7b948a;
+}
+.import-actions { display: flex; gap: 12px; }
+
+.selected-file { display: flex; align-items: baseline; gap: 12px; margin: 0 28px 14px; padding: 10px 14px; background: #f7faf8; border: 1px solid #e1ebe5; border-radius: 8px; color: #789087; font-size: 11.5px; }
+.selected-file strong { color: #173b36; overflow-wrap: anywhere; }
+.import-state { margin: 0 28px 16px; padding: 12px 14px; border-radius: 8px; font-size: 12px; line-height: 1.5; }
+.info-state { background: #f0f7f2; border: 1px solid #d4eae0; color: #2c694e; }
+.success-state { background: #edf8f1; border: 1px solid #c9ebd8; color: #1b5a45; }
+.error-state { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+
+.preview-summary { margin: 0 28px 24px; border-top: 1px solid #edf2ef; padding-top: 20px; }
+.preview-summary-heading { display: flex; justify-content: space-between; align-items: center; }
+.preview-summary h3 { margin: 0; color: #173b36; font-size: 16px; font-weight: 700; }
+.preview-meta { color: #7b948a; font-size: 11.5px; margin: 6px 0 0; }
+.full-issues { margin: 16px 0 12px; max-height: 360px; overflow: auto; border-radius: 8px; padding: 12px; }
+.issue-row { display: grid; grid-template-columns: minmax(110px, .8fr) 150px minmax(0, 1.6fr); gap: 10px; padding: 7px 0; border-top: 1px solid #f0dfcb; font-size: 11.5px; }
+.import-confirm {
+  margin-top: 16px;
+  padding: 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #166534;
+  font-size: 12.5px;
+}
 @media (max-width: 640px) {
   .import-panel-heading { display: block; }
   .import-term { display: inline-block; margin-top: 14px; }

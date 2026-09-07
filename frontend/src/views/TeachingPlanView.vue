@@ -145,40 +145,187 @@ onMounted(async () => {
 </script>
 
 <template>
-  <header class="topbar"><div><p class="eyebrow">TEACHING PLAN / REQUIREMENTS</p><h1>教学计划</h1></div><div class="top-actions"><span class="sync-state">● {{ termLabel }}</span><el-button type="primary" :disabled="!options.studentGroups?.length" @click="openCreate">新增教学需求</el-button><div class="avatar">教</div></div></header>
-  <section class="data-page panel">
-    <div class="data-toolbar"><div><span class="eyebrow">TEACHING REQUIREMENTS</span><h2>教学需求列表</h2></div><el-button plain :loading="loading" @click="loadItems">刷新</el-button></div>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">TEACHING PLAN / REQUIREMENTS</p>
+      <h1>教学计划</h1>
+    </div>
+    <div class="top-actions">
+      <span class="sync-state">● {{ termLabel }}</span>
+      <el-button type="primary" :disabled="!options.studentGroups?.length" @click="openCreate">
+        + 新增教学需求
+      </el-button>
+      <div class="avatar">教</div>
+    </div>
+  </header>
+
+  <section class="data-page panel canvas-card">
+    <div class="data-toolbar">
+      <div>
+        <span class="eyebrow">TEACHING REQUIREMENTS</span>
+        <h2>教学需求列表</h2>
+      </div>
+      <el-button plain size="small" :loading="loading" @click="loadItems">刷新</el-button>
+    </div>
+
     <div v-if="errorMessage" class="inline-message error-message">{{ errorMessage }}</div>
+
     <div class="teaching-plan-table-wrap">
-      <el-table v-loading="loading" :data="visibleItems" stripe>
-        <el-table-column prop="code" label="编码" width="150" />
+      <el-table
+        v-loading="loading"
+        :data="visibleItems"
+        stripe
+        class="styled-table"
+        header-row-class-name="styled-table-header"
+      >
+        <el-table-column prop="code" label="编码" width="150">
+          <template #default="scope">
+            <span class="code-badge">{{ scope.row.code }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="studentGroupCode" label="班级" width="110" />
-        <el-table-column prop="subjectCode" label="课程" width="110" />
+        <el-table-column prop="subjectCode" label="课程" width="110">
+          <template #default="scope">
+            <strong>{{ scope.row.subjectCode }}</strong>
+          </template>
+        </el-table-column>
         <el-table-column prop="teacherCode" label="教师" width="110" />
-        <el-table-column prop="weeklyPeriods" label="周课时" width="90" />
-        <el-table-column prop="durationPeriods" label="时长" width="80" />
-        <el-table-column prop="studentCount" label="人数" width="90" />
-        <el-table-column label="固定节次" width="120"><template #default="scope">{{ scope.row.pinnedPeriodCode ?? '—' }}</template></el-table-column>
-        <el-table-column prop="requiredFeatures" label="特征" min-width="120" />
-        <el-table-column label="状态" width="100"><template #default="scope"><el-tag :type="scope.row.active ? 'success' : 'info'">{{ scope.row.active ? '启用' : '停用' }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" width="160" fixed="right"><template #default="scope"><el-button link type="primary" @click="openEdit(scope.row)">编辑</el-button><el-button v-if="scope.row.active" link type="danger" @click="deactivate(scope.row)">停用</el-button></template></el-table-column>
+        <el-table-column prop="weeklyPeriods" label="周课时" width="90" align="center">
+          <template #default="scope">
+            <span class="num-pill">{{ scope.row.weeklyPeriods }} 节</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="durationPeriods" label="连堂" width="80" align="center">
+          <template #default="scope">{{ scope.row.durationPeriods }} 节</template>
+        </el-table-column>
+        <el-table-column prop="studentCount" label="人数" width="90" align="center">
+          <template #default="scope">{{ scope.row.studentCount ? `${scope.row.studentCount}人` : '—' }}</template>
+        </el-table-column>
+        <el-table-column label="固定节次" width="130">
+          <template #default="scope">
+            <span v-if="scope.row.pinnedPeriodCode" class="pinned-badge">🔒 {{ scope.row.pinnedPeriodCode }}</span>
+            <span v-else class="text-gray-400">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="requiredFeatures" label="特征" min-width="120">
+          <template #default="scope">{{ scope.row.requiredFeatures || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="100">
+          <template #default="scope">
+            <el-tag :type="scope.row.active ? 'success' : 'info'" effect="plain" round size="small">
+              {{ scope.row.active ? '启用' : '停用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="160" fixed="right" align="right">
+          <template #default="scope">
+            <el-button link type="primary" size="small" @click="openEdit(scope.row)">编辑</el-button>
+            <el-button v-if="scope.row.active" link type="danger" size="small" @click="deactivate(scope.row)">停用</el-button>
+          </template>
+        </el-table-column>
       </el-table>
     </div>
+
     <el-empty v-if="!loading && !errorMessage && items.length === 0" description="暂无教学需求" />
-    <el-pagination v-if="total > 0" class="data-pagination" background layout="total, sizes, prev, pager, next" :current-page="page + 1" :page-size="size" :page-sizes="[10, 20, 50]" :total="total" @current-change="changePage" @size-change="changePageSize" />
+
+    <el-pagination
+      v-if="total > 0"
+      class="data-pagination"
+      background
+      layout="total, sizes, prev, pager, next"
+      :current-page="page + 1"
+      :page-size="size"
+      :page-sizes="[10, 20, 50]"
+      :total="total"
+      @current-change="changePage"
+      @size-change="changePageSize"
+    />
   </section>
-  <el-dialog v-model="dialogOpen" :title="`${editingId ? '编辑' : '新增'}教学需求`" width="460px">
-    <el-form label-width="96px">
-      <el-form-item label="编码"><el-input v-model="form.code" maxlength="64" /></el-form-item>
-      <el-form-item label="班级"><el-select v-model="form.studentGroupCode"><el-option v-for="item in options.studentGroups ?? []" :key="item.code" :label="`${item.name} · ${item.code}`" :value="item.code" /></el-select></el-form-item>
-      <el-form-item label="课程"><el-select v-model="form.subjectCode"><el-option v-for="item in options.subjects ?? []" :key="item.code" :label="`${item.name} · ${item.code}`" :value="item.code" /></el-select></el-form-item>
-      <el-form-item label="教师"><el-select v-model="form.teacherCode"><el-option v-for="item in options.teachers ?? []" :key="item.code" :label="`${item.name} · ${item.code}`" :value="item.code" /></el-select></el-form-item>
-      <el-form-item label="周课时"><el-input-number v-model="form.weeklyPeriods" :min="1" /></el-form-item>
-      <el-form-item label="时长"><el-input-number v-model="form.durationPeriods" :min="1" /></el-form-item>
-      <el-form-item label="人数"><el-input-number v-model="form.studentCount" :min="0" /></el-form-item>
-      <el-form-item label="特征"><el-input v-model="form.requiredFeatures" placeholder="逗号分隔，如 LAB" /></el-form-item>
-      <el-form-item label="固定节次"><el-select v-model="form.pinnedPeriodCode" clearable><el-option v-for="item in options.periods ?? []" :key="item.code" :label="item.label" :value="item.code" /></el-select></el-form-item>
+
+  <el-dialog
+    v-model="dialogOpen"
+    :title="`${editingId ? '编辑' : '新增'}教学需求`"
+    width="480px"
+    custom-class="styled-dialog"
+  >
+    <el-form label-width="96px" label-position="left">
+      <el-form-item label="需求编码" required>
+        <el-input v-model="form.code" maxlength="64" placeholder="例如：REQ-001" />
+      </el-form-item>
+      <el-form-item label="班级" required>
+        <el-select v-model="form.studentGroupCode" class="full-width">
+          <el-option v-for="item in options.studentGroups ?? []" :key="item.code" :label="`${item.name} · ${item.code}`" :value="item.code" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="课程科目" required>
+        <el-select v-model="form.subjectCode" class="full-width">
+          <el-option v-for="item in options.subjects ?? []" :key="item.code" :label="`${item.name} · ${item.code}`" :value="item.code" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="任课教师" required>
+        <el-select v-model="form.teacherCode" class="full-width">
+          <el-option v-for="item in options.teachers ?? []" :key="item.code" :label="`${item.name} · ${item.code}`" :value="item.code" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="每周课时" required>
+        <el-input-number v-model="form.weeklyPeriods" :min="1" class="full-width" />
+      </el-form-item>
+      <el-form-item label="连堂时长">
+        <el-input-number v-model="form.durationPeriods" :min="1" class="full-width" />
+      </el-form-item>
+      <el-form-item label="学生人数">
+        <el-input-number v-model="form.studentCount" :min="0" class="full-width" />
+      </el-form-item>
+      <el-form-item label="场地特征">
+        <el-input v-model="form.requiredFeatures" placeholder="逗号分隔，如 LAB, MULTIMEDIA" />
+      </el-form-item>
+      <el-form-item label="固定节次">
+        <el-select v-model="form.pinnedPeriodCode" clearable placeholder="可选：如无硬性需求请留空" class="full-width">
+          <el-option v-for="item in options.periods ?? []" :key="item.code" :label="item.label" :value="item.code" />
+        </el-select>
+      </el-form-item>
     </el-form>
-    <template #footer><el-button @click="dialogOpen = false">取消</el-button><el-button type="primary" :loading="saving" @click="save">保存</el-button></template>
+    <template #footer>
+      <el-button @click="dialogOpen = false">取消</el-button>
+      <el-button type="primary" :loading="saving" @click="save">保存</el-button>
+    </template>
   </el-dialog>
 </template>
+
+<style scoped>
+.canvas-card {
+  background: #ffffff;
+  border: 1px solid rgba(23, 59, 54, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px -2px rgba(23, 59, 54, 0.03);
+  overflow: hidden;
+}
+.code-badge {
+  font-family: monospace;
+  font-size: 11.5px;
+  color: #2c694e;
+  background: #f0f7f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.num-pill {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #173b36;
+  background: #f4faf6;
+  padding: 1px 8px;
+  border-radius: 9999px;
+}
+.pinned-badge {
+  font-size: 11px;
+  color: #b45309;
+  background: #fef3c7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #fde68a;
+}
+.full-width {
+  width: 100%;
+}
+</style>

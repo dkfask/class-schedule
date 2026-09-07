@@ -187,35 +187,164 @@ onMounted(() => void loadVersions())
 </script>
 
 <template>
-  <header class="topbar"><div><p class="eyebrow">VERSIONS / DIFF</p><h1>版本与差异</h1></div><div class="top-actions"><span class="sync-state">● 只读查询</span><div class="avatar">教</div></div></header>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">VERSIONS / DIFF</p>
+      <h1>版本与差异对比</h1>
+    </div>
+    <div class="top-actions">
+      <span class="sync-state">● 稳定快照溯源</span>
+      <div class="avatar">教</div>
+    </div>
+  </header>
+
   <section class="version-page">
-    <div class="version-list panel">
-      <div class="panel-heading"><div><span class="eyebrow">SCHEDULE VERSIONS</span><h2>候选与草稿</h2></div><el-button plain :loading="loading" @click="loadVersions">刷新</el-button></div>
+    <!-- 左侧版本列表 -->
+    <div class="version-list panel canvas-card">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">SCHEDULE VERSIONS</span>
+          <h2>历史版本与草稿</h2>
+        </div>
+        <el-button plain size="small" :loading="loading" @click="loadVersions">刷新</el-button>
+      </div>
+
       <div v-if="message" class="inline-message error-message">{{ message }}</div>
-      <button v-for="version in versions" :key="version.id" class="version-row" :class="{ selected: selectedVersion === version.id }" @click="selectVersion(version)">
-        <strong>版本 v{{ version.id }} · r{{ version.revision ?? 0 }}</strong><span>{{ version.status }} · {{ version.score ?? '未评分' }} · H{{ scoreParts(version).hard ?? '—' }} / M{{ scoreParts(version).medium ?? '—' }} / S{{ scoreParts(version).soft ?? '—' }}</span><small>{{ version.editLocked ? `锁定：${version.editLockOwner ?? '其他用户'}` : version.archivedAt ? '已归档' : version.parentVersionId ? `父版本 v${version.parentVersionId}` : '无父版本' }}</small>
+
+      <button
+        v-for="version in versions"
+        :key="version.id"
+        class="version-row"
+        :class="{ selected: selectedVersion === version.id }"
+        @click="selectVersion(version)"
+      >
+        <div class="version-item-header">
+          <strong>版本 v{{ version.id }} · r{{ version.revision ?? 0 }}</strong>
+          <span class="version-status-tag" :class="version.status.toLowerCase()">{{ version.status }}</span>
+        </div>
+        <span class="version-score-line">
+          {{ version.score ?? '未评分' }} · H{{ scoreParts(version).hard ?? '—' }} / M{{ scoreParts(version).medium ?? '—' }} / S{{ scoreParts(version).soft ?? '—' }}
+        </span>
+        <small class="version-meta">
+          {{ version.editLocked ? `🔒 锁定：${version.editLockOwner ?? '其他用户'}` : version.archivedAt ? '已归档' : version.parentVersionId ? `父版本 v${version.parentVersionId}` : '无父版本' }}
+        </small>
       </button>
+
       <el-empty v-if="!loading && !versions.length" description="暂无版本" />
     </div>
-    <div class="diff-panel panel">
-      <div class="panel-heading"><div><span class="eyebrow">STABLE OCCURRENCE DIFF</span><h2>{{ selectedVersion ? `版本 v${selectedVersion}` : '选择版本' }}</h2><small v-if="selectedSummary" class="resource-caption">revision {{ selectedSummary.revision ?? 0 }} · {{ changeCount }} 项变化</small></div><div class="diff-tools"><label><input v-model="onlyChanges" type="checkbox" /> 只看变化</label><select v-model="diffAgainst" @change="loadDiff"><option :value="null">默认父版本</option><option v-for="version in versions.filter(item => item.id !== selectedVersion)" :key="version.id" :value="version.id">版本 v{{ version.id }}</option></select></div></div>
+
+    <!-- 右侧差异与生命周期操作 -->
+    <div class="diff-panel panel canvas-card">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">STABLE OCCURRENCE DIFF</span>
+          <h2>{{ selectedVersion ? `版本 v${selectedVersion}` : '选择版本' }}</h2>
+          <small v-if="selectedSummary" class="resource-caption">
+            revision {{ selectedSummary.revision ?? 0 }} · {{ changeCount }} 项变化
+          </small>
+        </div>
+        <div class="diff-tools">
+          <label class="diff-checkbox"><input v-model="onlyChanges" type="checkbox" /> 仅看变更项</label>
+          <select v-model="diffAgainst" class="styled-diff-select" @change="loadDiff">
+            <option :value="null">默认对比父版本</option>
+            <option
+              v-for="version in versions.filter(item => item.id !== selectedVersion)"
+              :key="version.id"
+              :value="version.id"
+            >
+              对比版本 v{{ version.id }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 操作按钮条 -->
       <div v-if="selectedVersion" class="version-actions">
         <el-button size="small" plain :disabled="!canLock || mutating" :loading="mutating" @click="lockVersion">锁定编辑</el-button>
         <el-button size="small" plain :disabled="!canUnlock || mutating" :loading="mutating" @click="unlockVersion">解锁</el-button>
         <el-button size="small" plain :disabled="!canArchive || mutating" :loading="mutating" @click="archiveVersion">归档</el-button>
-        <el-button size="small" plain :disabled="!canFork || mutating" :loading="mutating" @click="forkVersion">复制为新草稿</el-button>
+        <el-button size="small" type="primary" plain :disabled="!canFork || mutating" :loading="mutating" @click="forkVersion">复制为新草稿 (Fork)</el-button>
       </div>
+
+      <!-- 命令历史 -->
       <div v-if="selectedVersion" class="command-history">
-        <div class="history-heading"><strong>命令历史</strong><span v-if="historyLoading">加载中…</span><span v-else-if="!history.length">暂无命令记录</span></div>
+        <div class="history-heading">
+          <strong>命令历史</strong>
+          <span v-if="historyLoading">加载中…</span>
+          <span v-else-if="!history.length">暂无命令记录</span>
+        </div>
         <template v-if="history.length">
-          <div v-for="command in history.slice(0, 5)" :key="command.groupId" class="history-row"><span>{{ command.commandType }} · {{ command.state }}</span><small>{{ command.reason }} · r{{ command.resultRevision }}</small></div>
+          <div v-for="command in history.slice(0, 5)" :key="command.groupId" class="history-row">
+            <span>{{ command.commandType }} · {{ command.state }}</span>
+            <small>{{ command.reason }} · r{{ command.resultRevision }}</small>
+          </div>
           <div class="history-actions">
             <el-button size="small" plain :disabled="!latestApplied || !editable || mutating" :loading="mutating" @click="latestApplied && undoCommand(latestApplied.groupId)">撤销</el-button>
             <el-button size="small" plain :disabled="!latestUndone || !editable || mutating" :loading="mutating" @click="latestUndone && redoCommand(latestUndone.groupId)">重做</el-button>
           </div>
         </template>
       </div>
-      <div v-loading="diffLoading" v-if="visibleDiff.length" class="diff-list"><article v-for="item in visibleDiff" :key="`${item.occurrenceKey}-${item.changeType}`" class="diff-row"><span class="diff-type">{{ item.changeType }}</span><strong>{{ item.occurrenceKey }}</strong><small>{{ item.before?.subjectName ?? item.after?.subjectName ?? '活动' }} · {{ item.before?.timeslotCode ?? '—' }} → {{ item.after?.timeslotCode ?? '—' }} · {{ item.before?.roomCode ?? '—' }} → {{ item.after?.roomCode ?? '—' }}</small></article></div><el-empty v-else description="没有差异或尚未选择版本" />
+
+      <!-- 差异列表 -->
+      <div v-loading="diffLoading" v-if="visibleDiff.length" class="diff-list">
+        <article
+          v-for="item in visibleDiff"
+          :key="`${item.occurrenceKey}-${item.changeType}`"
+          class="diff-row"
+        >
+          <span class="diff-type" :class="item.changeType.toLowerCase()">{{ item.changeType }}</span>
+          <strong>{{ item.occurrenceKey }}</strong>
+          <small>
+            {{ item.before?.subjectName ?? item.after?.subjectName ?? '教学任务' }} · {{ item.before?.timeslotCode ?? '—' }} → {{ item.after?.timeslotCode ?? '—' }} · {{ item.before?.roomCode ?? '—' }} → {{ item.after?.roomCode ?? '—' }}
+          </small>
+        </article>
+      </div>
+      <el-empty v-else description="没有检测到差异或尚未选择版本" />
     </div>
   </section>
 </template>
+
+<style scoped>
+.canvas-card {
+  background: #ffffff;
+  border: 1px solid rgba(23, 59, 54, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px -2px rgba(23, 59, 54, 0.03);
+  overflow: hidden;
+}
+.version-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.version-status-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.version-status-tag.published { background: #dcfce7; color: #15803d; }
+.version-status-tag.candidate { background: #e0f2fe; color: #0369a1; }
+.version-status-tag.draft { background: #fef9c3; color: #a16207; }
+.version-status-tag.archived { background: #f3f4f6; color: #6b7280; }
+
+.diff-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: #3b574c;
+  cursor: pointer;
+}
+.styled-diff-select {
+  border: 1px solid #dce4e0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  background: #ffffff;
+  outline: none;
+}
+.diff-type.moved { color: #d97706; font-weight: 700; }
+.diff-type.added { color: #16a34a; font-weight: 700; }
+.diff-type.unchanged { color: #9ca3af; }
+</style>

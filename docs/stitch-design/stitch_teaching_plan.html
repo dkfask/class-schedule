@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>教学计划管理 | 智程排课系统</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#173b36",
+          "secondary": "#2c694e",
+          "surface": "#f8fafa",
+          "surface-container": "#ffffff"
+        }
+      }
+    }
+  };
+</script>
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafa; }
+  .canvas-card {
+    background: #ffffff;
+    border: 1px solid rgba(23, 59, 54, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px -2px rgba(23, 59, 54, 0.03);
+  }
+</style>
+</head>
+<body class="p-8 text-gray-900">
+  <div class="max-w-7xl mx-auto space-y-6">
+    <header class="flex justify-between items-end pb-5 border-b border-gray-200/80">
+      <div>
+        <p class="text-[10px] font-bold tracking-widest text-primary/70 uppercase mb-1">TEACHING PLAN / REQUIREMENTS</p>
+        <h1 class="text-2xl font-bold text-gray-900">教学计划</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-500 mr-2">● 2026 秋季学期</span>
+        <button class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-semibold shadow-sm hover:bg-[#12302c]">+ 新增教学需求</button>
+      </div>
+    </header>
+
+    <div class="canvas-card p-6 overflow-hidden space-y-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">REQUIREMENTS</span>
+          <h2 class="text-base font-bold text-gray-900">开课计划与教学需求列表</h2>
+        </div>
+        <button class="px-3 py-1.5 border border-gray-200 bg-white rounded-md text-xs text-gray-600 hover:bg-gray-50">刷新</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

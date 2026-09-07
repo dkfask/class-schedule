@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>基础数据管理 | 智程排课系统</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#173b36",
+          "secondary": "#2c694e",
+          "surface": "#f8fafa",
+          "surface-container": "#ffffff",
+          "outline-variant": "#e2e8e5"
+        }
+      }
+    }
+  };
+</script>
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafa; }
+  .canvas-card {
+    background: #ffffff;
+    border: 1px solid rgba(23, 59, 54, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px -2px rgba(23, 59, 54, 0.03);
+  }
+</style>
+</head>
+<body class="p-8 text-gray-900">
+  <div class="max-w-7xl mx-auto space-y-6">
+    <!-- Topbar -->
+    <header class="flex justify-between items-end pb-5 border-b border-gray-200/80">
+      <div>
+        <p class="text-[10px] font-bold tracking-widest text-primary/70 uppercase mb-1">MASTER DATA / ADMIN</p>
+        <h1 class="text-2xl font-bold text-gray-900">基础数据管理</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-500 mr-2 flex items-center gap-1.5"><i class="w-2 h-2 rounded-full bg-emerald-500"></i>数据已同步</span>
+        <button class="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all">按模板导入</button>
+        <button class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-[#12302c] shadow-sm transition-all">+ 新增资源</button>
+      </div>
+    </header>
+
+    <!-- Master Data Card -->
+    <div class="canvas-card overflow-hidden">
+      <!-- Tabs -->
+      <div class="flex border-b border-gray-100 px-6 pt-4 gap-8">
+        <button class="pb-3 text-sm font-semibold text-primary border-b-2 border-primary">教师 (Teachers)</button>
+        <button class="pb-3 text-sm font-medium text-gray-500 hover:text-gray-900 border-b-2 border-transparent">班级 (Student Groups)</button>
+        <button class="pb-3 text-sm font-medium text-gray-500 hover:text-gray-900 border-b-2 border-transparent">课程 (Subjects)</button>
+        <button class="pb-3 text-sm font-medium text-gray-500 hover:text-gray-900 border-b-2 border-transparent">教室 (Rooms)</button>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="p-6 flex justify-between items-center bg-gray-50/40">
+        <div>
+          <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">TEACHERS</span>
+          <h2 class="text-base font-bold text-gray-900">教师列表</h2>
+        </div>
+        <button class="px-3 py-1.5 border border-gray-200 bg-white rounded-md text-xs text-gray-600 hover:bg-gray-50">刷新</button>
+      </div>
+
+      <!-- High-density Table -->
+      <div class="px-6 pb-6 overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th class="py-3 px-4">编码</th>
+              <th class="py-3 px-4">名称</th>
+              <th class="py-3 px-4">状态</th>
+              <th class="py-3 px-4 text-right">操作</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr class="hover:bg-gray-50/60 transition-colors">
+              <td class="py-3.5 px-4 font-medium text-gray-900">T001</td>
+              <td class="py-3.5 px-4 text-gray-700">张老师</td>
+              <td class="py-3.5 px-4"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">启用</span></td>
+              <td class="py-3.5 px-4 text-right space-x-3">
+                <button class="text-xs font-semibold text-primary hover:underline">编辑</button>
+                <button class="text-xs font-semibold text-red-600 hover:underline">停用</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>数据导入中心 | 智程排课系统</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#173b36",
+          "secondary": "#2c694e",
+          "surface": "#f8fafa",
+          "surface-container": "#ffffff"
+        }
+      }
+    }
+  };
+</script>
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafa; }
+  .canvas-card {
+    background: #ffffff;
+    border: 1px solid rgba(23, 59, 54, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px -2px rgba(23, 59, 54, 0.03);
+  }
+  .dropzone {
+    border: 2px dashed #cfdbd5;
+    background: #fafcfb;
+    transition: all 0.2s ease;
+  }
+  .dropzone:hover {
+    border-color: #2c694e;
+    background: #f2f8f4;
+  }
+</style>
+</head>
+<body class="p-8 text-gray-900">
+  <div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <header class="flex justify-between items-end pb-5 border-b border-gray-200/80">
+      <div>
+        <p class="text-[10px] font-bold tracking-widest text-primary/70 uppercase mb-1">IMPORT / MASTER DATA</p>
+        <h1 class="text-2xl font-bold text-gray-900">批量数据导入</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-500 mr-2">● 导入批次全流程可溯源</span>
+        <button class="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 bg-white hover:bg-gray-50">下载导入模板</button>
+      </div>
+    </header>
+
+    <!-- Import Main Card -->
+    <div class="canvas-card p-8 space-y-6">
+      <div class="flex justify-between items-start">
+        <div>
+          <h2 class="text-lg font-bold text-gray-900">从 Excel 统一模板批量导入</h2>
+          <p class="text-xs text-gray-500 mt-1">支持教师、班级、课程、教室、教学需求等多工作表联动解析与幂等增量导入。</p>
+        </div>
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">2026 秋季学期</span>
+      </div>
+
+      <!-- Drag & Drop Zone -->
+      <div class="dropzone rounded-xl p-10 flex flex-col items-center justify-center text-center cursor-pointer">
+        <div class="w-12 h-12 rounded-full bg-emerald-100/60 text-emerald-700 flex items-center justify-center mb-3 text-xl font-bold">
+          ⇧
+        </div>
+        <p class="text-sm font-semibold text-gray-800 mb-1">点击选择文件 或 将 Excel 文件拖拽到此处</p>
+        <p class="text-xs text-gray-400">支持 .xlsx 格式的标准校务基础数据导入模板</p>
+        <button class="mt-4 px-4 py-2 bg-primary hover:bg-[#12302c] text-white text-xs font-semibold rounded-lg shadow-sm">
+          选择 Excel 文件
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

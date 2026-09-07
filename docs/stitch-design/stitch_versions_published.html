@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>版本中心与已发布课表 | 智程排课系统</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#173b36",
+          "secondary": "#2c694e",
+          "surface": "#f8fafa",
+          "surface-container": "#ffffff"
+        }
+      }
+    }
+  };
+</script>
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafa; }
+  .canvas-card {
+    background: #ffffff;
+    border: 1px solid rgba(23, 59, 54, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px -2px rgba(23, 59, 54, 0.03);
+  }
+</style>
+</head>
+<body class="p-8 text-gray-900">
+  <div class="max-w-7xl mx-auto space-y-6">
+    <header class="flex justify-between items-end pb-5 border-b border-gray-200/80">
+      <div>
+        <p class="text-[10px] font-bold tracking-widest text-primary/70 uppercase mb-1">VERSIONS &amp; PUBLISHED</p>
+        <h1 class="text-2xl font-bold text-gray-900">版本管理与全校已发布课表</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-500 mr-2">● 多版本稳定快照溯源</span>
+        <button class="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 bg-white hover:bg-gray-50">下载 Excel</button>
+        <button class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-[#12302c]">下载 PDF</button>
+      </div>
+    </header>
+  </div>
+</body>
+</html>
