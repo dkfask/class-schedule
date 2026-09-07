@@ -100,23 +100,34 @@ npm run dev
 - 不复制 OpenEDU/FET/UniTime 的 GPL/AGPL 代码、页面、数据库脚本或图片。
 - 不使用随机贪心或毕业设计遗传算法作为生产核心。
 
-## 云端前端构建
+## 腾讯云生产环境部署 (CVM / 轻量云服务器)
 
-仓库根目录已提供 npm workspace 入口，适用于默认从仓库根目录安装依赖的托管平台：
+本项目推荐通过 Docker Compose 在腾讯云 CVM 或轻量应用服务器上一键部署上线：
 
-```bash
-npm ci
-npm run build
-```
+1. **在腾讯云控制台购买并准备服务器**：
+   - 实例规格建议：2 核 4G 及以上（推荐系统：Ubuntu 22.04 LTS 或 TencentOS）；
+   - 安全组防火墙放行端口：`80`（HTTP 访问）、`443`（HTTPS，若有 SSL 证书）、`22`（SSH 管理）。
 
-发布目录为 `dist/`。构建命令会调用 `frontend` 的 Vite 构建，并将生成的静态资源复制到根目录 `dist/`。Cloudflare Pages 应使用静态站点部署，不要使用 Workers 的 `wrangler deploy`：
+2. **拉取代码并配置环境**：
+   ```bash
+   git clone https://github.com/dkfask/class-schedule.git
+   cd class-schedule
 
-- Build command：`npm run build`
-- Build output directory：`dist`
-- Deploy command（可选）：`npm run deploy:pages`
-- `CLOUDFLARE_PAGES_PROJECT`：绑定到 Cloudflare Pages 项目名称，并由部署平台的环境变量提供
+   # 生成生产环境配置并按需修改强密码
+   cp .env.prod.example .env
+   vim .env
+   ```
 
-项目已包含 `frontend/public/_redirects`，用于 Vue SPA 路由直接访问时回退到 `index.html`。前端 API 使用同源 `/api/*`，Cloudflare Pages 只托管静态资源；生产环境还必须在 Pages 项目或边缘反向代理中把 `/api/*` 路由到可访问的 Spring Boot API，不能指向本机 `localhost`。如果托管平台支持设置 Base directory，也可以将 Base directory 设为 `frontend`，使用 `npm ci`、`npm run build`，发布目录设为 `frontend/dist`。
+3. **执行一键自动化部署**：
+   ```bash
+   ./scripts/deploy-tencent.sh
+   ```
+   该脚本会自动打包前端静态资源、构建后端生产容器、初始化 PostgreSQL 数据库与 Flyway 迁移脚本，并完成健康检查。
+   - 部署完成后直接在浏览器访问：`http://<腾讯云公网IP>` 即可打开排课系统！
+
+4. **配置自定义域名与 SSL 证书（可选）**：
+   - 在腾讯云 DNS 控制台将域名 A 记录解析至服务器公网 IP；
+   - 如需使用免费证书，可申请腾讯云免费 SSL 证书并通过服务器 Nginx 反代启用 HTTPS。
 
 ## 验证
 
