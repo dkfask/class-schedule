@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>智程排课系统 | 账号鉴权中心</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#173b36",
+          "primary-container": "#256a52",
+          "secondary": "#2c694e",
+          "secondary-fixed": "#b1f0ce",
+          "surface": "#f8fafa",
+          "surface-container": "#ffffff",
+          "outline-variant": "#c1c8c5"
+        }
+      }
+    }
+  };
+</script>
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  .login-canvas {
+    background: radial-gradient(circle at top left, #f0f7f3 0%, #f8fafa 100%);
+  }
+  .glass-card {
+    background: #ffffff;
+    border: 1px solid rgba(23, 59, 54, 0.12);
+    border-radius: 1rem;
+    box-shadow: 0 20px 40px -15px rgba(23, 59, 54, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  }
+</style>
+</head>
+<body class="login-canvas min-h-screen flex items-center justify-center p-4">
+  <div class="glass-card w-full max-w-[440px] p-8 md:p-10">
+    <!-- Brand -->
+    <div class="flex items-center gap-3 mb-8">
+      <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-lg shadow-md">
+        排
+      </div>
+      <div>
+        <h2 class="text-base font-bold text-gray-900 leading-tight">排课工作台</h2>
+        <p class="text-xs text-gray-500 font-medium tracking-wide">智程校务智能排课系统</p>
+      </div>
+    </div>
+
+    <!-- Title & Eyebrow -->
+    <div class="mb-6">
+      <span class="text-[10px] font-bold tracking-widest text-primary/70 uppercase">ACCOUNT / SIGN IN</span>
+      <h1 class="text-2xl font-bold text-gray-900 mt-1">登录排课系统</h1>
+      <p class="text-xs text-gray-500 mt-1 leading-relaxed">使用排课员或只读账号继续，开箱即用自动排课。</p>
+    </div>
+
+    <!-- Form -->
+    <form class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1.5">用户名</label>
+        <input type="text" class="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 bg-gray-50/50 text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none" placeholder="请输入用户名" required />
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1.5">密码</label>
+        <input type="password" class="w-full px-3.5 py-2.5 rounded-lg border border-gray-200 bg-gray-50/50 text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none" placeholder="请输入密码" required />
+      </div>
+
+      <button type="button" class="w-full py-2.5 px-4 rounded-lg bg-primary hover:bg-[#12302c] text-white text-sm font-semibold shadow-lg shadow-primary/15 transition-all">
+        登录
+      </button>
+    </form>
+
+    <div class="mt-6 pt-5 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+      <span>还没有账号？</span>
+      <a href="#" class="font-semibold text-primary hover:underline">没有账号？注册</a>
+    </div>
+  </div>
+</body>
+</html>

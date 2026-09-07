@@ -47,11 +47,70 @@ onMounted(() => void load())
 </script>
 
 <template>
-  <header class="topbar"><div><p class="eyebrow">PUBLISHED / READ ONLY</p><h1>已发布课表</h1></div><div class="top-actions"><span class="sync-state">● 只读查看</span><div class="avatar">教</div></div></header>
-  <section class="data-page panel published-page">
-    <div class="data-toolbar"><div><span class="eyebrow">PUBLISHED SCHEDULES</span><h2>已发布版本</h2></div><div class="published-actions"><el-button plain :disabled="!selected" @click="download('xlsx')">下载 Excel</el-button><el-button plain :disabled="!selected" @click="download('pdf')">下载 PDF</el-button><el-button plain :disabled="!selected" @click="print">打印</el-button><el-button plain :loading="loading" @click="load">刷新</el-button></div></div>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">PUBLISHED / READ ONLY</p>
+      <h1>全校已发布课表</h1>
+    </div>
+    <div class="top-actions">
+      <span class="sync-state">● 正式只读查看</span>
+      <div class="avatar">教</div>
+    </div>
+  </header>
+
+  <section class="data-page panel published-page canvas-card">
+    <div class="data-toolbar">
+      <div>
+        <span class="eyebrow">PUBLISHED SCHEDULES</span>
+        <h2>官方已发布版本</h2>
+      </div>
+      <div class="published-actions">
+        <el-button plain :disabled="!selected" @click="download('xlsx')">下载 Excel</el-button>
+        <el-button plain :disabled="!selected" @click="download('pdf')">下载 PDF</el-button>
+        <el-button plain :disabled="!selected" @click="print">打印课表</el-button>
+        <el-button plain :loading="loading" @click="load">刷新</el-button>
+      </div>
+    </div>
+
     <div v-if="message" class="inline-message error-message">{{ message }}</div>
-    <div v-if="versions.length" class="published-list"><button v-for="version in versions" :key="version.id" class="version-row" :class="{ selected: selected === version.id }" @click="selected = version.id"><strong>版本 v{{ version.id }} · revision {{ version.revision ?? 0 }}</strong><span>{{ version.status }} · {{ version.score ?? '未评分' }} · H{{ scoreParts(version).hard ?? '—' }} / M{{ scoreParts(version).medium ?? '—' }} / S{{ scoreParts(version).soft ?? '—' }}</span><small>{{ version.createdAt ?? '' }}</small></button></div>
+
+    <div v-if="versions.length" class="published-list">
+      <button
+        v-for="version in versions"
+        :key="version.id"
+        class="version-row"
+        :class="{ selected: selected === version.id }"
+        @click="selected = version.id"
+      >
+        <div class="flex justify-between items-center">
+          <strong>版本 v{{ version.id }} · revision {{ version.revision ?? 0 }}</strong>
+          <span class="published-badge">正式发布</span>
+        </div>
+        <span>
+          {{ version.status }} · {{ version.score ?? '未评分' }} · H{{ scoreParts(version).hard ?? '—' }} / M{{ scoreParts(version).medium ?? '—' }} / S{{ scoreParts(version).soft ?? '—' }}
+        </span>
+        <small>{{ version.createdAt ?? '' }}</small>
+      </button>
+    </div>
+
     <el-empty v-else-if="!loading" description="暂无已发布课表" />
   </section>
 </template>
+
+<style scoped>
+.canvas-card {
+  background: #ffffff;
+  border: 1px solid rgba(23, 59, 54, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px -2px rgba(23, 59, 54, 0.03);
+  overflow: hidden;
+}
+.published-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 1px 8px;
+  border-radius: 9999px;
+}
+</style>
