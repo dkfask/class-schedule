@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: class-schedule-prod-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-class_schedule}
+      POSTGRES_USER: ${POSTGRES_USER:-class_schedule}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - prod_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-class_schedule} -d $${POSTGRES_DB:-class_schedule}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - schedule_internal
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: class-schedule-prod-api
+    restart: always
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-class_schedule}
+      DATABASE_USERNAME: ${POSTGRES_USER:-class_schedule}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      SERVER_PORT: 8080
+      APP_AUTH_BOOTSTRAP_USERNAME: ${APP_AUTH_BOOTSTRAP_USERNAME:-admin}
+      APP_AUTH_BOOTSTRAP_PASSWORD: ${APP_AUTH_BOOTSTRAP_PASSWORD:?APP_AUTH_BOOTSTRAP_PASSWORD is required}
+      APP_AUTH_REGISTRATION_ENABLED: ${APP_AUTH_REGISTRATION_ENABLED:-true}
+      APP_AUTH_REGISTRATION_DEFAULT_ROLE: ${APP_AUTH_REGISTRATION_DEFAULT_ROLE:-PLANNER}
+      APP_PDF_FONT_PATH: /usr/share/fonts/truetype/wqy/wqy-microhei.ttc
+      APP_PDF_FONT_NAME: WenQuanYiMicroHei
+      APP_AI_BASE_URL: ${APP_AI_BASE_URL:-}
+      APP_AI_API_KEY: ${APP_AI_API_KEY:-}
+      APP_AI_MODEL: ${APP_AI_MODEL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - schedule_internal
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: class-schedule-prod-worker
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: worker
+      SPRING_MAIN_WEB_APPLICATION_TYPE: none
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-class_schedule}
+      DATABASE_USERNAME: ${POSTGRES_USER:-class_schedule}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - schedule_internal
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: class-schedule-prod-frontend
+    restart: always
+    ports:
+      - "${PROD_PORT:-80}:8080"
+    depends_on:
+      - api
+    networks:
+      - schedule_internal
+
+volumes:
+  prod_postgres_data:
+
+networks:
+  schedule_internal:
+    driver: bridge
