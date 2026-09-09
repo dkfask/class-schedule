@@ -87,7 +87,7 @@ public class WorkbookImportService {
             byte[] bytes = file.getBytes();
             String sha256 = sha256(bytes);
             ParseResult parsed = parse(bytes, expectedTermCode);
-            long batchId = saveBatch(file.getOriginalFilename(), bytes, sha256, parsed, actor);
+            long batchId = saveBatch(file.getOriginalFilename(), bytes, sha256, parsed, actor, expectedTermCode);
             return new ImportPreview(
                     batchId,
                     parsed.issues().isEmpty() ? "VALIDATED" : "INVALID",
@@ -165,6 +165,12 @@ public class WorkbookImportService {
             if (updated != 1) {
                 throw new IllegalArgumentException("导入批次已被其他请求处理: " + batchId);
             }
+            jdbc.update(
+                    "INSERT INTO audit_event(action, aggregate_type, aggregate_id, actor, actor_user_id, actor_kind, detail) VALUES ('IMPORT_COMPLETED', 'IMPORT_BATCH', ?, ?, (SELECT id FROM app_user WHERE username = ?), 'USER', jsonb_build_object('rowCount', ?::int))",
+                    String.valueOf(batchId),
+                    actor,
+                    actor,
+                    applied.importedRows());
             return new ImportResult(
                     batchId, "IMPORTED", applied.importedRows(), 0, "导入成功", applied.sheetStats());
         } catch (IllegalArgumentException exception) {
@@ -1484,14 +1490,20 @@ public class WorkbookImportService {
     }
 
     private long saveBatch(
-            String fileName, byte[] bytes, String sha256, ParseResult parsed, String actor) {
-        return jdbc.queryForObject(
-                "INSERT INTO import_batch (sha256, file_name, file_bytes, status, template_type, template_version, schema_hash, metadata, row_count, issue_count, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, (SELECT id FROM app_user WHERE username = ?)) RETURNING id",
+            String fileName,
+            byte[] bytes,
+            String sha256,
+            ParseResult parsed,
+            String actor,
+            String termCode) {
+        long id = jdbc.queryForObject(
+                "INSERT INTO import_batch (sha256, file_name, file_bytes, status, term_code, template_type, template_version, schema_hash, metadata, row_count, issue_count, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, (SELECT id FROM app_user WHERE username = ?)) RETURNING id",
                 Long.class,
                 sha256,
                 fileName == null ? "upload.xlsx" : fileName,
                 bytes,
                 parsed.issues().isEmpty() ? "VALIDATED" : "INVALID",
+                termCode,
                 parsed.templateType(),
                 parsed.templateVersion(),
                 parsed.schemaHash(),
@@ -1499,6 +1511,16 @@ public class WorkbookImportService {
                 parsed.rowCount(),
                 parsed.issues().size(),
                 actor);
+        String actorName = actor == null || actor.isBlank() ? "system" : actor;
+        jdbc.update(
+                "INSERT INTO audit_event(action, aggregate_type, aggregate_id, actor, actor_user_id, actor_kind, detail) VALUES (?, 'IMPORT_BATCH', ?, ?, (SELECT id FROM app_user WHERE username = ?), 'USER', jsonb_build_object('termCode', ?::text, 'issueCount', ?::int))",
+                parsed.issues().isEmpty() ? "IMPORT_VALIDATED" : "IMPORT_FAILED",
+                String.valueOf(id),
+                actorName,
+                actorName,
+                termCode,
+                parsed.issues().size());
+        return id;
     }
 
     private Batch findBatch(long batchId) {

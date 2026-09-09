@@ -22,6 +22,7 @@ import { useTermStore } from '../stores/term'
 
 type Occurrence = WorkspaceOccurrence
 type ScheduleOptions = WorkspaceOptions
+type PendingGroupBy = 'reason' | 'teacher' | 'class' | 'subject'
 
 type PreviewViolation = {
   code: string
@@ -53,7 +54,10 @@ interface SolveDetails {
   errorCode?: string
   errorMessage?: string
   attempt: number
+  submittedAt?: string
+  startedAt?: string
   heartbeatAt?: string
+  finishedAt?: string
   cancelRequested?: boolean
   deadlineAt?: string
 }
@@ -110,6 +114,11 @@ const jobStatus = ref('待开始')
 const versionStatus = ref('')
 const progress = ref(0)
 const attempt = ref(0)
+const jobErrorCode = ref('')
+const jobSubmittedAt = ref('')
+const jobStartedAt = ref('')
+const jobHeartbeatAt = ref('')
+const jobFinishedAt = ref('')
 const jobDeadline = ref('')
 const score = ref<string | null>(null)
 const hardScore = ref<number | null>(null)
@@ -134,21 +143,29 @@ const adjustmentForm = ref({ timeslotCode: '', roomCode: '', reason: '' })
 const preview = ref<AdjustmentPreview | null>(null)
 const previewLoading = ref(false)
 const confirmingAdjustment = ref(false)
+const lockingAssignment = ref(false)
 const exchangeCandidates = ref<Array<{ occurrenceId: number; occurrenceKey: string; subjectName: string; studentGroupCode: string; teacherCode: string; roomCode: string; timeslotCode: string }>>([])
 const exchangeLoading = ref(false)
 const dragOccurrence = ref<Occurrence | null>(null)
 const selectedExchangeCandidate = ref<{ occurrenceId: number; occurrenceKey: string; subjectName: string; studentGroupCode: string; teacherCode: string; roomCode: string; timeslotCode: string } | null>(null)
 const searchQuery = ref('')
+const pendingGroupBy = ref<PendingGroupBy>('reason')
 const message = ref('')
 const termName = ref('')
 const masterDataSummary = ref({ teachers: 0, studentGroups: 0, subjects: 0, rooms: 0 })
 const backendPublishable = ref(false)
+const publishDialogOpen = ref(false)
+const publishing = ref(false)
+const releaseNote = ref('')
+const releaseConfirmed = ref(false)
+const solveDialogOpen = ref(false)
 const activeView = computed(() => ({ CLASS: '班级课表', TEACHER: '教师课表', ROOM: '教室课表' })[viewType.value])
 const assignedCount = computed(() => countAssignedOccurrences(occurrences.value))
 const canEditVersion = computed(() => ['DRAFT', 'CANDIDATE'].includes(versionStatus.value) && !versionEditLocked.value && !versionArchived.value)
 const latestAppliedCommand = computed(() => commandHistory.value.find(item => item.state === 'APPLIED'))
 const latestUndoneCommand = computed(() => commandHistory.value.find(item => item.state === 'UNDONE'))
 const publishable = computed(() => backendPublishable.value)
+const releaseReady = computed(() => publishable.value && releaseConfirmed.value && Boolean(releaseNote.value.trim()))
 const qualityPercent = computed(() => getQualityPercent(occurrences.value))
 const selectedResource = computed(() => resourceOptions.value.find(item => item.code === resourceCode.value))
 const resourceOptions = computed(() => getResourceOptions(viewType.value, options.value))
@@ -160,16 +177,89 @@ const pendingOccurrences = computed(() => occurrences.value.filter(item => {
   const query = searchQuery.value.trim().toLowerCase()
   return !query || [item.subjectCode, item.subjectName, item.teacherCode, item.teacherName, item.studentGroupCode, item.studentGroupName].some(value => value.toLowerCase().includes(query))
 }))
+function pendingReason(item: Occurrence) {
+  if (!item.timeslotCode && !item.roomCode) return '未分配节次与教室'
+  if (!item.timeslotCode) return '未分配节次'
+  if (!item.roomCode) return '未分配教室'
+  return '需要复核'
+}
+function pendingGroupLabel(item: Occurrence) {
+  if (pendingGroupBy.value === 'teacher') return item.teacherName || item.teacherCode || '未指定教师'
+  if (pendingGroupBy.value === 'class') return item.studentGroupName || item.studentGroupCode || '未指定班级'
+  if (pendingGroupBy.value === 'subject') return item.subjectName || item.subjectCode || '未指定课程'
+  return pendingReason(item)
+}
+const pendingGroups = computed(() => {
+  const groups = new Map<string, Occurrence[]>()
+  for (const item of pendingOccurrences.value) {
+    const label = pendingGroupLabel(item)
+    groups.set(label, [...(groups.get(label) ?? []), item])
+  }
+  return [...groups.entries()].map(([label, items]) => ({ label, items }))
+})
 const gridStyle = computed(() => ({ gridTemplateColumns: `58px repeat(${Math.max(weekdays.value.length, 1)}, minmax(86px, 1fr))` }))
 const canCancel = computed(() => canCancelSolve(jobId.value, jobStatus.value, cancelling.value))
 const statusLabel = computed(() => getStatusLabel(jobStatus.value, versionStatus.value))
+const hasExistingSolveContext = computed(() => Boolean(jobId.value || versionId.value || occurrences.value.length))
+const solveStateInfo = computed(() => {
+  if (jobStatus.value === 'FAILED') {
+    const known: Record<string, { category: string; detail: string; nextStep: string; retryable: boolean; actionPath?: string }> = {
+      SOLVER_DATA_NOT_READY: { category: '输入数据未就绪', detail: '求解器在读取基础数据或教学需求时发现前置条件不足。', nextStep: '检查基础数据和教学计划，修复后重新求解。', retryable: true, actionPath: '/master-data' },
+      DEADLINE_EXCEEDED: { category: '执行超时', detail: '任务在截止时间内没有完成，原候选版本仍然保留。', nextStep: '缩小求解范围或调整规则后重新求解。', retryable: true },
+      SOLVER_ERROR: { category: '求解器异常', detail: '求解过程发生未分类异常，当前候选版本未被覆盖。', nextStep: '先查看错误详情，确认数据无误后重新求解。', retryable: true },
+      STALE_JOB: { category: '任务结果已过期', detail: '任务完成时版本状态已经变化，迟到结果被系统丢弃。', nextStep: '刷新工作台并重新提交求解。', retryable: true },
+    }
+    const fallback = { category: '任务失败', detail: '系统没有生成可用候选结果，原有版本仍然保留。', nextStep: '查看错误详情后重试。', retryable: true }
+    const state = known[jobErrorCode.value] ?? fallback
+    return { tone: 'danger', title: '求解失败', code: jobErrorCode.value || '未提供错误码', ...state }
+  }
+  if (jobStatus.value === 'CANCELLED') return { tone: 'warning', title: '求解已取消', code: '', category: '人工取消', detail: '任务已停止，不会覆盖已有候选版本。', nextStep: '确认数据和规则后可以重新提交。', retryable: true }
+  if (jobStatus.value === 'COMPLETED') return { tone: 'success', title: '候选方案已生成', code: '', category: '求解完成', detail: '结果已加载到当前工作台，可以继续诊断、微调或发布。', nextStep: assignedCount.value === occurrences.value.length ? '检查发布清单后确认是否发布。' : '先处理待排任务和冲突，再进入发布检查。', retryable: false }
+  if (jobStatus.value === 'RUNNING') return { tone: 'info', title: '正在求解', code: '', category: '执行中', detail: '系统正在计算候选方案，完成后会自动加载结果。', nextStep: '可以等待完成，也可以取消当前任务。', retryable: false }
+  if (jobStatus.value === 'QUEUED') return { tone: 'info', title: '等待执行', code: '', category: '排队中', detail: '任务已提交，正在等待求解 Worker 获取执行权。', nextStep: '任务会按队列自动执行。', retryable: false }
+  return { tone: 'info', title: '尚未开始', code: '', category: '待开始', detail: '完成数据和规则检查后提交一次求解任务。', nextStep: '确认当前学期后开始自动排课。', retryable: false }
+})
+const affectedOccurrences = computed(() => {
+  const ids = new Set(preview.value?.affectedAssignmentIds ?? [])
+  return occurrences.value.filter(item => ids.has(item.occurrenceId))
+})
+const orderedTimeslotOptions = computed(() => {
+  const pinned = selectedOccurrence.value?.pinnedPeriodCode
+  const current = selectedOccurrence.value?.timeslotCode
+  return [...options.value.timeslots].sort((left, right) => {
+    const score = (item: typeof left) => item.code === current ? 0 : item.code === pinned ? 1 : 2
+    return score(left) - score(right)
+  })
+})
+const orderedRoomOptions = computed(() => {
+  const current = selectedOccurrence.value?.roomCode
+  const studentCount = selectedOccurrence.value?.studentCount ?? 0
+  return [...options.value.rooms].sort((left, right) => {
+    const score = (item: typeof left) => item.code === current ? 0 : item.capacity >= studentCount ? 1 : 2
+    return score(left) - score(right)
+  })
+})
 
-// 5 阶段流水线计算（用于步骤明朗化导航）
+function formatTimestamp(value: string) {
+  if (!value) return '—'
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString('zh-CN', { hour12: false })
+}
+
+function sourceLabel(source?: string) {
+  return ({ SOLVER: '算法生成', MANUAL: '人工调整', IMPORT: '导入结果' } as Record<string, string>)[source ?? ''] ?? source ?? '未标记'
+}
+
+function activityTypeLabel(item?: Occurrence | null) {
+  return item?.activityTypeSnapshot || item?.activityType || '常规课次'
+}
+
+// 六阶段流水线计算（用于步骤明朗化导航）
 const currentPipelineStep = computed(() => {
-  if (versionStatus.value === 'PUBLISHED') return 5
-  if (versionId.value && occurrences.value.length > 0) return 4
-  if (loading.value || (jobId.value && ['QUEUED', 'RUNNING'].includes(jobStatus.value))) return 3
-  if (readiness.value?.ready) return 3
+  if (versionStatus.value === 'PUBLISHED') return 6
+  if (versionId.value && occurrences.value.length > 0) return 5
+  if (loading.value || (jobId.value && ['QUEUED', 'RUNNING'].includes(jobStatus.value)) || readiness.value?.ready) return 4
+  if ((readiness.value?.requirementCount ?? 0) > 0) return 3
   if ((readiness.value?.roomCount ?? 0) > 0 && (readiness.value?.timeslotCount ?? 0) > 0) return 2
   return 1
 })
@@ -222,6 +312,11 @@ function applySolveDetails(result: SolveDetails) {
   versionStatus.value = result.versionStatus
   progress.value = result.progress
   attempt.value = result.attempt
+  jobErrorCode.value = result.errorCode ?? ''
+  jobSubmittedAt.value = result.submittedAt ?? ''
+  jobStartedAt.value = result.startedAt ?? ''
+  jobHeartbeatAt.value = result.heartbeatAt ?? ''
+  jobFinishedAt.value = result.finishedAt ?? ''
   jobDeadline.value = result.deadlineAt ?? ''
   score.value = result.score === '等待结果' ? null : result.score ?? null
   hardScore.value = result.hardScore ?? parseScore(result.score).hard
@@ -326,6 +421,11 @@ async function restoreWorkspaceState(termCode = term.selectedTermCode.value) {
       versionStatus.value = ''
       progress.value = 0
       attempt.value = 0
+      jobErrorCode.value = ''
+      jobSubmittedAt.value = ''
+      jobStartedAt.value = ''
+      jobHeartbeatAt.value = ''
+      jobFinishedAt.value = ''
       jobDeadline.value = ''
       score.value = null
       hardScore.value = null
@@ -361,6 +461,9 @@ async function loadVersion(id = versionId.value) {
   softScore.value = version.softScore ?? parseScore(version.score).soft
   backendPublishable.value = version.publishable
   occurrences.value = version.assignments ?? []
+  if (selectedOccurrence.value) {
+    selectedOccurrence.value = occurrences.value.find(item => item.occurrenceId === selectedOccurrence.value?.occurrenceId) ?? null
+  }
   await loadOptions(id)
   await loadFiltered()
   await loadCommandHistory()
@@ -490,7 +593,7 @@ async function confirmExchange() {
 }
 
 function openAdjustment(item: Occurrence) {
-  if (!canEditVersion.value || item.locked) {
+  if (!canEditVersion.value) {
     message.value = versionEditLocked.value ? `版本已由 ${versionLockOwner.value || '其他用户'} 锁定` : '当前版本只读，不能调整课程'
     return
   }
@@ -504,6 +607,47 @@ function openAdjustment(item: Occurrence) {
   exchangeCandidates.value = []
   selectedExchangeCandidate.value = null
   adjustmentOpen.value = true
+}
+
+async function lockSelectedAssignment() {
+  if (!versionId.value || !selectedOccurrence.value || selectedOccurrence.value.locked || !adjustmentForm.value.reason.trim()) return
+  lockingAssignment.value = true
+  try {
+    const result = await requestJson<{ revision: number }>(`/api/schedule-versions/${versionId.value}/adjustments/${selectedOccurrence.value.occurrenceId}/lock`, {
+      method: 'POST',
+      headers: mutationHeaders(newIdempotencyKey('assignment-lock')),
+      body: JSON.stringify({ reason: adjustmentForm.value.reason.trim(), expectedRevision: versionRevision.value }),
+    })
+    message.value = '课次已锁定，重新求解时需要重新确认该课次'
+    versionRevision.value = result.revision
+    await loadVersion()
+  } catch (error) {
+    const typed = error as Error & { code?: string }
+    message.value = typed.code === 'VERSION_REVISION_CONFLICT' ? '版本已被其他操作更新，已重新加载最新课表' : error instanceof Error ? error.message : '锁定课次失败'
+    if (typed.code === 'VERSION_REVISION_CONFLICT') await loadVersion()
+  } finally {
+    lockingAssignment.value = false
+  }
+}
+
+async function unlockSelectedAssignment() {
+  if (!versionId.value || !selectedOccurrence.value || !selectedOccurrence.value.locked) return
+  lockingAssignment.value = true
+  try {
+    const result = await requestJson<{ revision: number }>(`/api/schedule-versions/${versionId.value}/adjustments/${selectedOccurrence.value.occurrenceId}/lock`, {
+      method: 'DELETE',
+      headers: { 'If-Match': String(versionRevision.value) },
+    })
+    message.value = '课次已解锁，可以重新调整'
+    versionRevision.value = result.revision
+    await loadVersion()
+  } catch (error) {
+    const typed = error as Error & { code?: string }
+    message.value = typed.code === 'VERSION_REVISION_CONFLICT' ? '版本已被其他操作更新，已重新加载最新课表' : error instanceof Error ? error.message : '解锁课次失败'
+    if (typed.code === 'VERSION_REVISION_CONFLICT') await loadVersion()
+  } finally {
+    lockingAssignment.value = false
+  }
 }
 
 function closeAdjustment() {
@@ -597,6 +741,19 @@ async function startSolve() {
     setSolveError(checked.issues.map(issue => issue.message).join('；') || '当前学期排课基础数据未就绪')
     return
   }
+  if (hasExistingSolveContext.value) {
+    solveDialogOpen.value = true
+    return
+  }
+  await submitSolve()
+}
+
+async function confirmResolve() {
+  solveDialogOpen.value = false
+  await submitSolve()
+}
+
+async function submitSolve() {
   pollGeneration += 1
   const generation = pollGeneration
   clearPollTimer()
@@ -605,6 +762,11 @@ async function startSolve() {
   versionStatus.value = 'SOLVING'
   progress.value = 0
   attempt.value = 0
+  jobErrorCode.value = ''
+  jobSubmittedAt.value = ''
+  jobStartedAt.value = ''
+  jobHeartbeatAt.value = ''
+  jobFinishedAt.value = ''
   score.value = null
   hardScore.value = null
   mediumScore.value = null
@@ -618,6 +780,7 @@ async function startSolve() {
   selectedExchangeCandidate.value = null
   dragOccurrence.value = null
   searchQuery.value = ''
+  pendingGroupBy.value = 'reason'
   backendPublishable.value = false
   errorMessage.value = ''
   message.value = ''
@@ -683,19 +846,36 @@ async function cancelSolve() {
 }
 
 async function publishVersion() {
-  if (!versionId.value || !publishable.value) return
+  if (!versionId.value || !releaseReady.value || publishing.value) return
+  publishing.value = true
   try {
-    const result = await requestJson<{ status: string }>(`/api/schedule-versions/${versionId.value}/publish`, { method: 'POST' })
+    const result = await requestJson<{ status: string }>(`/api/schedule-versions/${versionId.value}/publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ releaseNote: releaseNote.value.trim() }),
+    })
     if (result.status === 'PUBLISHED') {
       jobStatus.value = 'PUBLISHED'
       versionStatus.value = 'PUBLISHED'
       backendPublishable.value = false
+      publishDialogOpen.value = false
+      releaseNote.value = ''
+      releaseConfirmed.value = false
       message.value = '候选版本已发布，当前课表进入只读状态'
       await loadFiltered()
     }
   } catch (error) {
     message.value = error instanceof Error ? error.message : '版本尚未满足发布条件'
+  } finally {
+    publishing.value = false
   }
+}
+
+function openPublishDialog() {
+  if (!versionId.value || !publishable.value || jobStatus.value === 'PUBLISHED') return
+  releaseNote.value = ''
+  releaseConfirmed.value = false
+  publishDialogOpen.value = true
 }
 
 onMounted(() => {
@@ -712,6 +892,11 @@ watch(() => term.selectedTermCode.value, () => {
   jobStatus.value = '待开始'
   progress.value = 0
   attempt.value = 0
+  jobErrorCode.value = ''
+  jobStartedAt.value = ''
+  jobHeartbeatAt.value = ''
+  jobFinishedAt.value = ''
+  jobDeadline.value = ''
   score.value = null
   hardScore.value = null
   mediumScore.value = null
@@ -722,6 +907,10 @@ watch(() => term.selectedTermCode.value, () => {
   readiness.value = null
   backendPublishable.value = false
   selectedOccurrence.value = null
+  publishDialogOpen.value = false
+  solveDialogOpen.value = false
+  releaseNote.value = ''
+  releaseConfirmed.value = false
   void loadMasterData()
 })
 
@@ -741,23 +930,24 @@ onBeforeUnmount(() => {
       <span class="sync-state">● {{ errorMessage ? '需要处理' : '数据已同步' }}</span>
       <el-button plain @click="router.push('/import')">导入数据</el-button>
       <el-button v-if="canCancel" plain :loading="cancelling" @click="cancelSolve">取消求解</el-button>
-      <el-button data-testid="start-solve" type="primary" :loading="loading" :disabled="loading || readinessLoading || readiness === null || !readiness.ready" @click="startSolve">{{ loading ? `正在求解 ${progress}%` : (readinessLoading ? '检查排课条件…' : '开始自动排课') }}</el-button>
+      <el-button data-testid="start-solve" type="primary" :loading="loading" :disabled="loading || readinessLoading || readiness === null || !readiness.ready" @click="startSolve">{{ loading ? `正在求解 ${progress}%` : (readinessLoading ? '检查排课条件…' : (hasExistingSolveContext ? '重新求解' : '开始自动排课')) }}</el-button>
       <div class="avatar">教</div>
     </div>
   </header>
 
-  <!-- 5 阶段工作流导航流水线 (Pipeline Flow Stepper) -->
+  <!-- 六阶段工作流导航流水线 (Pipeline Flow Stepper) -->
   <section class="pipeline-flow-card">
     <div class="pipeline-header">
       <div>
         <span class="pipeline-tag">SCHEDULE PIPELINE</span>
-        <h3 class="pipeline-title">全流程排课向导 · 第 {{ currentPipelineStep }} / 5 步</h3>
+        <h3 class="pipeline-title">全流程排课向导 · 第 {{ currentPipelineStep }} / 6 步</h3>
       </div>
       <div class="pipeline-guide-hint">
         <span v-if="currentPipelineStep === 1">需录入或导入基础教室与时段节次</span>
-        <span v-else-if="currentPipelineStep === 2">需配置班级教学计划与开课规则</span>
-        <span v-else-if="currentPipelineStep === 3">已具备排课条件，可随时执行自动排课</span>
-        <span v-else-if="currentPipelineStep === 4">候选版本已生成，可进行冲突诊断、微调或交换</span>
+        <span v-else-if="currentPipelineStep === 2">需补充本学期的教学需求和课时计划</span>
+        <span v-else-if="currentPipelineStep === 3">需检查规则强度、作用范围和排课前置条件</span>
+        <span v-else-if="currentPipelineStep === 4">已具备排课条件，可随时执行自动排课</span>
+        <span v-else-if="currentPipelineStep === 5">候选版本已生成，可进行冲突诊断、微调或交换</span>
         <span v-else>课表已成功发布为正式版，全校只读</span>
       </div>
     </div>
@@ -793,8 +983,8 @@ onBeforeUnmount(() => {
       >
         <div class="step-num">2</div>
         <div class="step-content">
-          <strong>计划与规则配置</strong>
-          <small>{{ readiness?.requirementCount ?? 0 }}门计划 · {{ readiness?.ready ? '规则完备' : '待完善' }}</small>
+          <strong>教学计划</strong>
+          <small>{{ readiness?.requirementCount ?? 0 }}项教学需求 · {{ (readiness?.requirementCount ?? 0) > 0 ? '已录入' : '待完善' }}</small>
         </div>
         <span class="step-arrow">➔</span>
       </div>
@@ -805,14 +995,14 @@ onBeforeUnmount(() => {
         :class="{
           active: currentPipelineStep === 3,
           completed: currentPipelineStep > 3,
-          loading: loading
+          warning: !readiness?.ready && (readiness?.requirementCount ?? 0) > 0
         }"
-        @click="startSolve"
+        @click="router.push('/rule-facts')"
       >
         <div class="step-num">3</div>
         <div class="step-content">
-          <strong>算法自动求解</strong>
-          <small>{{ loading ? `求解中 ${progress}%` : (readiness?.ready ? '条件已就绪' : '等待前置就绪') }}</small>
+          <strong>规则中心</strong>
+          <small>{{ readiness?.ready ? '规则与前置条件已就绪' : '检查规则与数据约束' }}</small>
         </div>
         <span class="step-arrow">➔</span>
       </div>
@@ -823,13 +1013,15 @@ onBeforeUnmount(() => {
         :class="{
           active: currentPipelineStep === 4,
           completed: currentPipelineStep > 4,
-          attention: versionId && hardScore !== 0
+          loading: loading,
+          warning: readiness !== null && !readiness.ready
         }"
+        @click="startSolve"
       >
         <div class="step-num">4</div>
         <div class="step-content">
-          <strong>冲突诊断与微调</strong>
-          <small>{{ versionId ? `v${versionId} · ${score ?? '未评分'}` : '尚未生成候选' }}</small>
+          <strong>算法求解</strong>
+          <small>{{ loading ? `求解中 ${progress}%` : (readiness?.ready ? '条件已就绪' : '等待前置就绪') }}</small>
         </div>
         <span class="step-arrow">➔</span>
       </div>
@@ -839,12 +1031,29 @@ onBeforeUnmount(() => {
         class="pipeline-step-item"
         :class="{
           active: currentPipelineStep === 5,
+          completed: currentPipelineStep > 5,
+          attention: versionId && hardScore !== 0
+        }"
+      >
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <strong>冲突诊断与微调</strong>
+          <small>{{ versionId ? `v${versionId} · ${score ?? '未评分'}` : '尚未生成候选' }}</small>
+        </div>
+        <span class="step-arrow">➔</span>
+      </div>
+
+      <!-- 步骤 6 -->
+      <div
+        class="pipeline-step-item"
+        :class="{
+          active: currentPipelineStep === 6,
           completed: versionStatus === 'PUBLISHED',
           ready: publishable && versionStatus !== 'PUBLISHED'
         }"
-        @click="publishVersion"
+        @click="openPublishDialog"
       >
-        <div class="step-num">5</div>
+        <div class="step-num">6</div>
         <div class="step-content">
           <strong>校验与正式发布</strong>
           <small>{{ versionStatus === 'PUBLISHED' ? '已正式发布' : (publishable ? '达到发布标准' : '待达标') }}</small>
@@ -877,7 +1086,11 @@ onBeforeUnmount(() => {
       <div class="panel-heading"><div><span class="eyebrow">TASK POOL</span><h2>待排任务</h2></div><span class="count">{{ pendingOccurrences.length }}</span></div>
       <input class="search" placeholder="搜索课程、教师或班级" v-model="searchQuery" />
       <div v-if="pendingOccurrences.length" class="task-list">
-        <div v-for="item in pendingOccurrences" :key="item.occurrenceId" class="task-item" @click="openAdjustment(item)"><span class="task-color"></span><div><strong>{{ item.subjectName }}</strong><small>{{ item.studentGroupName }} · {{ item.teacherName }}</small></div></div>
+        <label class="task-group-select"><span>分组</span><select v-model="pendingGroupBy"><option value="reason">未排原因</option><option value="teacher">教师</option><option value="class">班级</option><option value="subject">课程</option></select></label>
+        <section v-for="group in pendingGroups" :key="group.label" class="task-group">
+          <div class="task-group-heading"><strong>{{ group.label }}</strong><span>{{ group.items.length }}</span></div>
+          <div v-for="item in group.items" :key="item.occurrenceId" class="task-item" @click="openAdjustment(item)"><span class="task-color"></span><div><strong>{{ item.subjectName }}</strong><small>{{ item.studentGroupName }} · {{ item.teacherName }}</small></div></div>
+        </section>
       </div>
       <div v-else class="empty-state"><span class="empty-icon">✓</span><strong>{{ occurrences.length ? '没有待排任务' : '还没有求解结果' }}</strong><small>{{ occurrences.length ? '所有教学任务都有时间和教室' : '导入教学计划或运行自动排课' }}</small></div>
     </aside>
@@ -902,8 +1115,27 @@ onBeforeUnmount(() => {
     <aside class="detail-panel panel">
       <div class="panel-heading"><div><span class="eyebrow">DETAIL</span><h2>排课提示</h2></div><span class="readonly-badge">{{ canEditVersion ? (versionEditLocked ? '锁定' : '可编辑') : '只读' }}</span></div>
       <div v-if="readiness" class="notice" :class="{ success: readiness.ready, warning: !readiness.ready }"><span>{{ readiness.ready ? '✓' : '!' }}</span><div><strong>{{ readiness.ready ? '排课条件已就绪' : '排课条件未就绪' }}</strong><small>节次 {{ readiness.timeslotCount }} · 启用教室 {{ readiness.roomCount }} · 有效教学需求 {{ readiness.requirementCount }}<span v-if="!readiness.ready">；{{ readiness.issues.map(issue => issue.message).join('；') }}</span></small></div></div>
+      <div v-if="jobId || loading || errorMessage" class="solve-status-card" :class="`solve-status-${solveStateInfo.tone}`" data-testid="solve-status">
+        <div class="solve-status-heading"><div><span class="eyebrow">SOLVE JOB #{{ jobId ?? '—' }}</span><strong>{{ solveStateInfo.title }}</strong></div><span class="solve-status-category">{{ solveStateInfo.category }}</span></div>
+        <p>{{ solveStateInfo.detail }}</p>
+        <div class="solve-status-grid">
+          <div><span>进度</span><strong>{{ progress }}%</strong></div>
+          <div><span>尝试次数</span><strong>{{ attempt || '—' }}</strong></div>
+          <div><span>提交时间</span><strong>{{ formatTimestamp(jobSubmittedAt) }}</strong></div>
+          <div><span>开始时间</span><strong>{{ formatTimestamp(jobStartedAt) }}</strong></div>
+          <div><span>完成时间</span><strong>{{ formatTimestamp(jobFinishedAt) }}</strong></div>
+          <div><span>截止时间</span><strong>{{ formatTimestamp(jobDeadline) }}</strong></div>
+          <div><span>最近心跳</span><strong>{{ formatTimestamp(jobHeartbeatAt) }}</strong></div>
+        </div>
+        <div v-if="jobStatus === 'FAILED'" class="solve-failure-detail"><span>失败码 {{ solveStateInfo.code }}</span><small>{{ errorMessage || '后端未提供进一步错误说明' }}</small><a :href="`/problems?termCode=${encodeURIComponent(term.selectedTermCode.value)}&solveJobId=${jobId}&title=${encodeURIComponent(`求解失败：${solveStateInfo.category}`)}`">创建问题记录</a></div>
+        <div class="solve-next-step"><span>下一步</span><strong>{{ solveStateInfo.nextStep }}</strong></div>
+        <div class="solve-status-actions">
+          <el-button v-if="solveStateInfo.actionPath" size="small" plain @click="router.push(solveStateInfo.actionPath)">去检查数据</el-button>
+          <el-button v-if="solveStateInfo.retryable && !loading" size="small" plain @click="startSolve">重新求解</el-button>
+        </div>
+      </div>
       <div class="notice"><span>↗</span><div><strong>点击课程进行调整</strong><small>先选择目标节次和教室，后端会显示冲突及受影响课程</small></div></div>
-      <div v-if="errorMessage" class="import-issues"><strong>{{ errorMessage }}</strong></div>
+      <div v-if="errorMessage && jobStatus !== 'FAILED'" class="import-issues"><strong>{{ errorMessage }}</strong></div>
       <div v-if="message" class="inline-message">{{ message }}</div>
       <div v-if="versionId && commandHistory.length" class="command-history"><div class="history-heading"><strong>最近调整</strong><span>revision {{ versionRevision }}</span></div><div v-for="command in commandHistory.slice(0, 3)" :key="command.groupId" class="history-row"><span>{{ command.commandType }}</span><small>{{ command.reason }} · {{ command.state }}</small></div><div class="history-actions"><el-button size="small" plain :disabled="!latestAppliedCommand || !canEditVersion" @click="undoLatest">撤销</el-button><el-button size="small" plain :disabled="!latestUndoneCommand || !canEditVersion" @click="redoLatest">重做</el-button></div></div>
       <div class="quality"><div><span>方案完整度</span><strong>{{ qualityPercent }}%</strong></div><div class="quality-track"><i :style="{ width: `${qualityPercent}%` }"></i></div></div>
@@ -918,30 +1150,63 @@ onBeforeUnmount(() => {
           <ul v-if="aiResult.suggestions.length" class="ai-suggestions"><li v-for="s in aiResult.suggestions" :key="s">{{ s }}</li></ul>
         </template>
       </div>
-      <el-button class="publish-btn" type="primary" plain :disabled="!publishable || jobStatus === 'PUBLISHED'" @click="publishVersion">{{ jobStatus === 'PUBLISHED' ? '版本已发布' : '发布候选版本' }}</el-button>
+      <el-button class="publish-btn" type="primary" plain :disabled="!publishable || jobStatus === 'PUBLISHED'" @click="openPublishDialog">{{ jobStatus === 'PUBLISHED' ? '版本已发布' : '发布候选版本' }}</el-button>
     </aside>
   </section>
 
   <el-drawer v-model="adjustmentOpen" title="调整课程" size="420px" data-testid="adjustment-drawer" :before-close="handleDrawerClose">
     <template v-if="selectedOccurrence">
-      <div class="drawer-lesson"><span class="eyebrow">ASSIGNMENT #{{ selectedOccurrence.occurrenceId }}</span><h2>{{ selectedOccurrence.subjectName }}</h2><p>{{ selectedOccurrence.studentGroupName }} · {{ selectedOccurrence.teacherName }}</p><el-tag v-if="selectedOccurrence.locked" type="warning" effect="plain">已锁定</el-tag></div>
-      <el-form label-position="top" class="adjustment-form">
-        <el-form-item label="目标节次"><el-select v-model="adjustmentForm.timeslotCode" class="full-width"><el-option v-for="item in options.timeslots" :key="item.code" :label="`${item.label} · ${item.code}`" :value="item.code" /></el-select></el-form-item>
-        <el-form-item label="目标教室"><el-select v-model="adjustmentForm.roomCode" class="full-width"><el-option v-for="item in options.rooms" :key="item.code" :label="`${item.name} · ${item.code}`" :value="item.code" /></el-select></el-form-item>
+      <div class="drawer-lesson"><span class="eyebrow">ASSIGNMENT #{{ selectedOccurrence.occurrenceId }}</span><h2>{{ selectedOccurrence.subjectName }}</h2><p>{{ selectedOccurrence.studentGroupName }} · {{ selectedOccurrence.teacherName }}</p><div class="drawer-facts"><div><span>当前节次</span><strong>{{ selectedOccurrence.timeslotLabel || selectedOccurrence.timeslotCode || '未分配' }}</strong></div><div><span>当前教室</span><strong>{{ selectedOccurrence.roomName || selectedOccurrence.roomCode || '未分配' }}</strong></div><div><span>活动组</span><strong>{{ selectedOccurrence.activityGroupCode || '无' }}</strong></div><div><span>课次类型</span><strong>{{ activityTypeLabel(selectedOccurrence) }}</strong></div><div><span>固定/锁定</span><strong>{{ selectedOccurrence.pinnedPeriodCode ? `固定节次 · ${selectedOccurrence.pinnedPeriodCode}` : (selectedOccurrence.locked ? '已锁定' : '可调整') }}</strong></div><div><span>来源</span><strong>{{ sourceLabel(selectedOccurrence.source) }}</strong></div><div><span>学生人数</span><strong>{{ selectedOccurrence.studentCount ?? '—' }}</strong></div><div><span>教室容量</span><strong>{{ selectedOccurrence.roomCapacity ?? '—' }}</strong></div></div><div v-if="selectedOccurrence.requiredFeatures?.length" class="drawer-requirements"><span>所需教室特征</span><strong>{{ selectedOccurrence.requiredFeatures.join('、') }}</strong></div><el-tag v-if="selectedOccurrence.locked" type="warning" effect="plain">已锁定</el-tag></div>
+      <el-form v-if="!selectedOccurrence.locked" label-position="top" class="adjustment-form">
+        <el-form-item label="目标节次"><el-select v-model="adjustmentForm.timeslotCode" class="full-width"><el-option v-for="item in orderedTimeslotOptions" :key="item.code" :label="`${item.label} · ${item.code}${item.code === selectedOccurrence.pinnedPeriodCode ? ' · 固定节次' : ''}`" :value="item.code" /></el-select></el-form-item>
+        <el-form-item label="目标教室"><el-select v-model="adjustmentForm.roomCode" class="full-width"><el-option v-for="item in orderedRoomOptions" :key="item.code" :label="`${item.name} · ${item.code} · 容量 ${item.capacity}${item.capacity >= (selectedOccurrence.studentCount ?? 0) ? ' · 容量匹配' : ' · 容量不足'}`" :value="item.code" /></el-select></el-form-item>
         <el-form-item label="调整原因" required><el-input v-model="adjustmentForm.reason" type="textarea" :rows="3" placeholder="请输入本次调整的业务原因" /></el-form-item>
       </el-form>
-      <el-button class="full-width" data-testid="preview-adjustment" :loading="previewLoading" @click="previewAdjustment">预览调整</el-button>
-      <div v-if="preview" class="preview-result" :class="preview.allowed ? 'preview-ok' : 'preview-blocked'">
+      <el-button v-if="!selectedOccurrence.locked" class="full-width" data-testid="preview-adjustment" :loading="previewLoading" @click="previewAdjustment">预览调整</el-button>
+      <div v-if="!selectedOccurrence.locked && preview" class="preview-result" :class="preview.allowed ? 'preview-ok' : 'preview-blocked'">
         <strong>{{ preview.allowed ? '可以放置' : '存在硬冲突，不能确认' }}</strong>
         <span v-if="preview.lockedConflict">涉及锁定课程</span>
-        <span v-if="preview.affectedAssignmentIds.length">受影响课程：{{ preview.affectedAssignmentIds.join('、') }}</span>
+        <div v-if="preview.affectedAssignmentIds.length" class="affected-lessons"><span>受影响课次</span><strong v-if="affectedOccurrences.length">{{ affectedOccurrences.map(item => `${item.subjectName} · ${item.studentGroupName}`).join('；') }}</strong><strong v-else>{{ preview.affectedAssignmentIds.join('、') }}</strong></div>
+        <span class="preview-location">当前位置：{{ preview.current.timeslotCode || '未分配' }} · {{ preview.current.roomCode || '未分配' }}；目标：{{ preview.target.timeslotCode || '未分配' }} · {{ preview.target.roomCode || '未分配' }}</span>
         <span v-for="violation in preview.hardViolations" :key="`${violation.code}-${violation.resourceCode}`">{{ violation.code }}：{{ violation.message }}</span>
       </div>
-      <div v-if="exchangeLoading" class="exchange-candidates">正在计算交换候选…</div>
-      <div v-if="exchangeCandidates.length" class="exchange-candidates" data-testid="exchange-candidates"><strong>可交换课程</strong><button v-for="candidate in exchangeCandidates" :key="candidate.occurrenceId" :class="{ selected: selectedExchangeCandidate?.occurrenceId === candidate.occurrenceId }" @click="selectedExchangeCandidate = candidate">{{ candidate.subjectName }} · {{ candidate.studentGroupCode }}<small>{{ candidate.teacherCode }} · {{ candidate.timeslotCode }} · {{ candidate.roomCode }}</small></button></div>
-      <div class="drawer-actions"><el-button @click="closeAdjustment">取消</el-button><el-button v-if="selectedExchangeCandidate" data-testid="confirm-exchange" type="warning" :loading="confirmingAdjustment" :disabled="!adjustmentForm.reason.trim()" @click="confirmExchange">确认交换</el-button><el-button v-else data-testid="confirm-adjustment" type="primary" :loading="confirmingAdjustment" :disabled="!preview?.allowed || !adjustmentForm.reason.trim()" @click="confirmAdjustment">确认调整</el-button></div>
+      <div v-if="!selectedOccurrence.locked && exchangeLoading" class="exchange-candidates">正在计算交换候选…</div>
+      <div v-if="!selectedOccurrence.locked && exchangeCandidates.length" class="exchange-candidates" data-testid="exchange-candidates"><strong>可交换课程</strong><button v-for="candidate in exchangeCandidates" :key="candidate.occurrenceId" :class="{ selected: selectedExchangeCandidate?.occurrenceId === candidate.occurrenceId }" @click="selectedExchangeCandidate = candidate">{{ candidate.subjectName }} · {{ candidate.studentGroupCode }}<small>{{ candidate.teacherCode }} · {{ candidate.timeslotCode }} · {{ candidate.roomCode }}</small></button></div>
+      <div class="drawer-actions"><el-button @click="closeAdjustment">取消</el-button><el-button v-if="selectedOccurrence.locked" data-testid="unlock-assignment" type="warning" :loading="lockingAssignment" @click="unlockSelectedAssignment">解锁此课次</el-button><el-button v-else data-testid="lock-assignment" plain :loading="lockingAssignment" :disabled="!adjustmentForm.reason.trim()" @click="lockSelectedAssignment">锁定此课次</el-button><el-button v-if="!selectedOccurrence.locked && selectedExchangeCandidate" data-testid="confirm-exchange" type="warning" :loading="confirmingAdjustment" :disabled="!adjustmentForm.reason.trim()" @click="confirmExchange">确认交换</el-button><el-button v-else-if="!selectedOccurrence.locked" data-testid="confirm-adjustment" type="primary" :loading="confirmingAdjustment" :disabled="!preview?.allowed || !adjustmentForm.reason.trim()" @click="confirmAdjustment">确认调整</el-button></div>
     </template>
   </el-drawer>
+
+  <el-dialog v-model="publishDialogOpen" title="发布前确认" width="460px" data-testid="publish-dialog">
+    <div class="release-dialog">
+      <div class="release-dialog-summary">
+        <strong>版本 v{{ versionId }} · {{ termName || term.selectedTermCode.value }}</strong>
+        <span>{{ occurrences.length }} 个教学任务 · 已分配 {{ assignedCount }} 个 · 硬约束 {{ hardScore ?? '—' }}</span>
+      </div>
+      <ul class="release-dialog-checks">
+        <li><span class="check-ok">✓</span><div><strong>任务完整性</strong><small>{{ assignedCount }} / {{ occurrences.length }} 个教学任务已有节次和教室</small></div></li>
+        <li><span class="check-ok">✓</span><div><strong>独立校验</strong><small>当前版本已通过后端发布门禁</small></div></li>
+        <li v-if="softScore !== null && softScore !== 0"><span class="check-warn">!</span><div><strong>非阻塞提醒</strong><small>仍有软约束评分 {{ softScore }}，不会阻止发布，请在版本说明中注明业务取舍</small></div></li>
+      </ul>
+      <label class="release-note-field">
+        <span>版本说明</span>
+        <textarea v-model="releaseNote" rows="3" placeholder="说明适用范围、特殊安排或业务确认结论" />
+      </label>
+      <label class="release-confirm"><input v-model="releaseConfirmed" type="checkbox" /> <span>我已确认当前学期、课次数量和发布结果</span></label>
+    </div>
+    <template #footer>
+      <el-button @click="publishDialogOpen = false">取消</el-button>
+      <el-button type="primary" :loading="publishing" :disabled="!releaseReady" data-testid="confirm-publish" @click="publishVersion">确认发布</el-button>
+    </template>
+  </el-dialog>
+
+  <el-dialog v-model="solveDialogOpen" title="重新求解前确认" width="460px" data-testid="solve-dialog">
+    <div class="solve-dialog-content">
+      <div class="solve-dialog-summary"><strong>当前版本 v{{ versionId ?? '—' }} · {{ termName || term.selectedTermCode.value }}</strong><span>{{ occurrences.length }} 个教学任务 · 已安排 {{ assignedCount }} 个 · 当前状态 {{ statusLabel }}</span></div>
+      <ul class="solve-dialog-effects"><li><span class="effect-keep">保留</span><div><strong>当前候选版本和调整历史</strong><small>原版本不会被覆盖，已完成的人工调整、撤销和重做记录继续可查。</small></div></li><li><span class="effect-reset">新建</span><div><strong>生成独立候选版本</strong><small>本次求解读取当前学期快照和规则配置，完成后作为新的候选结果返回。</small></div></li><li><span class="effect-reset">重置</span><div><strong>当前手工调整不自动带入</strong><small>如需保留个别位置，请在新候选生成后重新锁定或调整，并再次确认发布清单。</small></div></li></ul>
+      <p class="solve-dialog-note">重新求解会重新计算所有教学任务，可能改变当前课表的时间和教室安排。</p>
+    </div>
+    <template #footer><el-button @click="solveDialogOpen = false">取消</el-button><el-button type="primary" data-testid="confirm-resolve" @click="confirmResolve">确认重新求解</el-button></template>
+  </el-dialog>
 </template>
 
 <style scoped>
@@ -956,4 +1221,60 @@ onBeforeUnmount(() => {
 .ai-finding strong { display: block; font-size: 12px; }
 .ai-finding small { color: var(--el-text-color-secondary); font-size: 11px; line-height: 1.5; display: block; }
 .ai-suggestions { margin: 0; padding-left: 18px; font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.7; }
+.release-dialog { color: var(--el-text-color-primary); }
+.release-dialog-summary { display: grid; gap: 5px; padding: 12px; background: #f6faf7; border: 1px solid #dcebe1; border-radius: 8px; }
+.release-dialog-summary strong { color: #173b36; font-size: 13px; }
+.release-dialog-summary span { color: #6c8176; font-size: 11px; }
+.release-dialog-checks { display: grid; gap: 10px; margin: 16px 0 0; padding: 0; list-style: none; }
+.release-dialog-checks li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; align-items: start; }
+.release-dialog-checks li > span { display: grid; place-items: center; width: 19px; height: 19px; border-radius: 50%; font-size: 11px; font-weight: 700; }
+.release-dialog-checks .check-ok { color: #217348; background: #e3f5e9; }
+.release-dialog-checks .check-warn { color: #a15c0a; background: #fff1d7; }
+.release-dialog-checks strong, .release-dialog-checks small { display: block; }
+.release-dialog-checks strong { color: #345d49; font-size: 12px; }
+.release-dialog-checks small { margin-top: 3px; color: #758a80; font-size: 11px; line-height: 1.45; }
+.release-note-field { display: grid; gap: 5px; margin: 16px 0 8px; color: #456552; font-size: 11px; }
+.release-note-field textarea { resize: vertical; border: 1px solid #dce8e0; border-radius: 6px; padding: 8px; color: #173b36; font: inherit; line-height: 1.5; }
+.release-note-field textarea:focus { outline: 2px solid rgba(77, 138, 120, .25); border-color: #4d8a78; }
+.release-confirm { display: flex; gap: 6px; align-items: flex-start; color: #64786e; font-size: 11px; line-height: 1.45; }
+.release-confirm input { margin-top: 1px; }
+.solve-status-card { display: grid; gap: 9px; margin: 12px 0; padding: 12px; border: 1px solid #dce8e0; border-radius: 8px; background: #f8fbf9; color: #35574a; }
+.solve-status-danger { border-color: #efd7d2; background: #fff8f6; }
+.solve-status-warning { border-color: #efdfc4; background: #fffbf4; }
+.solve-status-success { border-color: #d6eadc; background: #f5fbf7; }
+.solve-status-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.solve-status-heading strong { display: block; margin-top: 3px; color: #173b36; font-size: 14px; }
+.solve-status-category { flex-shrink: 0; padding: 3px 7px; border-radius: 999px; color: #4f7462; background: #e7f2eb; font-size: 10px; }
+.solve-status-danger .solve-status-category { color: #a1483f; background: #fde9e4; }
+.solve-status-warning .solve-status-category { color: #9b641b; background: #fff0d2; }
+.solve-status-card p { margin: 0; color: #637a6d; font-size: 11px; line-height: 1.5; }
+.solve-status-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 12px; padding: 9px 0; border-top: 1px solid rgba(92, 126, 108, .14); border-bottom: 1px solid rgba(92, 126, 108, .14); }
+.solve-status-grid span, .solve-next-step span, .affected-lessons > span, .drawer-facts span, .drawer-requirements span { display: block; color: #84988d; font-size: 10px; }
+.solve-status-grid strong { display: block; margin-top: 2px; color: #395d4c; font-size: 11px; font-weight: 600; }
+.solve-failure-detail { display: grid; gap: 3px; padding: 8px; border-left: 3px solid #ce6b5b; background: rgba(255, 234, 228, .72); color: #9d443b; font-size: 10px; }
+.solve-failure-detail small { color: #8c6058; line-height: 1.45; }
+.solve-failure-detail a { color: #a1483f; font-size: 10px; text-decoration: none; }
+.solve-failure-detail a:hover { text-decoration: underline; }
+.solve-next-step { display: grid; gap: 2px; }
+.solve-next-step strong { color: #496f5b; font-size: 11px; font-weight: 600; line-height: 1.45; }
+.solve-status-actions { display: flex; gap: 7px; }
+.drawer-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; margin-top: 14px; padding: 12px 0; border-top: 1px solid #edf2ef; border-bottom: 1px solid #edf2ef; }
+.drawer-facts strong, .drawer-requirements strong { display: block; margin-top: 3px; color: #365b4b; font-size: 11px; line-height: 1.35; }
+.drawer-requirements { display: grid; gap: 3px; margin: 11px 0; padding: 9px 10px; background: #f7faf8; border-left: 3px solid #8fbaa0; }
+.affected-lessons { display: grid; gap: 3px; padding: 7px 0; }
+.affected-lessons strong { color: inherit; font-size: 11px; line-height: 1.45; }
+.preview-location { padding-top: 5px; color: #73887d; font-size: 10px; }
+.solve-dialog-content { color: #36594a; }
+.solve-dialog-summary { display: grid; gap: 5px; padding: 12px; border: 1px solid #dcebe1; border-radius: 8px; background: #f6faf7; }
+.solve-dialog-summary strong { color: #173b36; font-size: 13px; }
+.solve-dialog-summary span { color: #71857b; font-size: 11px; }
+.solve-dialog-effects { display: grid; gap: 12px; margin: 16px 0 0; padding: 0; list-style: none; }
+.solve-dialog-effects li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 9px; align-items: start; }
+.solve-dialog-effects li > span { padding: 3px 0; border-radius: 999px; text-align: center; font-size: 10px; font-weight: 700; }
+.effect-keep { color: #27754a; background: #e5f5ea; }
+.effect-reset { color: #9a651e; background: #fff0d5; }
+.solve-dialog-effects strong, .solve-dialog-effects small { display: block; }
+.solve-dialog-effects strong { color: #365d4b; font-size: 12px; }
+.solve-dialog-effects small { margin-top: 3px; color: #75897f; font-size: 11px; line-height: 1.45; }
+.solve-dialog-note { margin: 16px 0 0; padding: 9px 10px; color: #97652a; background: #fff8e9; font-size: 11px; line-height: 1.5; }
 </style>

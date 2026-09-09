@@ -22,6 +22,14 @@ services:
       SERVER_PORT: 8080
       APP_AUTH_BOOTSTRAP_USERNAME: ${APP_AUTH_BOOTSTRAP_USERNAME:?APP_AUTH_BOOTSTRAP_USERNAME is required}
       APP_AUTH_BOOTSTRAP_PASSWORD: ${APP_AUTH_BOOTSTRAP_PASSWORD:?APP_AUTH_BOOTSTRAP_PASSWORD is required}
+      APP_AUTH_EMAIL_CODE_SECRET: ${APP_AUTH_EMAIL_CODE_SECRET:-change-this-email-code-secret}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-true}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@class-schedule.local}
     depends_on:
       postgres:
         condition: service_healthy

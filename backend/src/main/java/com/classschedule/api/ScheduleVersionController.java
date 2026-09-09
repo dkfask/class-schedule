@@ -55,9 +55,12 @@ public class ScheduleVersionController {
     public ResponseEntity<Map<String, Object>> publish(
             @PathVariable Long versionId,
             @RequestHeader(value = "If-Match", required = false) Long expectedRevision,
+            @org.springframework.web.bind.annotation.RequestBody(required = false)
+                    PublishRequest request,
             Authentication authentication) {
         try {
-            if (!repository.publish(versionId, expectedRevision, authentication.getName())) {
+            String releaseNote = request == null ? null : request.releaseNote();
+            if (!repository.publish(versionId, expectedRevision, authentication.getName(), releaseNote)) {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
                         .body(
                                 Map.of(
@@ -81,4 +84,6 @@ public class ScheduleVersionController {
                                     exception.getMessage()));
         }
     }
+
+    public record PublishRequest(String releaseNote) {}
 }

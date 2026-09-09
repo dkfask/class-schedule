@@ -1,23 +1,80 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { http } from '../api/http'
+import { computed, onBeforeUnmount, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { http, jsonRequest } from '../api/http'
 import { useAuthStore } from '../stores/auth'
 
 const mode = ref<'login' | 'register'>('login')
 const username = ref('')
+const email = ref('')
 const password = ref('')
+const confirmPassword = ref('')
+const verificationCode = ref('')
 const displayName = ref('')
 const error = ref('')
 const notice = ref('')
+const registerLoading = ref(false)
+const codeLoading = ref(false)
+const codeCountdown = ref(0)
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+const registrationEnabled = import.meta.env.VITE_AUTH_REGISTRATION_ENABLED === 'true'
+let countdownTimer: ReturnType<typeof setInterval> | undefined
+
+const canSendCode = computed(() => {
+  return !codeLoading.value && codeCountdown.value === 0 && isValidEmail(email.value)
+})
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+}
+
+function clearCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer)
+  countdownTimer = undefined
+  codeCountdown.value = 0
+}
+
+function startCountdown() {
+  clearCountdown()
+  codeCountdown.value = 60
+  countdownTimer = setInterval(() => {
+    codeCountdown.value -= 1
+    if (codeCountdown.value <= 0) clearCountdown()
+  }, 1000)
+}
+
+async function sendVerificationCode() {
+  error.value = ''
+  notice.value = ''
+  if (!isValidEmail(email.value)) {
+    error.value = '请输入有效的邮箱地址'
+    return
+  }
+  codeLoading.value = true
+  try {
+    await http('/api/auth/registration-code', jsonRequest('POST', { email: email.value.trim() }))
+    notice.value = '如果该邮箱可注册，验证码已发送，请查收邮件'
+    startCountdown()
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : '验证码发送失败'
+  } finally {
+    codeLoading.value = false
+  }
+}
+
+function loginRedirect() {
+  const redirect = route.query.redirect
+  if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')) return redirect
+  return auth.isPlanner ? '/overview' : '/published'
+}
 
 async function submit() {
   error.value = ''
   try {
     await auth.login(username.value.trim(), password.value)
-    await router.push(auth.isPlanner ? '/workspace' : '/published')
+    await router.push(loginRedirect())
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '登录失败'
   }
@@ -26,20 +83,40 @@ async function submit() {
 async function submitRegister() {
   error.value = ''
   notice.value = ''
+  const normalizedEmail = email.value.trim()
+  if (!isValidEmail(normalizedEmail)) {
+    error.value = '请输入有效的邮箱地址'
+    return
+  }
+  if (password.value !== confirmPassword.value) {
+    error.value = '两次输入的密码不一致'
+    return
+  }
+  if (!/^\d{6}$/.test(verificationCode.value.trim())) {
+    error.value = '请输入 6 位邮箱验证码'
+    return
+  }
+  registerLoading.value = true
   try {
     await http('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: username.value.trim(),
+      ...jsonRequest('POST', {
+        email: normalizedEmail,
         password: password.value,
         displayName: displayName.value.trim(),
+        verificationCode: verificationCode.value.trim(),
       }),
     })
-    notice.value = '注册成功，请使用新账号登录'
+    notice.value = '注册成功，请使用邮箱登录'
     mode.value = 'login'
+    username.value = normalizedEmail
+    password.value = ''
+    confirmPassword.value = ''
+    verificationCode.value = ''
+    clearCountdown()
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : '注册失败'
+  } finally {
+    registerLoading.value = false
   }
 }
 
@@ -47,13 +124,15 @@ function switchMode(target: 'login' | 'register') {
   mode.value = target
   error.value = ''
   notice.value = ''
+  if (target === 'login') clearCountdown()
 }
+
+onBeforeUnmount(clearCountdown)
 </script>
 
 <template>
   <main class="login-canvas">
     <section class="glass-card login-panel">
-      <!-- 品牌区 -->
       <div class="brand-row">
         <img class="brand-logo-img" src="/logo.png" alt="排课工作台 Logo" />
         <div>
@@ -62,26 +141,54 @@ function switchMode(target: 'login' | 'register') {
         </div>
       </div>
 
-      <!-- 头部标题与引导 -->
       <div class="panel-header">
         <p class="eyebrow">ACCOUNT / {{ mode === 'login' ? 'SIGN IN' : 'SIGN UP' }}</p>
         <h1>{{ mode === 'login' ? '登录排课系统' : '注册新账号' }}</h1>
         <p class="login-caption">
-          {{ mode === 'login' ? '使用排课员或只读账号继续。' : '注册后可直接进入排课工作台进行排课、求解与课表调整。' }}
+          {{ mode === 'login' ? '使用邮箱或用户名继续。' : '验证邮箱后即可进入排课工作台进行排课、求解与课表调整。' }}
         </p>
       </div>
 
-      <!-- 表单主体 -->
       <form class="login-form" @submit.prevent="mode === 'login' ? submit() : submitRegister()">
-        <label class="form-field">
-          <span>用户名</span>
+        <label v-if="mode === 'login'" class="form-field">
+          <span>邮箱或用户名</span>
           <input
             v-model="username"
             class="styled-input"
             autocomplete="username"
-            placeholder="请输入用户名"
+            placeholder="请输入邮箱或用户名"
             required
           />
+        </label>
+
+        <label v-if="mode === 'register'" class="form-field">
+          <span>邮箱</span>
+          <input
+            v-model="email"
+            type="email"
+            class="styled-input"
+            autocomplete="email"
+            placeholder="name@example.com"
+            required
+          />
+        </label>
+
+        <label v-if="mode === 'register'" class="form-field">
+          <span>邮箱验证码</span>
+          <div class="code-field">
+            <input
+              v-model="verificationCode"
+              class="styled-input"
+              inputmode="numeric"
+              maxlength="6"
+              autocomplete="one-time-code"
+              placeholder="输入 6 位验证码"
+              required
+            />
+            <button type="button" class="code-button" :disabled="!canSendCode" @click="sendVerificationCode">
+              {{ codeLoading ? '发送中…' : (codeCountdown > 0 ? `${codeCountdown}s 后重发` : '发送验证码') }}
+            </button>
+          </div>
         </label>
 
         <label v-if="mode === 'register'" class="form-field">
@@ -90,7 +197,7 @@ function switchMode(target: 'login' | 'register') {
             v-model="displayName"
             class="styled-input"
             autocomplete="name"
-            placeholder="可选，默认同用户名"
+            placeholder="可选，默认使用邮箱"
           />
         </label>
 
@@ -105,27 +212,35 @@ function switchMode(target: 'login' | 'register') {
             required
           />
         </label>
-        <small v-if="mode === 'register'" class="field-hint">密码长度 8-128 位</small>
+        <label v-if="mode === 'register'" class="form-field">
+          <span>确认密码</span>
+          <input
+            v-model="confirmPassword"
+            type="password"
+            class="styled-input"
+            autocomplete="new-password"
+            placeholder="请再次输入密码"
+            required
+          />
+        </label>
+        <small v-if="mode === 'register'" class="field-hint">密码长度 8-128 位，验证码 10 分钟内有效</small>
 
-        <!-- 提示与错误信息 -->
         <div v-if="error" class="inline-message error-message">{{ error }}</div>
         <div v-if="notice" class="inline-message success-message">{{ notice }}</div>
 
-        <!-- 提交按钮 -->
         <button
           type="submit"
           class="submit-button"
-          :disabled="auth.loading"
+          :disabled="auth.loading || registerLoading || codeLoading"
         >
-          {{ mode === 'login' ? (auth.loading ? '登录中…' : '登录') : (auth.loading ? '注册中…' : '注册') }}
+          {{ mode === 'login' ? (auth.loading ? '登录中…' : '登录') : (registerLoading ? '注册中…' : '注册') }}
         </button>
       </form>
 
-      <!-- 模式切换与页脚 -->
-      <div class="panel-footer">
+      <div v-if="registrationEnabled" class="panel-footer">
         <span>{{ mode === 'login' ? '还没有账号？' : '已有账号？' }}</span>
         <a
-          v-if="mode === 'login'"
+          v-if="mode === 'login' && registrationEnabled"
           href="#"
           class="switch-link"
           @click.prevent="switchMode('register')"
@@ -133,7 +248,7 @@ function switchMode(target: 'login' | 'register') {
           没有账号？注册
         </a>
         <a
-          v-else
+          v-else-if="mode === 'register' && registrationEnabled"
           href="#"
           class="switch-link"
           @click.prevent="switchMode('login')"
@@ -163,163 +278,30 @@ function switchMode(target: 'login' | 'register') {
   padding: 36px 32px;
   box-shadow: 0 20px 40px -15px rgba(23, 59, 54, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
 }
-.brand-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.brand-logo-img {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  object-fit: cover;
-  box-shadow: 0 4px 12px rgba(23, 59, 54, 0.15);
-}
-.brand-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: #173b36;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 18px;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 4px 10px rgba(23, 59, 54, 0.2);
-}
-.brand-row h2 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: #173b36;
-}
-.brand-row small {
-  display: block;
-  font-size: 11px;
-  color: #728c82;
-  margin-top: 2px;
-}
-
-.panel-header {
-  margin-bottom: 22px;
-}
-.eyebrow {
-  margin: 0 0 4px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: #2c694e;
-  text-transform: uppercase;
-}
-.panel-header h1 {
-  margin: 0 0 6px;
-  font-size: 22px;
-  font-weight: 700;
-  color: #191c1d;
-}
-.login-caption {
-  margin: 0;
-  font-size: 12px;
-  color: #6a7b74;
-  line-height: 1.5;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.form-field span {
-  font-size: 12px;
-  font-weight: 600;
-  color: #344740;
-}
-.styled-input {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #dce4e0;
-  background: #fbfdfc;
-  color: #191c1d;
-  font-size: 13.5px;
-  outline: none;
-  transition: all 0.2s ease;
-}
-.styled-input:focus {
-  background: #ffffff;
-  border-color: #173b36;
-  box-shadow: 0 0 0 3px rgba(23, 59, 54, 0.1);
-}
-.field-hint {
-  font-size: 11px;
-  color: #83978f;
-  margin-top: -8px;
-}
-
-.submit-button {
-  margin-top: 6px;
-  width: 100%;
-  padding: 11px;
-  border-radius: 8px;
-  border: 0;
-  background: #173b36;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 6px 16px -2px rgba(23, 59, 54, 0.25);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.submit-button:hover:not(:disabled) {
-  background: #12302c;
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px -2px rgba(23, 59, 54, 0.35);
-}
-.submit-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.panel-footer {
-  margin-top: 24px;
-  padding-top: 18px;
-  border-top: 1px solid #edf2ef;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-  color: #7b948a;
-}
-.switch-link {
-  color: #1b5a45;
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-.switch-link:hover {
-  text-decoration: underline;
-}
-
-.inline-message {
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  line-height: 1.5;
-}
-.error-message {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
-}
-.success-message {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #166534;
-}
+.brand-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.brand-logo-img { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 12px rgba(23, 59, 54, 0.15); }
+.brand-row h2 { margin: 0; font-size: 16px; font-weight: 700; color: #173b36; }
+.brand-row small { display: block; font-size: 11px; color: #728c82; margin-top: 2px; }
+.panel-header { margin-bottom: 22px; }
+.eyebrow { margin: 0 0 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #2c694e; text-transform: uppercase; }
+.panel-header h1 { margin: 0 0 6px; font-size: 22px; font-weight: 700; color: #191c1d; }
+.login-caption { margin: 0; font-size: 12px; color: #6a7b74; line-height: 1.5; }
+.login-form { display: flex; flex-direction: column; gap: 16px; }
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field span { font-size: 12px; font-weight: 600; color: #344740; }
+.styled-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #dce4e0; background: #fbfdfc; color: #191c1d; font-size: 13.5px; outline: none; transition: all 0.2s ease; }
+.styled-input:focus { background: #ffffff; border-color: #173b36; box-shadow: 0 0 0 3px rgba(23, 59, 54, 0.1); }
+.code-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.code-button { min-width: 112px; padding: 0 10px; border: 1px solid #b9d1c5; border-radius: 8px; background: #f1f8f3; color: #1b5a45; font-size: 11px; cursor: pointer; }
+.code-button:disabled { opacity: 0.55; cursor: not-allowed; }
+.field-hint { font-size: 11px; color: #83978f; margin-top: -8px; }
+.submit-button { margin-top: 6px; width: 100%; padding: 11px; border-radius: 8px; border: 0; background: #173b36; color: #ffffff; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 16px -2px rgba(23, 59, 54, 0.25); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.submit-button:hover:not(:disabled) { background: #12302c; transform: translateY(-1px); box-shadow: 0 8px 20px -2px rgba(23, 59, 54, 0.35); }
+.submit-button:disabled { opacity: 0.6; cursor: not-allowed; }
+.panel-footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid #edf2ef; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #7b948a; }
+.switch-link { color: #1b5a45; font-weight: 600; text-decoration: none; transition: color 0.2s; }
+.switch-link:hover { text-decoration: underline; }
+.inline-message { padding: 8px 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; }
+.error-message { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.success-message { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
 </style>

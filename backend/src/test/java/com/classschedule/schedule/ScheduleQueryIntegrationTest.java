@@ -331,7 +331,11 @@ class ScheduleQueryIntegrationTest {
     @Test
     void publishUpdatesCandidateOnceAndRejectsSecondPublish() throws Exception {
         long version = seedCandidateVersion();
-        mockMvc.perform(post("/api/schedule-versions/" + version + "/publish").with(csrf()))
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + version + "/publish")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"releaseNote\":\"2026 fall release\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PUBLISHED"));
         mockMvc.perform(post("/api/schedule-versions/" + version + "/publish").with(csrf()))
@@ -343,6 +347,12 @@ class ScheduleQueryIntegrationTest {
                                 String.class,
                                 version))
                 .isEqualTo("PUBLISHED");
+        assertThat(
+                        jdbc.queryForObject(
+                                "SELECT detail->>'releaseNote' FROM audit_event WHERE action='PUBLISH' AND aggregate_id=? ORDER BY id DESC LIMIT 1",
+                                String.class,
+                                String.valueOf(version)))
+                .isEqualTo("2026 fall release");
     }
 
     @Test

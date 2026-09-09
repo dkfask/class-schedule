@@ -17,6 +17,18 @@ export interface WorkspaceOccurrence {
   source?: string
   locked?: boolean
   duration?: number
+  activityGroupCode?: string
+  activityType?: string
+  studentCount?: number
+  requiredFeatures?: string[]
+  roomFeatures?: string[]
+  roomCapacity?: number
+  teachingRequirementId?: number | null
+  requirementCode?: string
+  activityIndex?: number
+  activityMemberIndex?: number
+  pinnedPeriodCode?: string
+  activityTypeSnapshot?: string
 }
 
 export interface WorkspaceTimeslotOption {

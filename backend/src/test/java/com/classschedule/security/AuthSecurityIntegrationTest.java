@@ -66,6 +66,11 @@ class AuthSecurityIntegrationTest {
                 "测试只读用户");
         jdbc.update(
                 "INSERT INTO app_user(username,password_hash,display_name,enabled) VALUES(?,?,?,TRUE) ON CONFLICT (username) DO UPDATE SET password_hash=EXCLUDED.password_hash, display_name=EXCLUDED.display_name, enabled=TRUE",
+                "auth-reviewer",
+                encoder.encode("reviewer-pass"),
+                "测试审核员");
+        jdbc.update(
+                "INSERT INTO app_user(username,password_hash,display_name,enabled) VALUES(?,?,?,TRUE) ON CONFLICT (username) DO UPDATE SET password_hash=EXCLUDED.password_hash, display_name=EXCLUDED.display_name, enabled=TRUE",
                 "auth-admin",
                 encoder.encode("admin-pass"),
                 "测试管理员");
@@ -79,13 +84,31 @@ class AuthSecurityIntegrationTest {
         jdbc.update(
                 "INSERT INTO app_user_role(user_id,role_id) SELECT u.id,r.id FROM app_user u,app_role r WHERE u.username='auth-viewer' AND r.code='VIEWER'");
         jdbc.update(
+                "INSERT INTO app_user_role(user_id,role_id) SELECT u.id,r.id FROM app_user u,app_role r WHERE u.username='auth-reviewer' AND r.code='REVIEWER'");
+        jdbc.update(
                 "INSERT INTO app_user_role(user_id,role_id) SELECT u.id,r.id FROM app_user u,app_role r WHERE u.username='auth-admin' AND r.code IN ('PLANNER','USER_ADMIN')");
     }
 
     @Test
     void anonymousBusinessRequestIsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/master-data/overview")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/audit")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/health")).andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(username = "auth-viewer", roles = "VIEWER")
+    void viewerCannotReadAuditEvents() throws Exception {
+        mockMvc.perform(get("/api/audit")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "auth-planner", roles = "PLANNER")
+    void plannerCanReadAuditEvents() throws Exception {
+        mockMvc.perform(get("/api/audit?termCode=2026-FALL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.count").isNumber());
     }
 
     @Test
@@ -157,6 +180,31 @@ class AuthSecurityIntegrationTest {
         mockMvc.perform(get("/api/schedule-versions/" + archived + "/exports/xlsx"))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/schedule-versions/" + published + "/adjustments/commands"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "auth-reviewer", roles = "REVIEWER")
+    void reviewerCanInspectCandidateButCannotMutateOrPublish() throws Exception {
+        long candidate = seedVersion("CANDIDATE");
+        mockMvc.perform(get("/api/solve-readiness").param("termCode", "2026-FALL"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/schedule-versions/" + candidate))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/schedule-versions/" + candidate + "/diff"))
+                .andExpect(status().isOk());
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + candidate + "/adjustments/1")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"timeslotCode\":\"MON-1\",\"roomCode\":\"A101\",\"reason\":\"审核员调整\"}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + candidate + "/publish")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"releaseNote\":\"审核发布\"}"))
                 .andExpect(status().isForbidden());
     }
 

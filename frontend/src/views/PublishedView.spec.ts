@@ -55,4 +55,31 @@ describe('PublishedView', () => {
     expect(open).toHaveBeenNthCalledWith(3, '/api/schedule-versions/24/print?view=CLASS', '_blank')
     wrapper.unmount()
   })
+
+  it('loads a read-only board and switches the published resource view', async () => {
+    const calls: string[] = []
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      calls.push(url)
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
+      if (url.includes('/api/master-data/overview')) return response({
+        periods: [{ code: 'MON-1', label: '周一 第1节', weekday: 1, period: 1 }],
+        rooms: [{ code: 'A101', name: '教学楼 A101', capacity: 50 }],
+        studentGroups: [{ code: 'G7-1', name: '七年级1班' }],
+        teachers: [{ code: 'T001', name: '张老师' }],
+      })
+      if (url.includes('/api/schedule-versions/24/filtered?view=CLASS')) return response({ assignments: [{ occurrenceId: 1, subjectName: '数学', teacherName: '张老师', studentGroupName: '七年级1班', roomName: '教学楼 A101', weekday: 1, period: 1 }] })
+      if (url.includes('/api/schedule-versions/24/filtered?view=TEACHER')) return response({ assignments: [{ occurrenceId: 1, subjectName: '数学', teacherName: '张老师', studentGroupName: '七年级1班', roomName: '教学楼 A101', weekday: 1, period: 1 }] })
+      if (url.includes('/api/schedule-versions')) return response({ items: [{ id: 24, status: 'PUBLISHED', score: '0hard/0soft' }] })
+      return response({})
+    }))
+    const wrapper = mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="published-schedule-view"]').text()).toContain('数学')
+    await (wrapper.get('[data-testid="published-view-teacher"]').trigger('click'))
+    await flushPromises()
+    expect(calls.some(url => url.includes('/api/schedule-versions/24/filtered?view=TEACHER&resourceCode=T001'))).toBe(true)
+    expect(wrapper.get('[data-testid="published-view-teacher"]').attributes('aria-pressed')).toBe('true')
+    wrapper.unmount()
+  })
 })

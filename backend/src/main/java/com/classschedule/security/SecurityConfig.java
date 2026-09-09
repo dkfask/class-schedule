@@ -47,12 +47,25 @@ public class SecurityConfig {
                                                 "/actuator/health",
                                                 "/api/auth/login",
                                                 "/api/auth/register",
+                                                "/api/auth/registration-code",
                                                 "/api/auth/csrf")
                                         .permitAll()
                                         .requestMatchers("/api/auth/**")
                                         .authenticated()
                                         .requestMatchers("/api/schedule-versions/*/publish")
-                                        .hasRole("PLANNER")
+                                                .hasRole("PLANNER")
+                                        .requestMatchers("/api/audit/**")
+                                                .hasAnyAuthority("ROLE_PLANNER", "AUDIT_READ")
+                                        .requestMatchers("/api/problems/**")
+                                                .hasAnyAuthority("ROLE_PLANNER", "AUDIT_READ")
+                                        .requestMatchers("/api/notifications/**")
+                                                .authenticated()
+                                        .requestMatchers("/api/terms/copy/**")
+                                                .hasRole("PLANNER")
+                                        .requestMatchers("/api/rule-templates/**")
+                                                .hasRole("PLANNER")
+                                        .requestMatchers("/api/retrospectives/**")
+                                                .hasRole("PLANNER")
                                         .requestMatchers(
                                                 "/api/schedule-versions/*/adjustments/**",
                                                 "/api/schedule-versions/*/lock",

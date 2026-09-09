@@ -21,11 +21,13 @@ public class AppUserRepository implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String login) throws UsernameNotFoundException {
         List<Map<String, Object>> rows =
                 jdbc.queryForList(
-                        "SELECT id, username, password_hash, display_name, enabled FROM app_user WHERE username = ?",
-                        username);
+                        "SELECT id, username, password_hash, display_name, enabled FROM app_user WHERE username = ? OR LOWER(email) = LOWER(?) ORDER BY CASE WHEN username = ? THEN 0 ELSE 1 END LIMIT 1",
+                        login,
+                        login,
+                        login);
         if (rows.isEmpty()) throw new UsernameNotFoundException("用户名或密码错误");
         Map<String, Object> row = rows.get(0);
         List<GrantedAuthority> authorities =
@@ -45,23 +47,33 @@ public class AppUserRepository implements UserDetailsService {
                 .build();
     }
 
-    public UserProfile profile(String username) {
+    public UserProfile profile(String login) {
         try {
             return jdbc.queryForObject(
-                    "SELECT u.id, u.username, u.display_name, u.enabled, COALESCE(array_agg(DISTINCT r.code) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]) AS roles FROM app_user u LEFT JOIN app_user_role ur ON ur.user_id = u.id LEFT JOIN app_role r ON r.id = ur.role_id WHERE u.username = ? GROUP BY u.id, u.username, u.display_name, u.enabled",
+                    "SELECT u.id, u.username, u.email, u.email_verified_at, u.display_name, u.enabled, COALESCE(array_agg(DISTINCT r.code) FILTER (WHERE r.code IS NOT NULL), ARRAY[]::varchar[]) AS roles FROM app_user u LEFT JOIN app_user_role ur ON ur.user_id = u.id LEFT JOIN app_role r ON r.id = ur.role_id WHERE u.username = ? OR LOWER(u.email) = LOWER(?) GROUP BY u.id, u.username, u.email, u.email_verified_at, u.display_name, u.enabled ORDER BY CASE WHEN u.username = ? THEN 0 ELSE 1 END LIMIT 1",
                     (rs, rowNum) ->
                             new UserProfile(
                                     rs.getLong("id"),
                                     rs.getString("username"),
+                                    rs.getString("email"),
+                                    rs.getTimestamp("email_verified_at") != null,
                                     rs.getString("display_name"),
                                     rs.getBoolean("enabled"),
                                     Set.of((String[]) rs.getArray("roles").getArray())),
-                    username);
+                    login,
+                    login,
+                    login);
         } catch (org.springframework.dao.EmptyResultDataAccessException exception) {
-            throw new UsernameNotFoundException("用户不存在: " + username, exception);
+            throw new UsernameNotFoundException("用户不存在: " + login, exception);
         }
     }
 
     public record UserProfile(
-            long id, String username, String displayName, boolean enabled, Set<String> roles) {}
+            long id,
+            String username,
+            String email,
+            boolean emailVerified,
+            String displayName,
+            boolean enabled,
+            Set<String> roles) {}
 }

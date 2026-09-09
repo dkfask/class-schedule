@@ -142,10 +142,17 @@ public class SolveJobRepository {
         jdbc.update(
                 "UPDATE schedule_version SET status = 'CANCELLED' WHERE id = ? AND status = 'SOLVING'",
                 versionId);
-        return jdbc.update(
+        boolean finished = jdbc.update(
                         "UPDATE solve_job SET status = 'CANCELLED', finished_at = CURRENT_TIMESTAMP, lease_until = NULL WHERE id = ? AND status IN ('RUNNING','COMPLETING') AND cancel_requested = TRUE",
                         jobId)
                 == 1;
+        if (finished) {
+            jdbc.update(
+                    "INSERT INTO audit_event(action, aggregate_type, aggregate_id, actor, actor_kind, detail) VALUES ('SOLVE_CANCELLED', 'SOLVE_JOB', ?, 'worker', 'SERVICE', jsonb_build_object('versionId', ?::bigint))",
+                    String.valueOf(jobId),
+                    versionId);
+        }
+        return finished;
     }
 
     @Transactional
@@ -200,6 +207,10 @@ public class SolveJobRepository {
             jdbc.update(
                     "UPDATE schedule_version SET status = 'CANCELLED' WHERE id = (SELECT schedule_version_id FROM solve_job WHERE id = ?) AND status = 'SOLVING'",
                     jobId);
+            jdbc.update(
+                    "INSERT INTO audit_event(action, aggregate_type, aggregate_id, actor, actor_kind, detail) VALUES ('SOLVE_CANCELLED', 'SOLVE_JOB', ?, ?, 'USER', jsonb_build_object('source', 'request'))",
+                    String.valueOf(jobId),
+                    requesterUsername == null ? "system" : requesterUsername);
             return true;
         }
         return jdbc.update(
@@ -259,10 +270,18 @@ public class SolveJobRepository {
                 score,
                 !identityComplete(solution),
                 versionId);
-        return jdbc.update(
+        boolean completed = jdbc.update(
                         "UPDATE solve_job SET status = 'COMPLETED', progress = 100, error_code = NULL, error_message = NULL, finished_at = CURRENT_TIMESTAMP, lease_until = NULL WHERE id = ? AND status = 'COMPLETING' AND cancel_requested = FALSE",
                         jobId)
                 == 1;
+        if (completed) {
+            jdbc.update(
+                    "INSERT INTO audit_event(action, aggregate_type, aggregate_id, actor, actor_kind, detail) VALUES ('SOLVE_COMPLETED', 'SOLVE_JOB', ?, 'worker', 'SERVICE', jsonb_build_object('versionId', ?::bigint, 'score', ?::text))",
+                    String.valueOf(jobId),
+                    versionId,
+                    score);
+        }
+        return completed;
     }
 
     private boolean identityComplete(Timetable solution) {
@@ -343,7 +362,7 @@ public class SolveJobRepository {
                         };
         try {
             return jdbc.queryForObject(
-                    "SELECT j.id, j.schedule_version_id, j.status AS job_status, v.status AS version_status, j.progress, v.score, j.error_code, j.error_message, j.attempt, j.started_at, j.heartbeat_at, j.finished_at, j.cancel_requested, j.deadline_at FROM solve_job j JOIN schedule_version v ON v.id = j.schedule_version_id LEFT JOIN app_user u ON u.id = j.submitted_by_user_id WHERE j.id = ?"
+                    "SELECT j.id, j.schedule_version_id, j.status AS job_status, v.status AS version_status, j.progress, v.score, j.error_code, j.error_message, j.attempt, j.created_at, j.started_at, j.heartbeat_at, j.finished_at, j.cancel_requested, j.deadline_at FROM solve_job j JOIN schedule_version v ON v.id = j.schedule_version_id LEFT JOIN app_user u ON u.id = j.submitted_by_user_id WHERE j.id = ?"
                             + ownerClause,
                     (rs, rowNum) -> mapDetails(rs),
                     args);
@@ -363,6 +382,7 @@ public class SolveJobRepository {
                 rs.getString("error_code"),
                 rs.getString("error_message"),
                 rs.getInt("attempt"),
+                stringTime(rs.getObject("created_at", OffsetDateTime.class)),
                 stringTime(rs.getObject("started_at", OffsetDateTime.class)),
                 stringTime(rs.getObject("heartbeat_at", OffsetDateTime.class)),
                 stringTime(rs.getObject("finished_at", OffsetDateTime.class)),

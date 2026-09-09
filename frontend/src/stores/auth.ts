@@ -5,6 +5,8 @@ import { clearCsrfToken, http, jsonRequest } from '../api/http'
 export interface AuthUser {
   id: number
   username: string
+  email: string | null
+  emailVerified: boolean
   displayName: string
   enabled: boolean
   roles: string[]
@@ -17,6 +19,10 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => user.value !== null)
   const isPlanner = computed(() => user.value?.roles.includes('PLANNER') ?? false)
   const isViewer = computed(() => user.value?.roles.includes('VIEWER') ?? false)
+  const isReviewer = computed(() => user.value?.roles.includes('REVIEWER') ?? false)
+  const isBusinessOwner = computed(() => user.value?.roles.includes('BUSINESS_OWNER') ?? false)
+  const canReview = computed(() => isPlanner.value || isReviewer.value || isBusinessOwner.value)
+  const canReadAudit = computed(() => isPlanner.value || (user.value?.roles.includes('AUDIT_READ') ?? false))
 
   async function loadMe() {
     loading.value = true
@@ -50,5 +56,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, loading, initialized, isAuthenticated, isPlanner, isViewer, loadMe, login, logout }
+  return { user, loading, initialized, isAuthenticated, isPlanner, isViewer, isReviewer, isBusinessOwner, canReview, canReadAudit, loadMe, login, logout }
 })

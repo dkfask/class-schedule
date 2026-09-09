@@ -1,41 +1,42 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '@playwright/test'
 
-// 注册流程：公开注册默认赋予 PLANNER 排课员角色，注册登录后即可直接进入排课工作台
-test.describe('账号注册（TC-AUTH）', () => {
-  test('注册新账号并可以登录，直接进入排课工作台具备排课员功能', async ({ page }) => {
-    const username = `e2e-user-${Date.now()}`;
-    await page.goto('/login');
-    await page.getByRole('link', { name: '没有账号？注册' }).click();
-    await expect(page.getByRole('heading', { name: '注册新账号' })).toBeVisible();
-    await page.getByRole('textbox', { name: '用户名' }).fill(username);
-    await page.getByRole('textbox', { name: '显示名称' }).fill('E2E 排课员');
-    const secret = `pw-${Math.random().toString(36).slice(2, 10)}`;
-    await page.getByRole('textbox', { name: '密码' }).fill(secret);
-    await page.getByRole('button', { name: '注册' }).click();
-    await expect(page.locator('body')).toContainText('注册成功，请使用新账号登录');
-    // 用新账号登录（默认 PLANNER 角色直接导航至排课工作台）
-    await page.getByRole('textbox', { name: '密码' }).fill(secret);
-    await page.getByRole('button', { name: '登录' }).click();
-    await expect(page).toHaveURL(/\/workspace/, { timeout: 15_000 });
-    await expect(page.locator('body')).toContainText('排课员');
-    // PLANNER 侧边栏包含排课工作台与排课管理入口
-    await expect(page.getByRole('link', { name: /排课工作台/ })).toBeVisible();
-    await expect(page.getByRole('link', { name: /基础数据/ })).toBeVisible();
-  });
+test.describe('邮箱注册（TC-AUTH）', () => {
+  test('邮箱验证码注册并可以登录，直接进入排课工作台', async ({ page }) => {
+    test.skip(!process.env.E2E_EMAIL, '设置 E2E_EMAIL 后运行真实邮箱注册流程')
+    const email = process.env.E2E_EMAIL as string
+    const secret = process.env.E2E_PASSWORD ?? `pw-${Math.random().toString(36).slice(2, 10)}`
+    await page.goto('/login')
+    const registerLink = page.getByRole('link', { name: '没有账号？注册' })
+    test.skip(await registerLink.count() === 0, '当前构建已关闭邮箱注册')
+    await registerLink.click()
+    await expect(page.getByRole('heading', { name: '注册新账号' })).toBeVisible()
+    await page.getByRole('textbox', { name: '邮箱' }).fill(email)
+    await page.getByRole('button', { name: '发送验证码' }).click()
+    const code = process.env.E2E_VERIFICATION_CODE
+    test.skip(!code, '设置 E2E_VERIFICATION_CODE 后运行真实验证码提交流程')
+    await page.getByRole('textbox', { name: '邮箱验证码' }).fill(code as string)
+    await page.getByRole('textbox', { name: '显示名称' }).fill('E2E 排课员')
+    await page.getByRole('textbox', { name: '密码' }).fill(secret)
+    await page.getByRole('textbox', { name: '确认密码' }).fill(secret)
+    await page.getByRole('button', { name: '注册' }).click()
+    await expect(page.locator('body')).toContainText('注册成功，请使用邮箱登录')
+    await page.getByRole('textbox', { name: '邮箱或用户名' }).fill(email)
+    await page.getByRole('textbox', { name: '密码' }).fill(secret)
+    await page.getByRole('button', { name: '登录' }).click()
+    await expect(page).toHaveURL(/\/overview/, { timeout: 15_000 })
+    await expect(page.locator('body')).toContainText('排课员')
+  })
 
-  test('重复用户名返回可诊断错误', async ({ page }) => {
-    const username = `e2e-dup-${Date.now()}`;
-    for (let round = 0; round < 2; round += 1) {
-      await page.goto('/login');
-      await page.getByRole('link', { name: '没有账号？注册' }).click();
-      await page.getByRole('textbox', { name: '用户名' }).fill(username);
-      await page.getByRole('textbox', { name: '密码' }).fill(`pw-${Math.random().toString(36).slice(2, 10)}`);
-      await page.getByRole('button', { name: '注册' }).click();
-      if (round === 0) {
-        await expect(page.locator('body')).toContainText('注册成功，请使用新账号登录', { timeout: 15_000 });
-      } else {
-        await expect(page.locator('body')).toContainText('用户名已被占用', { timeout: 15_000 });
-      }
-    }
-  });
-});
+  test('密码确认不一致时不提交注册请求', async ({ page }) => {
+    await page.goto('/login')
+    const registerLink = page.getByRole('link', { name: '没有账号？注册' })
+    test.skip(await registerLink.count() === 0, '当前构建已关闭邮箱注册')
+    await registerLink.click()
+    await page.getByRole('textbox', { name: '邮箱' }).fill(`e2e-${Date.now()}@example.com`)
+    await page.getByRole('textbox', { name: '密码' }).fill('password-123')
+    await page.getByRole('textbox', { name: '确认密码' }).fill('password-456')
+    await page.getByRole('textbox', { name: '邮箱验证码' }).fill('123456')
+    await page.getByRole('button', { name: '注册' }).click()
+    await expect(page.locator('body')).toContainText('两次输入的密码不一致')
+  })
+})

@@ -10,6 +10,16 @@ type RequirementFeatureItem = { requirementCode: string; featureCode: string }
 type ActivityGroupItem = { code: string; name: string; activityType: string; requirementCodes: string[] }
 type RuleCatalogItem = { ruleCode: string; label: string; valueType: 'INTEGER' | 'TEXT'; scopes: string[] }
 type RuleItem = { id: number; rule_code: string; scope_type: string; scope_code?: string; int_value?: number; text_value?: string; severity: string; weight: number }
+type RuleExplanation = { summary: string; impact: string; scope: string }
+
+const RULE_EXPLANATIONS: Record<string, RuleExplanation> = {
+  TEACHER_DAILY_MAX: { summary: '限制同一教师每天可承担的最大课时数。', impact: '超过阈值会挤压教师备课与休息时间；设置为 HARD 时会阻止发布。', scope: '学期或指定教师' },
+  STUDENT_GROUP_DAILY_MAX: { summary: '限制同一班级每天可安排的最大课时数。', impact: '用于避免学生单日课程过密；设置为 HARD 时会阻止发布。', scope: '学期或指定班级' },
+  SUBJECT_DAILY_MAX: { summary: '控制同一课程在一天内最多出现的次数。', impact: '用于分散课程安排，减少同一学科连续堆叠。', scope: '学期或指定课程' },
+  SUBJECT_MIN_SPREAD_DAYS: { summary: '尽量把同一课程分散到指定数量的工作日。', impact: '有助于形成均衡教学节奏，通常作为优化目标参与评分。', scope: '学期或指定课程' },
+  TEACHER_GAP_POLICY: { summary: '控制教师课表中的空档策略。', impact: '可减少无意义的等待时段，提升教师日程连续性。', scope: '学期或指定教师' },
+  TEACHER_PREFERRED_PERIOD: { summary: '记录教师偏好的节次，供求解器进行软约束优化。', impact: '偏好未满足不会阻止发布，但会影响方案质量评分。', scope: '指定教师' },
+}
 
 const term = useTermStore()
 const resourceType = ref('TEACHER')
@@ -46,6 +56,7 @@ const ruleWeight = ref(1)
 const selectedRule = computed(() => ruleCatalog.value.find(item => item.ruleCode === ruleCode.value))
 const ruleScopes = computed(() => selectedRule.value?.scopes ?? [])
 const ruleUsesText = computed(() => selectedRule.value?.valueType === 'TEXT')
+const selectedRuleExplanation = computed(() => RULE_EXPLANATIONS[ruleCode.value] ?? { summary: '该规则由当前后端规则目录提供。', impact: '请结合规则级别和权重确认它对发布的影响。', scope: '由规则目录决定' })
 let loadSequence = 0
 
 function normalizeRuleScope() {
@@ -56,6 +67,14 @@ function normalizeRuleScope() {
 function requestFailure(label: string, reason: unknown) {
   const detail = reason instanceof Error ? reason.message : '请求失败'
   return `${label}（${detail}）`
+}
+
+function ruleLabel(code: string) {
+  return ruleCatalog.value.find(item => item.ruleCode === code)?.label ?? code
+}
+
+function severityLabel(severity: string) {
+  return ({ HARD: '硬约束', MEDIUM: '中度优化', SOFT: '软约束' }[severity] ?? severity)
 }
 
 async function loadRules() {
@@ -195,7 +214,7 @@ onMounted(() => void loadAll())
   <header class="topbar">
     <div>
       <p class="eyebrow">RULE FACTS / PLAN</p>
-      <h1>规则事实与质量约束</h1>
+      <h1>规则中心与质量约束</h1>
     </div>
     <div class="top-actions">
       <span class="sync-state">● 可写配置</span>
@@ -368,6 +387,15 @@ onMounted(() => void loadAll())
           <span>规则权重</span>
           <input v-model.number="ruleWeight" class="styled-input" type="number" min="1" />
         </label>
+        <div v-if="selectedRule" class="rule-explanation" data-testid="rule-explanation">
+          <div class="explanation-heading">
+            <strong>{{ selectedRule.label }}</strong>
+            <span class="severity-pill" :class="ruleSeverity.toLowerCase()">{{ severityLabel(ruleSeverity) }}</span>
+          </div>
+          <p>{{ selectedRuleExplanation.summary }}</p>
+          <small>{{ selectedRuleExplanation.impact }}</small>
+          <div class="explanation-meta"><span>作用域：{{ selectedRuleExplanation.scope }}</span><span>参数类型：{{ selectedRule.valueType === 'INTEGER' ? '整数阈值' : '文本策略' }}</span></div>
+        </div>
         <button class="rule-btn" :disabled="saving || !ruleCode" @click="saveRule">保存质量规则</button>
       </div>
     </article>
@@ -418,8 +446,8 @@ onMounted(() => void loadAll())
       <div class="fact-column">
         <h3>高级质量规则 · {{ rules.length }}</h3>
         <div v-for="item in rules" :key="item.id" class="rule-list-row">
-          <span>{{ item.rule_code }} · {{ item.scope_type }}{{ item.scope_code ? `:${item.scope_code}` : '' }}</span>
-          <small>{{ item.severity }} · {{ item.int_value ?? item.text_value }} · w{{ item.weight }} <button class="del-btn" @click="deleteRule(item.id)">删除</button></small>
+          <span>{{ ruleLabel(item.rule_code) }} · {{ item.scope_type }}{{ item.scope_code ? `:${item.scope_code}` : '' }}</span>
+          <small><span class="severity-pill" :class="item.severity.toLowerCase()">{{ severityLabel(item.severity) }}</span> · {{ item.int_value ?? item.text_value }} · w{{ item.weight }} · 当前生效 · 规则中心 <button class="del-btn" @click="deleteRule(item.id)">删除</button></small>
         </div>
       </div>
     </div>
@@ -486,6 +514,52 @@ onMounted(() => void loadAll())
   border-radius: 8px;
   border: 1px solid #edf2ef;
 }
+.rule-explanation {
+  grid-column: 1 / -1;
+  padding: 11px 13px;
+  border: 1px solid #d9e8e0;
+  border-left: 3px solid #4d8a78;
+  border-radius: 7px;
+  background: #f4faf7;
+}
+.explanation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.rule-explanation p {
+  margin: 6px 0 3px;
+  color: #173b36;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rule-explanation small {
+  display: block;
+  color: #587069;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.explanation-meta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  color: #50605c;
+  font-size: 11px;
+}
+.severity-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.severity-pill.hard { background: #fee2e2; color: #b91c1c; }
+.severity-pill.medium { background: #fef3c7; color: #92400e; }
+.severity-pill.soft { background: #dbeafe; color: #1d4ed8; }
 .inline-message {
   margin: 0 0 16px;
   padding: 10px 14px;
@@ -501,5 +575,8 @@ onMounted(() => void loadAll())
   background: #fef2f2;
   border: 1px solid #fecaca;
   color: #991b1b;
+}
+@media (max-width: 720px) {
+  .explanation-heading { align-items: flex-start; flex-direction: column; }
 }
 </style>

@@ -283,6 +283,40 @@ class ScheduleCommandIntegrationTest {
     }
 
     @Test
+    void assignmentLockProtectsOneCourseAndUsesVersionRevision() throws Exception {
+        long version = seedCandidateVersion();
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + version + "/adjustments/1/lock")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                Map.of("reason", "校务确认", "expectedRevision", 0))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("LOCKED"))
+                .andExpect(jsonPath("$.revision").value(1));
+        assertThat(
+                        jdbc.queryForObject(
+                                "SELECT locked FROM schedule_assignment WHERE schedule_version_id=? AND occurrence_id=1",
+                                Boolean.class,
+                                version))
+                .isTrue();
+        mockMvc.perform(
+                        delete("/api/schedule-versions/" + version + "/adjustments/1/lock")
+                                .header("If-Match", "1")
+                                .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UNLOCKED"))
+                .andExpect(jsonPath("$.revision").value(2));
+        assertThat(
+                        jdbc.queryForObject(
+                                "SELECT locked FROM schedule_assignment WHERE schedule_version_id=? AND occurrence_id=1",
+                                Boolean.class,
+                                version))
+                .isFalse();
+    }
+
+    @Test
     void commandHistoryReturnsGroupedChildren() throws Exception {
         long version = seedCandidateVersion();
         String body =

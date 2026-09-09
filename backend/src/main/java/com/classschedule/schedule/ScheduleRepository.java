@@ -153,9 +153,10 @@ public class ScheduleRepository {
         if (actor == null || actor.isBlank()) return false;
         Integer count =
                 jdbc.queryForObject(
-                        "SELECT COUNT(*) FROM schedule_version v JOIN schedule_scenario s ON s.id = v.scenario_id LEFT JOIN app_user owner ON owner.id = v.owner_user_id WHERE v.id = ? AND (? = 'system' OR (owner.username = ? AND owner.enabled = TRUE AND s.owner_user_id = v.owner_user_id) OR (v.status = 'PUBLISHED' AND EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user viewer ON viewer.id = ur.user_id WHERE viewer.username = ? AND viewer.enabled = TRUE AND r.code = 'VIEWER' AND r.active = TRUE)) OR EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user admin ON admin.id = ur.user_id WHERE admin.username = ? AND admin.enabled = TRUE AND r.code = 'USER_ADMIN' AND r.active = TRUE))",
+                        "SELECT COUNT(*) FROM schedule_version v JOIN schedule_scenario s ON s.id = v.scenario_id LEFT JOIN app_user owner ON owner.id = v.owner_user_id WHERE v.id = ? AND (? = 'system' OR (owner.username = ? AND owner.enabled = TRUE AND s.owner_user_id = v.owner_user_id) OR EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user reviewer ON reviewer.id = ur.user_id WHERE reviewer.username = ? AND reviewer.enabled = TRUE AND r.code IN ('REVIEWER', 'BUSINESS_OWNER') AND r.active = TRUE) OR (v.status = 'PUBLISHED' AND EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user viewer ON viewer.id = ur.user_id WHERE viewer.username = ? AND viewer.enabled = TRUE AND r.code = 'VIEWER' AND r.active = TRUE)) OR EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user admin ON admin.id = ur.user_id WHERE admin.username = ? AND admin.enabled = TRUE AND r.code = 'USER_ADMIN' AND r.active = TRUE))",
                         Integer.class,
                         versionId,
+                        actor,
                         actor,
                         actor,
                         actor,
@@ -799,7 +800,7 @@ public class ScheduleRepository {
         String ownerFilter =
                 actor == null || actor.isBlank()
                         ? ""
-                        : " AND (? = 'system' OR (owner.username = ? AND owner.enabled = TRUE AND s.owner_user_id = v.owner_user_id) OR (v.status = 'PUBLISHED' AND EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user viewer ON viewer.id = ur.user_id WHERE viewer.username = ? AND viewer.enabled = TRUE AND r.code = 'VIEWER' AND r.active = TRUE)) OR EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user admin ON admin.id = ur.user_id WHERE admin.username = ? AND admin.enabled = TRUE AND r.code = 'USER_ADMIN' AND r.active = TRUE))";
+                        : " AND (? = 'system' OR (owner.username = ? AND owner.enabled = TRUE AND s.owner_user_id = v.owner_user_id) OR EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user reviewer ON reviewer.id = ur.user_id WHERE reviewer.username = ? AND reviewer.enabled = TRUE AND r.code IN ('REVIEWER', 'BUSINESS_OWNER') AND r.active = TRUE) OR (v.status = 'PUBLISHED' AND EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user viewer ON viewer.id = ur.user_id WHERE viewer.username = ? AND viewer.enabled = TRUE AND r.code = 'VIEWER' AND r.active = TRUE)) OR EXISTS (SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id JOIN app_user admin ON admin.id = ur.user_id WHERE admin.username = ? AND admin.enabled = TRUE AND r.code = 'USER_ADMIN' AND r.active = TRUE))";
         String statusFilter = normalizedStatus.isBlank() ? "" : " AND v.status = ?";
         String from =
                 " FROM schedule_version v JOIN schedule_scenario s ON s.id = v.scenario_id JOIN academic_term t ON t.id = s.term_id LEFT JOIN app_user owner ON owner.id = v.owner_user_id";
@@ -808,6 +809,7 @@ public class ScheduleRepository {
         baseParams.add(normalizedTerm);
         if (!normalizedStatus.isBlank()) baseParams.add(normalizedStatus);
         if (actor != null && !actor.isBlank()) {
+            baseParams.add(actor);
             baseParams.add(actor);
             baseParams.add(actor);
             baseParams.add(actor);
@@ -920,6 +922,55 @@ public class ScheduleRepository {
         return adjust(versionId, occurrenceId, timeslotCode, roomCode, reason, actor, null, null)
                 .commandIds()
                 .get(0);
+    }
+
+    @Transactional
+    public long lockAssignment(
+            long versionId, long occurrenceId, String reason, String actor, Long expectedRevision) {
+        if (reason == null || reason.isBlank()) throw new IllegalArgumentException("锁定原因不能为空");
+        LockedVersion lockedVersion = lockEditableVersion(versionId, null, actor);
+        requireExpectedRevision(versionId, lockedVersion.revision(), expectedRevision);
+        ScheduleAssignmentView current = assignment(findVersion(versionId), occurrenceId);
+        if (current.locked()) return lockedVersion.revision();
+        int updated =
+                jdbc.update(
+                        "UPDATE schedule_assignment SET locked = TRUE, source = 'MANUAL' WHERE schedule_version_id = ? AND occurrence_id = ? AND locked = FALSE",
+                        versionId,
+                        occurrenceId);
+        if (updated != 1)
+                throw new VersionMutationException(
+                        "ASSIGNMENT_STATE_CONFLICT",
+                        versionId,
+                        currentRevision(versionId),
+                        "课次状态已被其他操作更新，请重新加载");
+        long resultRevision = lockedVersion.revision() + 1;
+        updateRevision(versionId, lockedVersion.revision(), resultRevision, "DRAFT");
+        insertAudit(versionId, "ASSIGNMENT_LOCK", resultRevision, String.valueOf(occurrenceId), actor);
+        return resultRevision;
+    }
+
+    @Transactional
+    public long unlockAssignment(
+            long versionId, long occurrenceId, String actor, Long expectedRevision) {
+        LockedVersion lockedVersion = lockEditableVersion(versionId, null, actor);
+        requireExpectedRevision(versionId, lockedVersion.revision(), expectedRevision);
+        ScheduleAssignmentView current = assignment(findVersion(versionId), occurrenceId);
+        if (!current.locked()) return lockedVersion.revision();
+        int updated =
+                jdbc.update(
+                        "UPDATE schedule_assignment SET locked = FALSE, source = 'MANUAL' WHERE schedule_version_id = ? AND occurrence_id = ? AND locked = TRUE",
+                        versionId,
+                        occurrenceId);
+        if (updated != 1)
+                throw new VersionMutationException(
+                        "ASSIGNMENT_STATE_CONFLICT",
+                        versionId,
+                        currentRevision(versionId),
+                        "课次状态已被其他操作更新，请重新加载");
+        long resultRevision = lockedVersion.revision() + 1;
+        updateRevision(versionId, lockedVersion.revision(), resultRevision, "DRAFT");
+        insertAudit(versionId, "ASSIGNMENT_UNLOCK", resultRevision, String.valueOf(occurrenceId), actor);
+        return resultRevision;
     }
 
     @Transactional
@@ -1160,8 +1211,18 @@ public class ScheduleRepository {
 
     private void insertAudit(
             long versionId, String action, long revision, String correlationId, String actor) {
+        insertAudit(versionId, action, revision, correlationId, actor, null);
+    }
+
+    private void insertAudit(
+            long versionId,
+            String action,
+            long revision,
+            String correlationId,
+            String actor,
+            String releaseNote) {
         jdbc.update(
-                "INSERT INTO audit_event (action, aggregate_type, aggregate_id, actor, actor_user_id, actor_kind, correlation_id, outcome, detail) VALUES (?, 'SCHEDULE_VERSION', ?, ?, (SELECT id FROM app_user WHERE username = ?), CASE WHEN ? = 'worker' THEN 'SERVICE' ELSE 'USER' END, ?, 'SUCCESS', jsonb_build_object('revision', ?::bigint, 'correlationId', ?::text))",
+                "INSERT INTO audit_event (action, aggregate_type, aggregate_id, actor, actor_user_id, actor_kind, correlation_id, outcome, detail) VALUES (?, 'SCHEDULE_VERSION', ?, ?, (SELECT id FROM app_user WHERE username = ?), CASE WHEN ? = 'worker' THEN 'SERVICE' ELSE 'USER' END, ?, 'SUCCESS', jsonb_build_object('revision', ?::bigint, 'correlationId', ?::text, 'releaseNote', ?::text))",
                 action,
                 String.valueOf(versionId),
                 actor,
@@ -1169,7 +1230,8 @@ public class ScheduleRepository {
                 actor,
                 correlationId,
                 revision,
-                correlationId);
+                correlationId,
+                releaseNote);
     }
 
     private record CommandRow(
@@ -1569,6 +1631,11 @@ public class ScheduleRepository {
 
     @Transactional
     public boolean publish(long versionId, Long expectedRevision, String actor) {
+        return publish(versionId, expectedRevision, actor, null);
+    }
+
+    @Transactional
+    public boolean publish(long versionId, Long expectedRevision, String actor, String releaseNote) {
         Map<String, Object> row;
         try {
             row =
@@ -1622,7 +1689,7 @@ public class ScheduleRepository {
                         versionId,
                         revision);
         if (updated != 1) return false;
-        insertAudit(versionId, "PUBLISH", revision + 1, null, actor);
+        insertAudit(versionId, "PUBLISH", revision + 1, null, actor, releaseNote);
         return true;
     }
 

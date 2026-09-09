@@ -16,6 +16,18 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    test-connection: false
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:true}
+      mail.smtp.connectiontimeout: ${SMTP_CONNECTION_TIMEOUT:5000}
+      mail.smtp.timeout: ${SMTP_TIMEOUT:5000}
+      mail.smtp.writetimeout: ${SMTP_WRITE_TIMEOUT:5000}
 
 server:
   port: ${SERVER_PORT:8080}
@@ -28,8 +40,14 @@ app:
       username: ${APP_AUTH_BOOTSTRAP_USERNAME:}
       password: ${APP_AUTH_BOOTSTRAP_PASSWORD:}
     registration:
-      enabled: ${APP_AUTH_REGISTRATION_ENABLED:true}
+      enabled: ${APP_AUTH_REGISTRATION_ENABLED:false}
       default-role: ${APP_AUTH_REGISTRATION_DEFAULT_ROLE:PLANNER}
+    email:
+      code-ttl: ${APP_AUTH_EMAIL_CODE_TTL:10m}
+      resend-interval: ${APP_AUTH_EMAIL_RESEND_INTERVAL:60s}
+      max-attempts: ${APP_AUTH_EMAIL_MAX_ATTEMPTS:5}
+      code-secret: ${APP_AUTH_EMAIL_CODE_SECRET:change-this-email-code-secret}
+      from: ${MAIL_FROM:no-reply@class-schedule.local}
   pdf:
     font-path: ${APP_PDF_FONT_PATH:}
     font-name: ${APP_PDF_FONT_NAME:}
@@ -39,6 +57,9 @@ app:
     model: ${APP_AI_MODEL:}
 
 management:
+  health:
+    mail:
+      enabled: ${app.auth.registration.enabled:false}
   endpoints:
     web:
       exposure:

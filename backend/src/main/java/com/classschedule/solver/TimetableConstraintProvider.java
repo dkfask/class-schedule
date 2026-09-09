@@ -5,6 +5,7 @@ import ai.timefold.solver.core.api.score.stream.Constraint;
 import ai.timefold.solver.core.api.score.stream.ConstraintCollectors;
 import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
 import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
+import ai.timefold.solver.core.api.score.stream.Joiners;
 
 public class TimetableConstraintProvider implements ConstraintProvider {
     @Override
@@ -36,7 +37,8 @@ public class TimetableConstraintProvider implements ConstraintProvider {
     }
 
     Constraint teacherConflict(ConstraintFactory factory) {
-        return factory.forEachUniquePair(LessonOccurrence.class)
+        return factory.forEachUniquePair(
+                        LessonOccurrence.class, Joiners.equal(LessonOccurrence::getTeacherCode))
                 .filter(
                         (left, right) ->
                                 overlaps(left, right)
@@ -47,7 +49,8 @@ public class TimetableConstraintProvider implements ConstraintProvider {
     }
 
     Constraint studentGroupConflict(ConstraintFactory factory) {
-        return factory.forEachUniquePair(LessonOccurrence.class)
+        return factory.forEachUniquePair(
+                        LessonOccurrence.class, Joiners.equal(LessonOccurrence::getStudentGroupCode))
                 .filter(
                         (left, right) ->
                                 overlaps(left, right)
@@ -64,7 +67,9 @@ public class TimetableConstraintProvider implements ConstraintProvider {
     }
 
     private Constraint roomConflict(ConstraintFactory factory) {
-        return factory.forEachUniquePair(LessonOccurrence.class)
+        return factory.forEachUniquePair(
+                        LessonOccurrence.class,
+                        Joiners.equal(item -> item.getRoom() == null ? null : item.getRoom().getId()))
                 .filter(
                         (left, right) ->
                                 overlaps(left, right)
@@ -173,7 +178,10 @@ public class TimetableConstraintProvider implements ConstraintProvider {
     }
 
     private Constraint activityGroupSynchronization(ConstraintFactory factory) {
-        return factory.forEachUniquePair(LessonOccurrence.class)
+        return factory.forEachUniquePair(
+                        LessonOccurrence.class,
+                        Joiners.equal(LessonOccurrence::getActivityGroupCode),
+                        Joiners.equal(LessonOccurrence::getActivityIndex))
                 .filter(
                         (left, right) ->
                                 same(left.getActivityGroupCode(), right.getActivityGroupCode())
@@ -193,7 +201,8 @@ public class TimetableConstraintProvider implements ConstraintProvider {
     }
 
     private Constraint consecutiveActivity(ConstraintFactory factory) {
-        return factory.forEachUniquePair(LessonOccurrence.class)
+        return factory.forEachUniquePair(
+                        LessonOccurrence.class, Joiners.equal(LessonOccurrence::getActivityGroupCode))
                 .filter(
                         (left, right) ->
                                 same(left.getActivityGroupCode(), right.getActivityGroupCode())

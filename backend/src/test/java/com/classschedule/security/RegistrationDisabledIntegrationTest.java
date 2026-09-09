@@ -1,6 +1,7 @@
 package com.classschedule.security;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -39,12 +40,30 @@ class RegistrationDisabledIntegrationTest {
     @Autowired MockMvc mockMvc;
 
     @Test
+    void healthRemainsUpWithoutSmtpWhenRegistrationIsDisabled() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+    }
+
+    @Test
+    void registrationCodeReturnsForbiddenWhenDisabled() throws Exception {
+        mockMvc.perform(
+                        post("/api/auth/registration-code")
+                                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"email\":\"disabled@example.com\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("REGISTRATION_DISABLED"));
+    }
+
+    @Test
     void registerReturnsForbiddenWhenDisabled() throws Exception {
         mockMvc.perform(
                         post("/api/auth/register")
                                 .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"username\":\"blocked-user\",\"password\":\"password-123\",\"displayName\":\"\"}"))
+                                .content("{\"email\":\"blocked@example.com\",\"password\":\"password-123\",\"displayName\":\"\",\"verificationCode\":\"123456\"}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("REGISTRATION_DISABLED"));
     }

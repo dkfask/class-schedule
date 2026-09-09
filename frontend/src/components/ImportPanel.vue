@@ -12,12 +12,24 @@ export interface ImportIssue {
   message: string
 }
 
+interface ImportSheetStat {
+  sheet: string
+  rows: number
+  created: number
+  updated: number
+  deactivated: number
+}
+
 export interface ImportPreview {
   batchId: number
   status: string
   sha256?: string
   sheets?: string[]
   issues: ImportIssue[]
+  templateType?: string
+  templateVersion?: string
+  schemaHash?: string
+  sheetStats?: ImportSheetStat[]
 }
 
 interface ImportResult {
@@ -26,6 +38,7 @@ interface ImportResult {
   importedRows?: number
   issueCount?: number
   message?: string
+  sheetStats?: ImportSheetStat[]
 }
 
 const term = useTermStore()
@@ -36,6 +49,7 @@ const preview = ref<ImportPreview | null>(null)
 const confirmation = ref<ImportResult | null>(null)
 const previewLoading = ref(false)
 const confirmLoading = ref(false)
+const templateDownloaded = ref(false)
 const message = ref('')
 const messageType = ref<'success' | 'error' | 'info'>('info')
 
@@ -45,6 +59,44 @@ const termLabel = computed(() => {
 })
 const canImport = computed(() => term.ready.value && term.hasValidTerm.value)
 const canConfirm = computed(() => canImport.value && preview.value?.status === 'VALIDATED' && !previewLoading.value)
+const currentImportStep = computed(() => {
+  if (confirmation.value?.status === 'IMPORTED') return 6
+  if (preview.value && preview.value.status !== 'VALIDATED') return 5
+  if (preview.value?.status === 'VALIDATED') return 6
+  if (selectedFileName.value || previewLoading.value) return 3
+  return 2
+})
+const importSteps = computed(() => [
+  { number: '01', label: '下载模板', optional: true, state: templateDownloaded.value ? 'done' : 'pending' },
+  ...['选择文件', '结构检查', '数据预览', '修复问题', '确认导入'].map((label, index) => {
+    const number = index + 2
+    return { number: String(number).padStart(2, '0'), label, state: currentImportStep.value > number ? 'done' : currentImportStep.value === number ? 'active' : 'pending' }
+  }),
+])
+
+const issueCategory = (code: string) => {
+  if (['UNKNOWN_TEMPLATE', 'UNKNOWN_SHEET', 'DUPLICATE_SHEET', 'INVALID_SHEET_ORDER', 'MISSING_SHEET', 'INVALID_HEADER', 'EXTRA_COLUMN'].includes(code)) return '模板结构'
+  if (code.includes('REFERENCE') || code.includes('CODE') || code.includes('DUPLICATE')) return '编码与引用'
+  if (code.includes('PERIOD') || code.includes('TIME') || code.includes('DURATION') || code === 'TERM_MISMATCH') return '课时与时间'
+  if (code.includes('FILE') || code.includes('WORKBOOK') || code.includes('CELL') || code.includes('ROW')) return '文件与内容'
+  return '业务数据'
+}
+const issueGroups = computed(() => {
+  const groups = new Map<string, number>()
+  for (const issue of preview.value?.issues ?? []) groups.set(issueCategory(issue.code), (groups.get(issueCategory(issue.code)) ?? 0) + 1)
+  return [...groups.entries()].map(([label, count]) => ({ label, count }))
+})
+
+function summarizeStats(stats?: ImportSheetStat[]) {
+  return (stats ?? []).reduce((summary, stat) => ({
+    rows: summary.rows + stat.rows,
+    created: summary.created + stat.created,
+    updated: summary.updated + stat.updated,
+    deactivated: summary.deactivated + stat.deactivated,
+  }), { rows: 0, created: 0, updated: 0, deactivated: 0 })
+}
+const previewTotals = computed(() => summarizeStats(preview.value?.sheetStats))
+const confirmationTotals = computed(() => summarizeStats(confirmation.value?.sheetStats))
 
 function setMessage(text: string, type: 'success' | 'error' | 'info' = 'info') {
   message.value = text
@@ -106,6 +158,7 @@ async function downloadTemplate() {
     anchor.click()
     anchor.remove()
     URL.revokeObjectURL(href)
+    templateDownloaded.value = true
     setMessage('模板下载已开始', 'success')
   } catch (error) {
     setMessage(error instanceof Error ? error.message : '模板下载失败，请重试', 'error')
@@ -150,6 +203,7 @@ defineExpose({
   preview,
   previewFile,
   previewLoading,
+  releaseStep: currentImportStep,
   selectedFileName,
 })
 </script>
@@ -165,6 +219,14 @@ defineExpose({
       </div>
       <span class="import-term">{{ term.ready.value ? (term.hasValidTerm.value ? termLabel : '暂无可用学期') : '正在加载学期…' }}</span>
     </div>
+
+    <ol class="import-steps" data-testid="import-steps" aria-label="数据导入步骤">
+      <li v-for="step in importSteps" :key="step.number" :class="`step-${step.state}`">
+        <span class="step-number">{{ step.number }}</span>
+        <span class="step-label">{{ step.label }}<small v-if="step.optional">可选</small></span>
+        <span v-if="step.state === 'done'" class="step-check" aria-label="已完成">✓</span>
+      </li>
+    </ol>
 
     <!-- 上传区域 -->
     <div class="upload-section">
@@ -202,12 +264,19 @@ defineExpose({
       <p v-if="preview.sheets?.length" class="preview-meta">包含 Sheet：{{ preview.sheets.join('、') }}</p>
       <p class="preview-meta">批次 #{{ preview.batchId }} · {{ preview.issues.length ? `共 ${preview.issues.length} 个问题` : '未发现数据问题' }}</p>
 
+      <div v-if="preview.sheetStats?.length" class="preview-impact" data-testid="import-impact">
+        <div><span>本次数据行</span><strong>{{ previewTotals.rows }}</strong></div>
+        <div><span>预计新增</span><strong>{{ previewTotals.created }}</strong></div>
+        <div><span>预计更新</span><strong>{{ previewTotals.updated }}</strong></div>
+        <div><span>预计停用</span><strong>{{ previewTotals.deactivated }}</strong></div>
+      </div>
+
       <div v-if="preview.issues.length" class="import-issues full-issues" data-testid="import-issues">
-        <strong>请修正以下全部问题后重新选择文件</strong>
+        <div class="issue-heading"><strong>请修正以下阻塞问题后重新选择文件</strong><div class="issue-groups"><span v-for="group in issueGroups" :key="group.label">{{ group.label }} {{ group.count }}</span></div></div>
         <div v-for="(issue, index) in preview.issues" :key="`${issue.sheet}-${issue.row}-${issue.column}-${issue.code}-${index}`" class="issue-row">
           <span>{{ issue.sheet || '工作簿' }} / {{ issue.row || '—' }} / {{ issue.column || '—' }}</span>
           <strong>{{ issue.code }}</strong>
-          <span>{{ issue.message }}</span>
+          <span><em class="issue-category">{{ issueCategory(issue.code) }} · 阻塞</em>{{ issue.message }}</span>
         </div>
       </div>
 
@@ -220,7 +289,7 @@ defineExpose({
     </div>
 
     <div v-if="confirmation && confirmation.status === 'IMPORTED'" class="import-state success-state" data-testid="import-success">
-      已完成批次 #{{ confirmation.batchId }} 的导入，共写入 {{ confirmation.importedRows ?? 0 }} 行。请返回工作台检查当前学期排课条件后再开始求解。
+      已完成批次 #{{ confirmation.batchId }} 的导入，共写入 {{ confirmation.importedRows ?? confirmationTotals.rows }} 行；新增 {{ confirmationTotals.created }}，更新 {{ confirmationTotals.updated }}，停用 {{ confirmationTotals.deactivated }}。请返回工作台检查当前学期排课条件后再开始求解。
       <el-button link type="primary" @click="router.push('/workspace')">返回排课工作台</el-button>
     </div>
   </section>
@@ -239,6 +308,18 @@ defineExpose({
 .import-caption { color: #6a7b74; font-size: 12px; line-height: 1.6; margin: 6px 0 0; }
 .import-caption + .import-caption { margin-top: 2px; }
 .import-term { color: #1e7048; background: #e6f7ef; padding: 6px 12px; font-size: 11.5px; border-radius: 9999px; font-weight: 600; white-space: nowrap; }
+
+.import-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 0; padding: 0 28px; list-style: none; border-bottom: 1px solid #edf2ef; }
+.import-steps li { position: relative; display: flex; align-items: center; gap: 9px; min-height: 52px; color: #a0b1a8; font-size: 11px; }
+.import-steps li:not(:last-child)::after { content: ''; position: absolute; top: 25px; left: 82px; right: 18px; height: 1px; background: #e4ece7; }
+.step-number { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid #d3e0d9; border-radius: 50%; color: #91a69b; font-size: 9px; z-index: 1; background: #fff; }
+.step-label { position: relative; z-index: 1; padding-right: 7px; background: #fff; }
+.step-label small { display: block; color: #a0b1a8; font-size: 9px; font-weight: 400; line-height: 1.2; }
+.step-active { color: #2c694e !important; font-weight: 650; }
+.step-active .step-number { border-color: #66a881; color: #2c694e; background: #eef8f2; }
+.step-done { color: #4a8064 !important; }
+.step-done .step-number { border-color: #77b38f; background: #e8f5ed; color: #2d8559; }
+.step-check { margin-left: auto; margin-right: 22px; color: #2d8559; font-size: 12px; }
 
 .upload-section { padding: 24px 28px 20px; }
 .dropzone-card {
@@ -295,7 +376,14 @@ defineExpose({
 .preview-summary-heading { display: flex; justify-content: space-between; align-items: center; }
 .preview-summary h3 { margin: 0; color: #173b36; font-size: 16px; font-weight: 700; }
 .preview-meta { color: #7b948a; font-size: 11.5px; margin: 6px 0 0; }
+.preview-impact { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+.preview-impact div { display: grid; gap: 4px; padding: 10px; background: #f7faf8; border: 1px solid #e2ece6; border-radius: 7px; }
+.preview-impact span { color: #789087; font-size: 10px; }
+.preview-impact strong { color: #173b36; font-size: 16px; }
 .full-issues { margin: 16px 0 12px; max-height: 360px; overflow: auto; border-radius: 8px; padding: 12px; }
+.issue-heading { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.issue-groups { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; }
+.issue-groups span, .issue-category { display: inline-block; color: #9a5a17; background: #fff1db; border-radius: 4px; padding: 2px 5px; font-size: 10px; font-style: normal; white-space: nowrap; }
 .issue-row { display: grid; grid-template-columns: minmax(110px, .8fr) 150px minmax(0, 1.6fr); gap: 10px; padding: 7px 0; border-top: 1px solid #f0dfcb; font-size: 11.5px; }
 .import-confirm {
   margin-top: 16px;
@@ -312,6 +400,14 @@ defineExpose({
 @media (max-width: 640px) {
   .import-panel-heading { display: block; }
   .import-term { display: inline-block; margin-top: 14px; }
+  .import-steps { padding: 0 16px; }
+  .import-steps li { gap: 6px; }
+  .import-steps li:not(:last-child)::after { left: 69px; right: 8px; }
+  .step-label { font-size: 10px; }
+  .step-check { margin-right: 8px; }
   .issue-row { grid-template-columns: 1fr; gap: 3px; }
+  .preview-impact { grid-template-columns: repeat(2, 1fr); }
+  .issue-heading { display: grid; }
+  .issue-groups { justify-content: flex-start; }
 }
 </style>
