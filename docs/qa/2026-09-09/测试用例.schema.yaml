@@ -1,0 +1,115 @@
+meta:
+  source_markmap: 测试用例_markmap.md
+  extracted_at: 2026-09-09
+  strategy_ref: 测试策略.md
+  source_identity: HEAD 6a0b136 + dirty working tree
+modules:
+  - module: P0 主链
+    shared_preconditions: [Planner 已登录, Docker Compose API/worker/PostgreSQL 已启动]
+  - module: P1 协作闭环
+    shared_preconditions: [Planner 已登录, 当前学期为有效非归档学期]
+  - module: 专项回归
+    shared_preconditions: [对应前端单测或 Playwright 环境可用]
+cases:
+  - id: TC-P0-01
+    title: Planner 登录进入总览
+    module: P0 主链
+    priority: P0
+    execution_model: e2e
+    automation: frontend/e2e/helpers.ts
+  - id: TC-P0-02
+    title: 导入模板下载
+    module: P0 主链
+    priority: P0
+    execution_model: e2e
+    automation: frontend/e2e/import.spec.ts
+  - id: TC-P0-03
+    title: 合法模板预检并确认导入
+    module: P0 主链
+    priority: P0
+    execution_model: e2e
+    automation: frontend/e2e/import.spec.ts
+  - id: TC-P0-04
+    title: 仅必需 Sheet 导入不删除已有教室
+    module: P0 主链
+    priority: P0
+    execution_model: e2e
+    automation: frontend/e2e/import.spec.ts
+  - id: TC-P0-05
+    title: 非模板文件显示诊断问题
+    module: P0 主链
+    priority: P0
+    execution_model: e2e
+    automation: frontend/e2e/import.spec.ts
+  - id: TC-P0-06
+    title: 重复导入幂等
+    module: P0 主链
+    priority: P0
+    execution_model: e2e
+    automation: frontend/e2e/import.spec.ts
+  - id: TC-P0-07
+    title: 工作台加载与求解状态
+    module: P0 主链
+    priority: P0
+    execution_model: e2e
+    automation: frontend/e2e/workspace.spec.ts
+  - id: TC-P0-08
+    title: 课表视图切换
+    module: P0 主链
+    priority: P0
+    execution_model: e2e
+    automation: frontend/e2e/workspace.spec.ts
+  - id: TC-P0-09
+    title: 提交求解等待候选结果
+    module: P0 主链
+    priority: P0
+    execution_model: e2e
+    automation: frontend/e2e/workspace.spec.ts
+  - id: TC-P0-10
+    title: 候选方案智能诊断
+    module: P0 主链
+    priority: P0
+    execution_model: e2e
+    automation: frontend/e2e/ai.spec.ts
+  - id: TC-P0-11
+    title: 版本检查锁定与历史
+    module: P0 主链
+    priority: P0
+    execution_model: e2e
+    automation: frontend/e2e/versions.spec.ts
+  - id: TC-P0-12
+    title: 已发布查询与导出
+    module: P0 主链
+    priority: P0
+    execution_model: e2e
+    automation: frontend/e2e/published.spec.ts
+  - id: TC-P1-01
+    title: P1 页面与当前学期数据加载
+    module: P1 协作闭环
+    priority: P1
+    execution_model: e2e
+    automation: frontend/e2e/product-loop.spec.ts
+  - id: TC-P1-02
+    title: 问题创建到解决
+    module: P1 协作闭环
+    priority: P1
+    execution_model: e2e
+    automation: frontend/e2e/product-loop.spec.ts
+  - id: TC-P1-03
+    title: 学期复用预览
+    module: P1 协作闭环
+    priority: P1
+    execution_model: e2e
+    automation: frontend/e2e/product-loop.spec.ts
+  - id: TC-P1-04
+    title: 复盘保存刷新读回
+    module: P1 协作闭环
+    priority: P1
+    execution_model: e2e
+    automation: frontend/e2e/product-loop.spec.ts
+  - id: TC-R-01
+    title: 复盘旧响应不能覆盖当前状态
+    module: 专项回归
+    priority: P0
+    execution_model: unit_and_e2e
+    automation: frontend/src/views/RetrospectiveView.spec.ts
