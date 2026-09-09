@@ -38,20 +38,35 @@ public class AuthController {
         this.registration = registration;
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(
-            @org.springframework.validation.annotation.Validated
-                    @RequestBody RegisterRequest request) {
+    @PostMapping("/registration-code")
+    public ResponseEntity<?> registrationCode(
+            @RequestBody RegistrationCodeRequest request) {
         try {
-            return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
-                    .body(registration.register(request.username(), request.password(), request.displayName()));
+            registration.requestRegistrationCode(request.email());
+            return ResponseEntity.ok(Map.of("message", "如果该邮箱可注册，验证码已发送"));
         } catch (RegistrationService.RegistrationRejected exception) {
             return ResponseEntity.status(exception.status)
                     .body(Map.of("code", exception.code, "message", exception.getMessage()));
         }
     }
 
-    public record RegisterRequest(String username, String password, String displayName) {}
+    @PostMapping("/register")
+    public ResponseEntity<?> register(
+            @org.springframework.validation.annotation.Validated
+                    @RequestBody RegisterRequest request) {
+        try {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                    .body(registration.register(request.email(), request.password(), request.displayName(), request.verificationCode()));
+        } catch (RegistrationService.RegistrationRejected exception) {
+            return ResponseEntity.status(exception.status)
+                    .body(Map.of("code", exception.code, "message", exception.getMessage()));
+        }
+    }
+
+    public record RegistrationCodeRequest(String email) {}
+
+    public record RegisterRequest(
+            String email, String password, String displayName, String verificationCode) {}
 
     @PostMapping("/login")
     public ResponseEntity<?> login(

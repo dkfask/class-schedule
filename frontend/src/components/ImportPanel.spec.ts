@@ -137,6 +137,8 @@ describe('ImportPanel', () => {
     expect(vm.preview).toBeNull()
     expect(vm.confirmation.status).toBe('IMPORTED')
     expect(vm.message).toBe('导入成功，共写入 4 行')
+    expect(wrapper.find('[data-testid="import-steps"]').text()).toContain('确认导入')
+    expect(wrapper.find('[data-testid="import-steps"] .step-done').exists()).toBe(true)
     wrapper.unmount()
   })
 })

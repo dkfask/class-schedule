@@ -1,0 +1,28 @@
+Name: ITC2007-comp01-medium
+Courses: 6
+Rooms: 3
+Days: 5
+Periods_per_day: 6
+Curricula: 2
+Constraints: 0
+
+COURSES:
+c0001 t000 2 1 30
+c0002 t001 2 1 32
+c0003 t002 2 1 28
+c0004 t003 2 1 35
+c0005 t004 2 1 26
+c0006 t005 2 1 31
+
+ROOMS:
+r001 40
+r002 45
+r003 50
+
+CURRICULA:
+q001 3 c0001 c0002 c0003
+q002 3 c0004 c0005 c0006
+
+UNAVAILABILITY_CONSTRAINTS:
+
+END.

@@ -59,6 +59,10 @@ mvn -Drun.solver.benchmark=true -Dsolver.benchmark.termination-ms=10000 -Dsolver
 
 项目统一使用 Java 17。当前本机 Java 17.0.20、Maven 编译配置和 Docker 构建/运行时基础镜像均保持一致。
 
+## 后续商业化方向
+
+当前项目先按“单校付费试点 + 实施/部署服务 + 年度维护或托管”推进，不把现有能力描述为多租户 SaaS、订阅计费或完整教务平台。后续客户定位、报价假设、交付流程、验收门槛和 SaaS 化闸门见 [`docs/commercialization-plan.md`](docs/commercialization-plan.md)。该文档是后续开发规划，不改变当前 MVP 技术范围。
+
 ## 技术栈
 
 - Backend: Java, Spring Boot, Timefold Solver Community, PostgreSQL, Flyway
@@ -86,9 +90,10 @@ npm run dev
 - Frontend: http://localhost:5173（若端口占用，Vite 会切换到 5174 等可用端口）
 - `APP_AUTH_BOOTSTRAP_USERNAME` / `APP_AUTH_BOOTSTRAP_PASSWORD`：首次本地启动时创建排课员账号；生产环境必须通过密钥管理注入并及时修改。
 - 账号注册机制：
-  - 支持公开注册新账号（`/api/auth/register`）。
-  - 开箱即用：注册用户默认分配 `PLANNER`（排课员）角色，登录后可直接进入排课工作台，进行规则事实维护、数据导入、自动求解与课表微调；
-  - 如需只读审计模式，可通过环境变量 `APP_AUTH_REGISTRATION_DEFAULT_ROLE=VIEWER` 调整默认角色，或者使用 `APP_AUTH_REGISTRATION_ENABLED=false` 关闭自主注册。
+  - 支持公开邮箱注册新账号（`/api/auth/registration-code` 发送 6 位验证码，`/api/auth/register` 完成注册）。验证码默认 10 分钟有效、60 秒内不可重发，邮件只保存验证码哈希；登录支持新账号邮箱和历史用户名。
+  - 开箱即用：邮箱验证成功后注册用户默认分配 `PLANNER`（排课员）角色，登录后可直接进入排课工作台，进行规则事实维护、数据导入、自动求解与课表微调；
+  - SMTP 通过 `SMTP_HOST`、`SMTP_PORT`、`SMTP_USERNAME`、`SMTP_PASSWORD`、`SMTP_AUTH`、`SMTP_STARTTLS`、`MAIL_FROM` 注入；当前邮箱注册默认关闭，真实凭据不得提交到仓库。
+  - 如需恢复邮箱注册，先配置 SMTP 变量并设置根目录 `.env` 中的 `APP_AUTH_REGISTRATION_ENABLED=true`，然后重新构建前端并重启后端。前端构建读取同一开关；开发服务修改开关后也需重启。如需只读审计模式，可通过环境变量 `APP_AUTH_REGISTRATION_DEFAULT_ROLE=VIEWER` 调整默认角色。
 - `APP_PDF_FONT_PATH`：可选 CJK TTF/TTC 字体路径。未配置时 PDF 使用西文字体回退，中文字符不保证可显示。
 
 ## 设计原则

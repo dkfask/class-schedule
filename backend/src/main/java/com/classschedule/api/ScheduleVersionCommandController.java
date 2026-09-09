@@ -238,6 +238,66 @@ public class ScheduleVersionCommandController {
         }
     }
 
+    @PostMapping("/{versionId}/adjustments/{occurrenceId}/lock")
+    public ResponseEntity<?> lockAssignment(
+            @PathVariable long versionId,
+            @PathVariable long occurrenceId,
+            @Valid @RequestBody AssignmentLockRequest request,
+            Authentication authentication) {
+        try {
+            long revision =
+                    repository.lockAssignment(
+                            versionId,
+                            occurrenceId,
+                            request.normalizedReason(),
+                            authentication.getName(),
+                            request.expectedRevision());
+            return ResponseEntity.ok(
+                    Map.of(
+                            "versionId",
+                            versionId,
+                            "occurrenceId",
+                            occurrenceId,
+                            "revision",
+                            revision,
+                            "status",
+                            "LOCKED"));
+        } catch (VersionMutationException exception) {
+            return conflict(exception);
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("status", "ASSIGNMENT_LOCK_REJECTED", "message", exception.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{versionId}/adjustments/{occurrenceId}/lock")
+    public ResponseEntity<?> unlockAssignment(
+            @PathVariable long versionId,
+            @PathVariable long occurrenceId,
+            @RequestHeader(value = "If-Match", required = false) Long expectedRevision,
+            Authentication authentication) {
+        try {
+            long revision =
+                    repository.unlockAssignment(
+                            versionId, occurrenceId, authentication.getName(), expectedRevision);
+            return ResponseEntity.ok(
+                    Map.of(
+                            "versionId",
+                            versionId,
+                            "occurrenceId",
+                            occurrenceId,
+                            "revision",
+                            revision,
+                            "status",
+                            "UNLOCKED"));
+        } catch (VersionMutationException exception) {
+            return conflict(exception);
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("status", "ASSIGNMENT_UNLOCK_REJECTED", "message", exception.getMessage()));
+        }
+    }
+
     private ResponseEntity<Map<String, Object>> mutationResponse(
             long versionId, ScheduleVersionRepositoryModels.MutationResult result, String status) {
         Map<String, Object> response = new LinkedHashMap<>();

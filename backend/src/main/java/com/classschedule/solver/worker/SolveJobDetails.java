@@ -14,6 +14,7 @@ public record SolveJobDetails(
         String errorCode,
         String errorMessage,
         int attempt,
+        String submittedAt,
         String startedAt,
         String heartbeatAt,
         String finishedAt,
@@ -39,6 +40,7 @@ public record SolveJobDetails(
         values.put("errorCode", errorCode == null ? "" : errorCode);
         values.put("errorMessage", errorMessage == null ? "" : errorMessage);
         values.put("attempt", attempt);
+        values.put("submittedAt", submittedAt == null ? "" : submittedAt);
         values.put("startedAt", startedAt == null ? "" : startedAt);
         values.put("heartbeatAt", heartbeatAt == null ? "" : heartbeatAt);
         values.put("finishedAt", finishedAt == null ? "" : finishedAt);

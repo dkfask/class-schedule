@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/solve-readiness")
-@PreAuthorize("hasRole('PLANNER')")
+@PreAuthorize("hasAnyRole('PLANNER', 'REVIEWER', 'BUSINESS_OWNER')")
 public class SolveReadinessController {
     private final SolveReadinessService readiness;
 

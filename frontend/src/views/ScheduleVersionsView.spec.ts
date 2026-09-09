@@ -1,8 +1,10 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { clearCsrfToken } from '../api/http'
 import ScheduleVersionsView from './ScheduleVersionsView.vue'
 import { resetTermStore } from '../stores/term'
+import { useAuthStore } from '../stores/auth'
 
 function response(body: unknown, ok = true) { return { ok, json: async () => body } }
 
@@ -20,6 +22,7 @@ function createFetchMock(initialVersions: unknown[]) {
       return response({ items: versions, page: 0, size: 50, total: versions.length })
     }
     if (url.includes('/diff')) return response([])
+    if (url.includes('/publish')) return response({ status: 'PUBLISHED', versionId: 2 })
     if (url.endsWith('/adjustments/commands')) {
       return response([{ groupId: '11111111-1111-1111-1111-111111111111', commandType: 'ADJUST', state: 'APPLIED', reason: '调课', resultRevision: 1 }])
     }
@@ -33,8 +36,12 @@ function createFetchMock(initialVersions: unknown[]) {
   return { calls }
 }
 
-function mountView() {
-  return mount(ScheduleVersionsView, { global: { directives: { loading: () => undefined }, stubs: { 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
+function mountView(roles = ['PLANNER']) {
+  const pinia = createPinia()
+  const auth = useAuthStore(pinia)
+  auth.user = { id: 1, username: 'test-user', email: null, emailVerified: true, displayName: '测试用户', enabled: true, roles }
+  auth.initialized = true
+  return mount(ScheduleVersionsView, { global: { plugins: [pinia], directives: { loading: () => undefined }, stubs: { 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
 }
 
 describe('ScheduleVersionsView', () => {
@@ -132,6 +139,37 @@ describe('ScheduleVersionsView', () => {
     const vm = wrapper.vm as any
     expect(vm.canLock).toBe(false)
     expect(vm.canArchive).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('publishes a publishable candidate from the release checklist', async () => {
+    const { calls } = createFetchMock([{ id: 2, status: 'CANDIDATE', publishable: true, score: '0hard/0soft', revision: 4 }])
+    const wrapper = mountView()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    expect(wrapper.find('[data-testid="release-checklist"]').exists()).toBe(true)
+    expect(vm.canPublish).toBe(true)
+    vm.releaseNote = '秋季学期正式课表，已完成业务确认'
+    vm.releaseConfirmed = true
+    await vm.publishVersion()
+    const publishCall = calls.find(call => call.url.endsWith('/api/schedule-versions/2/publish'))
+    expect(publishCall).toBeTruthy()
+    expect((publishCall?.init?.headers as Headers).get('If-Match')).toBe('4')
+    expect(JSON.parse(String(publishCall?.init?.body))).toEqual({ releaseNote: '秋季学期正式课表，已完成业务确认' })
+    expect(vm.message).toBe('版本 v2 已发布')
+    wrapper.unmount()
+  })
+
+  it('keeps reviewer view read-only while showing the release checklist', async () => {
+    const { calls } = createFetchMock([{ id: 2, status: 'CANDIDATE', publishable: true, score: '0hard/0soft', revision: 4 }])
+    const wrapper = mountView(['REVIEWER'])
+    await flushPromises()
+    const vm = wrapper.vm as any
+    expect(vm.reviewOnly).toBe(true)
+    expect(vm.canPublish).toBe(false)
+    expect(vm.canFork).toBe(false)
+    expect(wrapper.text()).toContain('只读审核视图')
+    expect(calls.some(call => call.url.includes('/publish'))).toBe(false)
     wrapper.unmount()
   })
 })
