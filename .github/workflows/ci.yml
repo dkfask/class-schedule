@@ -37,6 +37,8 @@ jobs:
       POSTGRES_DB: class_schedule
       POSTGRES_USER: class_schedule
       POSTGRES_PASSWORD: class_schedule_ci
+      APP_AUTH_BOOTSTRAP_USERNAME: planner
+      APP_AUTH_BOOTSTRAP_PASSWORD: change-this-in-local-env
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
