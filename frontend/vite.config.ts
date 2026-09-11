@@ -11,6 +11,16 @@ export default defineConfig(({ mode }) => {
       ),
     },
     plugins: [vue()],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'element-plus': ['element-plus'],
+            vendor: ['vue', 'vue-router', 'pinia'],
+          },
+        },
+      },
+    },
     server: {
       port: 5173,
       proxy: {
