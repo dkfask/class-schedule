@@ -15,6 +15,7 @@ import NotificationsView from './views/NotificationsView.vue'
 import RuleTemplatesView from './views/RuleTemplatesView.vue'
 import RetrospectiveView from './views/RetrospectiveView.vue'
 import TermReuseView from './views/TermReuseView.vue'
+import AiSettingsView from './views/AiSettingsView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -35,6 +36,7 @@ const router = createRouter({
     { path: '/rule-templates', component: RuleTemplatesView, meta: { requiresAuth: true, planner: true } },
     { path: '/retrospective', component: RetrospectiveView, meta: { requiresAuth: true, planner: true } },
     { path: '/term-reuse', component: TermReuseView, meta: { requiresAuth: true, planner: true } },
+    { path: '/settings/ai', component: AiSettingsView, meta: { requiresAuth: true, admin: true } },
   ],
 })
 
@@ -49,6 +51,7 @@ router.beforeEach(async (to) => {
   if (to.meta.planner && !auth.isPlanner) return '/published'
   if (to.meta.reviewer && !auth.canReview) return '/published'
   if (to.meta.audit && !auth.canReadAudit) return '/published'
+  if (to.meta.admin && !auth.canManageAi) return '/published'
   return true
 })
 

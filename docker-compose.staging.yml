@@ -30,6 +30,7 @@ services:
       SMTP_AUTH: ${SMTP_AUTH:-true}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       MAIL_FROM: ${MAIL_FROM:-no-reply@class-schedule.local}
+      APP_AI_CONFIG_ENCRYPTION_KEY: ${APP_AI_CONFIG_ENCRYPTION_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

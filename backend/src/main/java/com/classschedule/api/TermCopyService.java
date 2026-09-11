@@ -80,13 +80,13 @@ public class TermCopyService {
         int requirements = 0;
         int requirementFeatures = 0;
         for (Map<String, Object> row : jdbc.queryForList(
-                "SELECT r.code,g.code AS group_code,s.code AS subject_code,t.code AS teacher_code,r.weekly_periods,r.duration_periods,r.student_count,r.pinned_period_code FROM teaching_requirement r JOIN student_group g ON g.id=r.student_group_id JOIN subject s ON s.id=r.subject_id JOIN teacher t ON t.id=r.teacher_id WHERE r.term_id=? AND r.active=TRUE ORDER BY r.id",
+                "SELECT r.code,g.code AS group_code,s.code AS subject_code,t.code AS teacher_code,r.weekly_periods,r.duration_periods,r.student_count,r.pinned_period_code,r.room_assignment_mode FROM teaching_requirement r JOIN student_group g ON g.id=r.student_group_id JOIN subject s ON s.id=r.subject_id JOIN teacher t ON t.id=r.teacher_id WHERE r.term_id=? AND r.active=TRUE ORDER BY r.id",
                 sourceId)) {
             String oldCode = (String) row.get("code");
             String newCode = copyCode(target, oldCode);
             requirementCodes.put(oldCode, newCode);
             Long newId = jdbc.queryForObject(
-                    "INSERT INTO teaching_requirement(code,term_id,student_group_id,subject_id,teacher_id,weekly_periods,duration_periods,student_count,pinned_period_code) VALUES(?,?,(SELECT id FROM student_group WHERE code=?),(SELECT id FROM subject WHERE code=?),(SELECT id FROM teacher WHERE code=?),?,?,?,?) RETURNING id",
+                    "INSERT INTO teaching_requirement(code,term_id,student_group_id,subject_id,teacher_id,weekly_periods,duration_periods,student_count,pinned_period_code,room_assignment_mode) VALUES(?,?,(SELECT id FROM student_group WHERE code=?),(SELECT id FROM subject WHERE code=?),(SELECT id FROM teacher WHERE code=?),?,?,?,?,?) RETURNING id",
                     Long.class,
                     newCode,
                     targetId,
@@ -96,7 +96,8 @@ public class TermCopyService {
                     row.get("weekly_periods"),
                     row.get("duration_periods"),
                     row.get("student_count"),
-                    row.get("pinned_period_code"));
+                    row.get("pinned_period_code"),
+                    row.get("room_assignment_mode"));
             requirementFeatures += jdbc.update(
                     "INSERT INTO teaching_requirement_feature(teaching_requirement_id,feature_code) SELECT ?,feature_code FROM teaching_requirement_feature WHERE teaching_requirement_id=(SELECT id FROM teaching_requirement WHERE code=?)",
                     newId,

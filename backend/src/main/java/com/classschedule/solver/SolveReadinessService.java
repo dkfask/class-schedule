@@ -48,6 +48,10 @@ public class SolveReadinessService {
                 count(
                         "SELECT COUNT(*) FROM teaching_requirement WHERE term_id=? AND active=TRUE",
                         termId);
+        int missingHomeRoomCount =
+                count(
+                        "SELECT COUNT(*) FROM teaching_requirement r JOIN student_group g ON g.id=r.student_group_id LEFT JOIN room home ON home.id=g.home_room_id WHERE r.term_id=? AND r.active=TRUE AND r.room_assignment_mode='HOME' AND (home.id IS NULL OR home.active=FALSE)",
+                        termId);
         if (timeslotCount == 0) issues.add(new SolveReadiness.Issue("NO_TIMESLOTS", "当前学期尚未配置节次"));
         if (roomCount == 0)
             issues.add(new SolveReadiness.Issue("NO_ACTIVE_ROOMS", "尚未配置启用教室，请先新增或导入教室"));
@@ -55,6 +59,11 @@ public class SolveReadinessService {
             issues.add(
                     new SolveReadiness.Issue(
                             "NO_ACTIVE_REQUIREMENTS", "当前学期没有启用的教学需求，请先确认导入或新增教学需求"));
+        if (missingHomeRoomCount > 0)
+            issues.add(
+                    new SolveReadiness.Issue(
+                            "HOME_ROOM_NOT_CONFIGURED",
+                            "有 " + missingHomeRoomCount + " 条行政班教学需求缺少有效的绑定教室"));
         return new SolveReadiness(
                 normalized, issues.isEmpty(), timeslotCount, roomCount, requirementCount, issues);
     }

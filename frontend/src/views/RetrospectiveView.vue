@@ -65,27 +65,27 @@ onMounted(() => void load())
 .canvas-card { background: #fff; border: 1px solid rgba(23, 59, 54, .1); border-radius: 12px; box-shadow: 0 4px 16px -2px rgba(23, 59, 54, .03); overflow: hidden; }
 .retrospective-page { display: grid; gap: 14px; }
 .summary-panel, .notes-panel { padding: 20px; }
-.summary-panel h2, .notes-panel h2 { margin: 5px 0 0; color: #173b36; font-size: 18px; }
+.summary-panel h2, .notes-panel h2 { margin: 5px 0 0; color: #202A35; font-size: 18px; }
 .panel-heading small { display: block; margin-top: 6px; color: #6a7b75; font-size: 11px; }
 .quiet-button, .primary-button { border-radius: 6px; padding: 8px 12px; cursor: pointer; font: inherit; font-size: 12px; }
-.quiet-button { border: 1px solid #dce4e0; background: #fff; color: #50605c; }
-.primary-button { border: 1px solid #173b36; background: #173b36; color: #fff; }
+.quiet-button { border: 1px solid #D9DEE3; background: #fff; color: #566474; }
+.primary-button { border: 1px solid #202A35; background: #202A35; color: #fff; }
 .quiet-button:disabled, .primary-button:disabled { cursor: not-allowed; opacity: .55; }
 .metric-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
 .metric-groups h3 { margin: 0 0 8px; color: #36594a; font-size: 13px; }
 .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.metric-grid div { display: grid; gap: 4px; padding: 12px; border: 1px solid #e4ece7; border-radius: 7px; background: #f8fbf9; }
-.metric-grid strong { color: #173b36; font-size: 22px; }
+.metric-grid div { display: grid; gap: 4px; padding: 12px; border: 1px solid #EEF1F3; border-radius: 7px; background: #f8fbf9; }
+.metric-grid strong { color: #202A35; font-size: 22px; }
 .metric-grid span { color: #50685d; font-size: 11px; }
 .metric-grid small { color: #8a9a91; font-size: 10px; }
 .notes-form { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
-.notes-form label { display: grid; gap: 5px; color: #50605c; font-size: 11px; }
-.notes-form textarea, .notes-form input { min-width: 0; border: 1px solid #dce4e0; border-radius: 6px; padding: 9px; color: #191c1d; background: #fff; font: inherit; font-size: 12px; resize: vertical; }
+.notes-form label { display: grid; gap: 5px; color: #566474; font-size: 11px; }
+.notes-form textarea, .notes-form input { min-width: 0; border: 1px solid #D9DEE3; border-radius: 6px; padding: 9px; color: #191c1d; background: #fff; font: inherit; font-size: 12px; resize: vertical; }
 .notes-footer { display: flex; grid-column: 1 / -1; justify-content: space-between; align-items: end; gap: 10px; }
 .count-field { max-width: 180px; }
 .inline-message { margin-top: 12px; padding: 10px 12px; border-radius: 7px; font-size: 12px; }
 .success-message { border: 1px solid #bbdec6; background: #effaf2; color: #28623d; }
 .error-message { border: 1px solid #fecaca; background: #fef2f2; color: #991b1b; }
-.empty { padding: 32px; color: #789087; font-size: 12px; text-align: center; }
+.empty { padding: 32px; color: #566474; font-size: 12px; text-align: center; }
 @media (max-width: 760px) { .metric-groups { grid-template-columns: 1fr; } .metric-grid { grid-template-columns: repeat(2, 1fr); } .notes-form { grid-template-columns: 1fr; } .notes-footer { grid-column: auto; } }
 </style>

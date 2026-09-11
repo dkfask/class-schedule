@@ -166,7 +166,24 @@ public class Timetable {
                                                                             occurrence
                                                                                     .getRequiredFeatures()))
                                     .toList();
-                    occurrence.setRoomRange(eligible.isEmpty() ? rooms : eligible);
+                    if ("HOME".equals(occurrence.getRoomAssignmentMode())
+                            && occurrence.getHomeRoomCode() != null) {
+                        Room homeRoom =
+                                rooms.stream()
+                                        .filter(
+                                                room ->
+                                                        occurrence
+                                                                .getHomeRoomCode()
+                                                                .equals(room.getId()))
+                                        .findFirst()
+                                        .orElse(null);
+                        occurrence.setRoomRange(
+                                homeRoom == null
+                                        ? (eligible.isEmpty() ? rooms : eligible)
+                                        : List.of(homeRoom));
+                    } else {
+                        occurrence.setRoomRange(eligible.isEmpty() ? rooms : eligible);
+                    }
                 });
     }
 

@@ -72,6 +72,8 @@ public class SecurityConfig {
                                                 "/api/schedule-versions/*/archive",
                                                 "/api/schedule-versions/*/fork")
                                         .hasRole("PLANNER")
+                                        .requestMatchers("/api/ai-assist/settings/**")
+                                        .hasRole("USER_ADMIN")
                                         .requestMatchers(
                                                 "/api/master-data/**",
                                                 "/api/rule-facts/**",

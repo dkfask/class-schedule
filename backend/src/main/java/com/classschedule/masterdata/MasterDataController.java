@@ -35,7 +35,7 @@ public class MasterDataController {
                         rows("SELECT code, name FROM teacher WHERE active = TRUE ORDER BY code"),
                 "studentGroups",
                         rows(
-                                "SELECT code, name, group_type AS \"groupType\" FROM student_group WHERE active = TRUE ORDER BY code"),
+                                "SELECT g.code, g.name, g.group_type AS \"groupType\", r.code AS \"homeRoomCode\" FROM student_group g LEFT JOIN room r ON r.id=g.home_room_id WHERE g.active = TRUE ORDER BY g.code"),
                 "subjects",
                         rows("SELECT code, name FROM subject WHERE active = TRUE ORDER BY code"),
                 "rooms",

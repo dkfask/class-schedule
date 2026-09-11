@@ -85,32 +85,32 @@ onMounted(() => void load())
 .template-page { display: grid; gap: 14px; }
 .template-grid { display: grid; grid-template-columns: minmax(260px, .75fr) minmax(0, 1.25fr); gap: 14px; }
 .template-list, .template-editor, .preview-panel { padding: 18px; }
-.template-list h2, .template-editor h2, .preview-panel h2 { margin: 5px 0 0; color: #173b36; font-size: 18px; }
+.template-list h2, .template-editor h2, .preview-panel h2 { margin: 5px 0 0; color: #202A35; font-size: 18px; }
 .panel-heading small { display: block; margin-top: 6px; color: #6a7b75; font-size: 11px; }
 .quiet-button, .primary-button { border-radius: 6px; padding: 8px 12px; cursor: pointer; font: inherit; font-size: 12px; }
-.quiet-button { border: 1px solid #dce4e0; background: #fff; color: #50605c; }
-.primary-button { border: 1px solid #173b36; background: #173b36; color: #fff; }
+.quiet-button { border: 1px solid #D9DEE3; background: #fff; color: #566474; }
+.primary-button { border: 1px solid #202A35; background: #202A35; color: #fff; }
 .quiet-button:disabled, .primary-button:disabled { cursor: not-allowed; opacity: .55; }
-.template-row { display: grid; gap: 4px; width: 100%; padding: 12px; border: 1px solid #e4ece7; border-radius: 7px; background: #fff; color: #50605c; text-align: left; cursor: pointer; }
+.template-row { display: grid; gap: 4px; width: 100%; padding: 12px; border: 1px solid #EEF1F3; border-radius: 7px; background: #fff; color: #566474; text-align: left; cursor: pointer; }
 .template-row + .template-row { margin-top: 8px; }
 .template-row.selected { border-color: #79a98b; background: #f4faf6; }
-.template-row strong { color: #173b36; font-size: 12px; }
+.template-row strong { color: #202A35; font-size: 12px; }
 .template-row small, .template-row span { color: #7a8b82; font-size: 10px; }
 .editor-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
-.editor-form label { display: grid; gap: 5px; color: #50605c; font-size: 11px; }
+.editor-form label { display: grid; gap: 5px; color: #566474; font-size: 11px; }
 .editor-form .wide { grid-column: 1 / -1; }
-.editor-form input, .editor-form textarea { min-width: 0; border: 1px solid #dce4e0; border-radius: 6px; padding: 8px 9px; color: #191c1d; background: #fff; font: inherit; font-size: 12px; }
+.editor-form input, .editor-form textarea { min-width: 0; border: 1px solid #D9DEE3; border-radius: 6px; padding: 8px 9px; color: #191c1d; background: #fff; font: inherit; font-size: 12px; }
 .editor-form textarea { resize: vertical; }
 .editor-form .primary-button { justify-self: start; }
 .preview-content { margin-top: 18px; }
 .impact-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.impact-summary div { display: grid; gap: 4px; padding: 12px; border: 1px solid #e4ece7; border-radius: 7px; background: #f8fbf9; }
-.impact-summary strong { color: #173b36; font-size: 22px; }
-.impact-summary span { color: #789087; font-size: 10px; }
-.impact-warning, .blocked-note { display: grid; gap: 5px; margin-top: 12px; padding: 10px 12px; border: 1px solid #f1d2aa; border-radius: 7px; background: #fffaf1; color: #805c27; font-size: 11px; line-height: 1.45; }
-.apply-box { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #e8efeb; color: #50605c; font-size: 11px; }
+.impact-summary div { display: grid; gap: 4px; padding: 12px; border: 1px solid #EEF1F3; border-radius: 7px; background: #f8fbf9; }
+.impact-summary strong { color: #202A35; font-size: 22px; }
+.impact-summary span { color: #566474; font-size: 10px; }
+.impact-warning, .blocked-note { display: grid; gap: 5px; margin-top: 12px; padding: 10px 12px; border: 1px solid #f1d2aa; border-radius: 7px; background: #FBF4E7; color: #805c27; font-size: 11px; line-height: 1.45; }
+.apply-box { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #e8efeb; color: #566474; font-size: 11px; }
 .apply-box label { display: flex; align-items: center; gap: 6px; }
-.empty { padding: 28px 10px; color: #789087; font-size: 12px; text-align: center; }
+.empty { padding: 28px 10px; color: #566474; font-size: 12px; text-align: center; }
 .inline-message { margin-top: 12px; padding: 10px 12px; border-radius: 7px; font-size: 12px; }
 .success-message { border: 1px solid #bbdec6; background: #effaf2; color: #28623d; }
 .error-message { border: 1px solid #fecaca; background: #fef2f2; color: #991b1b; }

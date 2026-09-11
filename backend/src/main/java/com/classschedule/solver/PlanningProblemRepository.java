@@ -145,7 +145,7 @@ public class PlanningProblemRepository {
                 termId);
         var requirements =
                 jdbc.query(
-                        "SELECT r.id,r.code requirement_code,s.code subject_code,s.name subject_name,t.code teacher_code,t.name teacher_name,g.code group_code,g.name group_name,COALESCE(NULLIF(r.student_count,0),g.student_count,0) student_count,r.weekly_periods,r.duration_periods,r.pinned_period_code,ag.code activity_group_code,ag.activity_type,COALESCE(ag.member_index,-1) activity_member_index FROM teaching_requirement r JOIN subject s ON s.id=r.subject_id JOIN teacher t ON t.id=r.teacher_id JOIN student_group g ON g.id=r.student_group_id JOIN academic_term term ON term.id=r.term_id LEFT JOIN LATERAL (SELECT ag.code,ag.activity_type,agm.member_index FROM activity_group_member agm JOIN activity_group ag ON ag.id=agm.activity_group_id WHERE agm.teaching_requirement_id=r.id AND ag.term_id=term.id AND ag.active=TRUE LIMIT 1) ag ON TRUE WHERE term.code=? AND r.active=TRUE ORDER BY r.id",
+                        "SELECT r.id,r.code requirement_code,s.code subject_code,s.name subject_name,t.code teacher_code,t.name teacher_name,g.code group_code,g.name group_name,home.code home_room_code,COALESCE(NULLIF(r.student_count,0),g.student_count,0) student_count,r.weekly_periods,r.duration_periods,r.pinned_period_code,r.room_assignment_mode,ag.code activity_group_code,ag.activity_type,COALESCE(ag.member_index,-1) activity_member_index FROM teaching_requirement r JOIN subject s ON s.id=r.subject_id JOIN teacher t ON t.id=r.teacher_id JOIN student_group g ON g.id=r.student_group_id LEFT JOIN room home ON home.id=g.home_room_id JOIN academic_term term ON term.id=r.term_id LEFT JOIN LATERAL (SELECT ag.code,ag.activity_type,agm.member_index FROM activity_group_member agm JOIN activity_group ag ON ag.id=agm.activity_group_id WHERE agm.teaching_requirement_id=r.id AND ag.term_id=term.id AND ag.active=TRUE LIMIT 1) ag ON TRUE WHERE term.code=? AND r.active=TRUE ORDER BY r.id",
                         (rs, rowNum) ->
                                 new RequirementRow(
                                         rs.getLong("id"),
@@ -156,10 +156,12 @@ public class PlanningProblemRepository {
                                         rs.getString("teacher_name"),
                                         rs.getString("group_code"),
                                         rs.getString("group_name"),
+                                        rs.getString("home_room_code"),
                                         rs.getInt("student_count"),
                                         rs.getInt("weekly_periods"),
                                         rs.getInt("duration_periods"),
                                         rs.getString("pinned_period_code"),
+                                        rs.getString("room_assignment_mode"),
                                         rs.getString("activity_group_code"),
                                         rs.getString("activity_type"),
                                         rs.getInt("activity_member_index")),
@@ -227,6 +229,8 @@ public class PlanningProblemRepository {
         occurrence.setRequirementCode(row.requirementCode());
         occurrence.setDuration(row.durationPeriods());
         occurrence.setStudentCount(row.studentCount());
+        occurrence.setHomeRoomCode(row.homeRoomCode());
+        occurrence.setRoomAssignmentMode(row.roomAssignmentMode());
         occurrence.setOccurrenceKey(row.id() + "-" + index);
         occurrence.setActivityIndex(index);
         occurrence.setActivityGroupCode(row.activityGroupCode());
@@ -277,10 +281,12 @@ public class PlanningProblemRepository {
             String teacherName,
             String groupCode,
             String groupName,
+            String homeRoomCode,
             int studentCount,
             int weeklyPeriods,
             int durationPeriods,
             String pinnedPeriodCode,
+            String roomAssignmentMode,
             String activityGroupCode,
             String activityType,
             int activityMemberIndex) {}

@@ -222,6 +222,11 @@ class WorkbookImportPostgresIntegrationTest {
                 .isEqualTo(36);
         org.assertj.core.api.Assertions.assertThat(
                         jdbc.queryForObject(
+                                "SELECT rm.code FROM student_group g JOIN room rm ON rm.id=g.home_room_id WHERE g.code='G9-10'",
+                                String.class))
+                .isEqualTo("B210");
+        org.assertj.core.api.Assertions.assertThat(
+                        jdbc.queryForObject(
                                 "SELECT room_type FROM room WHERE code='B210'", String.class))
                 .isEqualTo("实验室");
         org.assertj.core.api.Assertions.assertThat(
@@ -234,6 +239,16 @@ class WorkbookImportPostgresIntegrationTest {
                                 "SELECT pinned_period_code FROM teaching_requirement WHERE code='REQ-910'",
                                 String.class))
                 .isEqualTo("MON-1");
+        org.assertj.core.api.Assertions.assertThat(
+                        jdbc.queryForObject(
+                                "SELECT room_assignment_mode FROM teaching_requirement WHERE code='REQ-910'",
+                                String.class))
+                .isEqualTo("FLEXIBLE");
+        org.assertj.core.api.Assertions.assertThat(
+                        jdbc.queryForObject(
+                                "SELECT room_assignment_mode FROM teaching_requirement WHERE code='REQ-911'",
+                                String.class))
+                .isEqualTo("HOME");
         org.assertj.core.api.Assertions.assertThat(
                         jdbc.queryForObject(
                                 "SELECT available FROM teacher_availability a JOIN teacher t ON t.id=a.teacher_id JOIN academic_term term ON term.id=a.term_id WHERE t.code='T910' AND term.code='2026-FALL' AND a.period_code='MON-1'",
@@ -527,7 +542,7 @@ class WorkbookImportPostgresIntegrationTest {
                     workbook,
                     "班级",
                     MasterDataSchemaRegistry.headers("班级").toArray(String[]::new),
-                    new String[] {"G9-10", "九年级10班", "HOMEROOM", "36", "TRUE"});
+                    new String[] {"G9-10", "九年级10班", "HOMEROOM", "36", "TRUE", "B210"});
             sheet(
                     workbook,
                     "课程",
@@ -553,9 +568,20 @@ class WorkbookImportPostgresIntegrationTest {
                     "1",
                     "30",
                     "MON-1",
-                    "TRUE");
+                    "TRUE",
+                    "FLEXIBLE");
             requirements.row(
-                    "REQ-911", "2026-FALL", "G9-10", "SCI10", "T910", "1", "1", "30", "", "TRUE");
+                    "REQ-911",
+                    "2026-FALL",
+                    "G9-10",
+                    "SCI10",
+                    "T910",
+                    "1",
+                    "1",
+                    "30",
+                    "",
+                    "TRUE",
+                    "HOME");
             SheetBuilder availability =
                     new SheetBuilder(
                             workbook,

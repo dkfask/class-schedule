@@ -53,6 +53,14 @@ public class ScheduleSnapshotHashService {
                                         "room_type",
                                         "active"),
                                 rows(
+                                        "SELECT g.code, g.name, g.group_type, g.student_count, home.code AS home_room_code FROM student_group g LEFT JOIN room home ON home.id=g.home_room_id ORDER BY g.code",
+                                        null,
+                                        "code",
+                                        "name",
+                                        "group_type",
+                                        "student_count",
+                                        "home_room_code"),
+                                rows(
                                         "SELECT r.code, f.feature_code FROM room_feature f JOIN room r ON r.id=f.room_id ORDER BY r.code, f.feature_code",
                                         null,
                                         "code",
@@ -76,7 +84,7 @@ public class ScheduleSnapshotHashService {
                                         "period_code",
                                         "available"),
                                 rows(
-                                        "SELECT r.code, r.student_group_id, r.subject_id, r.teacher_id, r.weekly_periods, r.duration_periods, r.student_count, r.pinned_period_code, r.active FROM teaching_requirement r WHERE r.term_id=? ORDER BY r.code",
+                                        "SELECT r.code, r.student_group_id, r.subject_id, r.teacher_id, r.weekly_periods, r.duration_periods, r.student_count, r.pinned_period_code, r.room_assignment_mode, r.active FROM teaching_requirement r WHERE r.term_id=? ORDER BY r.code",
                                         termId,
                                         "code",
                                         "student_group_id",
@@ -86,6 +94,7 @@ public class ScheduleSnapshotHashService {
                                         "duration_periods",
                                         "student_count",
                                         "pinned_period_code",
+                                        "room_assignment_mode",
                                         "active"),
                                 rows(
                                         "SELECT r.code, f.feature_code FROM teaching_requirement_feature f JOIN teaching_requirement r ON r.id=f.teaching_requirement_id WHERE r.term_id=? ORDER BY r.code, f.feature_code",

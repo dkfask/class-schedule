@@ -19,14 +19,17 @@ public final class MasterDataSchemaRegistry {
             List.of(
                     new Sheet("说明", List.of("说明"), true),
                     new Sheet("教师", List.of("编码", "名称", "是否启用"), true),
-                    new Sheet("班级", List.of("编码", "名称", "班级类型", "学生人数", "是否启用"), true),
+                    new Sheet(
+                            "班级",
+                            List.of("编码", "名称", "班级类型", "学生人数", "是否启用", "绑定教室编码"),
+                            true),
                     new Sheet("课程", List.of("编码", "名称", "是否启用"), true),
                     new Sheet("教室", List.of("编码", "名称", "容量", "教室类型", "是否启用"), false),
                     new Sheet(
                             "教学需求",
                             List.of(
                                     "编码", "学期编码", "班级编码", "课程编码", "教师编码", "每周课时", "单次节数", "学生人数",
-                                    "固定节次编码", "是否启用"),
+                                    "固定节次编码", "是否启用", "教室分配模式"),
                             true),
                     new Sheet("资源可用性", List.of("资源类型", "资源编码", "学期编码", "节次编码", "是否可用"), false),
                     new Sheet("特征目录", List.of("编码", "名称", "是否启用"), false),

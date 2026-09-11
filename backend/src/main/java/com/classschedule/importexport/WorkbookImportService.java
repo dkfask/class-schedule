@@ -58,7 +58,7 @@ public class WorkbookImportService {
                     sheet.createRow(1)
                             .createCell(0)
                             .setCellValue(
-                                    "MASTER_DATA v1；必填 Sheet：教师、班级、课程、教学需求；教室、资源可用性、特征目录、教室特征、教学需求特征和活动组可省略或留空；学期和节次只校验引用，不在本模板写入；缺少的行不会删除已有数据。");
+                                    "MASTER_DATA v1；必填 Sheet：教师、班级、课程、教学需求；班级可填写绑定教室编码，教学需求可选择 HOME 或 FLEXIBLE 教室分配模式；教室、资源可用性、特征目录、教室特征、教学需求特征和活动组可省略或留空；学期和节次只校验引用，不在本模板写入；缺少的行不会删除已有数据。");
                 }
             }
             workbook.write(output);
@@ -405,6 +405,18 @@ public class WorkbookImportService {
                     positiveInt(row, 5, sheet, rowIndex, "INVALID_WEEKLY_PERIODS", issues);
                     positiveInt(row, 6, sheet, rowIndex, "INVALID_DURATION_PERIODS", issues);
                     nonNegativeInt(row, 7, sheet, rowIndex, "INVALID_STUDENT_COUNT", issues);
+                    String roomAssignmentMode = text(row, 10);
+                    if (!roomAssignmentMode.isBlank()
+                            && !Set.of("HOME", "FLEXIBLE")
+                                    .contains(roomAssignmentMode.toUpperCase())) {
+                        issues.add(
+                                new ImportIssue(
+                                        sheet.getSheetName(),
+                                        rowIndex + 1,
+                                        "K",
+                                        "INVALID_ROOM_ASSIGNMENT_MODE",
+                                        "教室分配模式必须为 HOME 或 FLEXIBLE"));
+                    }
                     Boolean active = booleanValue(row, 9, sheet, rowIndex, issues);
                     if (active != null)
                         activeCodes
@@ -492,10 +504,26 @@ public class WorkbookImportService {
             List<ImportIssue> issues) {
         Sheet requirements = workbook.getSheet("教学需求");
         Map<String, String> requirementTerms = new HashMap<>();
+        Sheet groups = workbook.getSheet("班级");
+        if (groups != null) {
+            for (int rowIndex = 1; rowIndex <= dataRowLimit(groups); rowIndex++) {
+                Row row = groups.getRow(rowIndex);
+                if (blankRow(row, 6)) continue;
+                checkActiveReference(
+                        groups,
+                        rowIndex,
+                        "F",
+                        "教室",
+                        text(row, 5),
+                        "ROOM_NOT_FOUND",
+                        activeCodes,
+                        issues);
+            }
+        }
         if (requirements != null) {
             for (int rowIndex = 1; rowIndex <= dataRowLimit(requirements); rowIndex++) {
                 Row row = requirements.getRow(rowIndex);
-                if (blankRow(row, 10)) continue;
+                if (blankRow(row, 11)) continue;
                 String code = text(row, 0);
                 if (!code.isBlank()) requirementTerms.put(code, text(row, 1));
                 checkTermAndPeriod(requirements, rowIndex, text(row, 1), text(row, 8), issues);
@@ -1015,9 +1043,9 @@ public class WorkbookImportService {
                 stats.put(definition.name(), new MutableStat(definition.name()));
         }
         importMasterTeachers(workbook.getSheet("教师"), stats.get("教师"));
-        importMasterGroups(workbook.getSheet("班级"), stats.get("班级"));
         importMasterSubjects(workbook.getSheet("课程"), stats.get("课程"));
         importMasterRooms(workbook.getSheet("教室"), stats.get("教室"));
+        importMasterGroups(workbook.getSheet("班级"), stats.get("班级"));
         importMasterRequirements(workbook.getSheet("教学需求"), stats.get("教学需求"));
         importMasterAvailability(workbook.getSheet("资源可用性"), stats.get("资源可用性"));
         importMasterFeatures(workbook.getSheet("特征目录"), stats.get("特征目录"));
@@ -1063,23 +1091,26 @@ public class WorkbookImportService {
                 row -> {
                     stat.rows++;
                     String code = text(row, 0);
+                    String homeRoomCode = nullable(text(row, 5));
                     boolean existing = exists("student_group", "code", code);
                     if (existing) {
                         jdbc.update(
-                                "UPDATE student_group SET name=?, group_type=?, student_count=?, active=? WHERE code=?",
+                                "UPDATE student_group SET name=?, group_type=?, student_count=?, home_room_id=(SELECT id FROM room WHERE code=? AND active=TRUE), active=? WHERE code=?",
                                 text(row, 1),
                                 text(row, 2),
                                 Integer.parseInt(text(row, 3)),
+                                homeRoomCode,
                                 booleanValue(text(row, 4)),
                                 code);
                         stat.updated++;
                     } else {
                         jdbc.update(
-                                "INSERT INTO student_group(code,name,group_type,student_count,active) VALUES(?,?,?,?,?)",
+                                "INSERT INTO student_group(code,name,group_type,student_count,home_room_id,active) VALUES(?,?,?,?,(SELECT id FROM room WHERE code=? AND active=TRUE),?)",
                                 code,
                                 text(row, 1),
                                 text(row, 2),
                                 Integer.parseInt(text(row, 3)),
+                                homeRoomCode,
                                 booleanValue(text(row, 4)));
                         stat.created++;
                     }
@@ -1156,15 +1187,16 @@ public class WorkbookImportService {
                         Integer.parseInt(text(row, 7)),
                         nullable(text(row, 8)),
                         booleanValue(text(row, 9)),
+                        normalizeRoomAssignmentMode(text(row, 10)),
                         code
                     };
                     int updated =
                             jdbc.update(
-                                    "UPDATE teaching_requirement SET term_id=(SELECT id FROM academic_term WHERE code=?), student_group_id=(SELECT id FROM student_group WHERE code=?), subject_id=(SELECT id FROM subject WHERE code=?), teacher_id=(SELECT id FROM teacher WHERE code=?), weekly_periods=?, duration_periods=?, student_count=?, pinned_period_code=?, active=? WHERE code=?",
+                                    "UPDATE teaching_requirement SET term_id=(SELECT id FROM academic_term WHERE code=?), student_group_id=(SELECT id FROM student_group WHERE code=?), subject_id=(SELECT id FROM subject WHERE code=?), teacher_id=(SELECT id FROM teacher WHERE code=?), weekly_periods=?, duration_periods=?, student_count=?, pinned_period_code=?, active=?, room_assignment_mode=? WHERE code=?",
                                     args);
                     if (updated == 0) {
                         jdbc.update(
-                                "INSERT INTO teaching_requirement(code,term_id,student_group_id,subject_id,teacher_id,weekly_periods,duration_periods,student_count,pinned_period_code,active) VALUES(?,(SELECT id FROM academic_term WHERE code=?),(SELECT id FROM student_group WHERE code=?),(SELECT id FROM subject WHERE code=?),(SELECT id FROM teacher WHERE code=?),?,?,?,?,?)",
+                                "INSERT INTO teaching_requirement(code,term_id,student_group_id,subject_id,teacher_id,weekly_periods,duration_periods,student_count,pinned_period_code,active,room_assignment_mode) VALUES(?,(SELECT id FROM academic_term WHERE code=?),(SELECT id FROM student_group WHERE code=?),(SELECT id FROM subject WHERE code=?),(SELECT id FROM teacher WHERE code=?),?,?,?,?,?,?)",
                                 code,
                                 text(row, 1),
                                 text(row, 2),
@@ -1174,7 +1206,8 @@ public class WorkbookImportService {
                                 Integer.parseInt(text(row, 6)),
                                 Integer.parseInt(text(row, 7)),
                                 nullable(text(row, 8)),
-                                booleanValue(text(row, 9)));
+                                booleanValue(text(row, 9)),
+                                normalizeRoomAssignmentMode(text(row, 10)));
                         stat.created++;
                     } else stat.updated++;
                 });
@@ -1671,17 +1704,18 @@ public class WorkbookImportService {
             issues.add(new ImportIssue(sheet.getSheetName(), 1, "", "EMPTY_SHEET", "Sheet 没有表头"));
             return false;
         }
-        if (header.getLastCellNum() != headers.size()) {
+        int expectedSize = acceptedHeaderSize(sheet, header, headers);
+        if (header.getLastCellNum() != expectedSize) {
             issues.add(
                     new ImportIssue(
                             sheet.getSheetName(),
                             1,
-                            columnName(headers.size()),
+                            columnName(expectedSize),
                             "INVALID_HEADER",
-                            "表头列数必须为 " + headers.size()));
+                            "表头列数必须为 " + expectedSize));
             valid = false;
         }
-        for (int column = 0; column < headers.size(); column++) {
+        for (int column = 0; column < expectedSize; column++) {
             if (!headers.get(column).equals(text(header, column))) {
                 issues.add(
                         new ImportIssue(
@@ -1694,6 +1728,19 @@ public class WorkbookImportService {
             }
         }
         return valid;
+    }
+
+    private int acceptedHeaderSize(Sheet sheet, Row header, List<String> headers) {
+        int legacySize =
+                switch (sheet.getSheetName()) {
+                    case "班级" -> 5;
+                    case "教学需求" -> 10;
+                    default -> -1;
+                };
+        if (legacySize < 0 || header.getLastCellNum() != legacySize) return headers.size();
+        for (int column = 0; column < legacySize; column++)
+            if (!headers.get(column).equals(text(header, column))) return headers.size();
+        return legacySize;
     }
 
     private void validateCode(
@@ -1789,6 +1836,13 @@ public class WorkbookImportService {
         return "TRUE".equalsIgnoreCase(value);
     }
 
+    private String normalizeRoomAssignmentMode(String value) {
+        String normalized = value == null || value.isBlank() ? "HOME" : value.trim().toUpperCase();
+        if (!Set.of("HOME", "FLEXIBLE").contains(normalized))
+            throw new IllegalArgumentException("教室分配模式必须为 HOME 或 FLEXIBLE");
+        return normalized;
+    }
+
     private boolean blankRow(Row row, int width) {
         if (row == null || row.getLastCellNum() < 1) return true;
         for (int index = 0; index < width; index++) if (!text(row, index).isBlank()) return false;
@@ -1816,7 +1870,7 @@ public class WorkbookImportService {
         return cell == null ? "" : FORMATTER.get().formatCellValue(cell).trim();
     }
 
-    private Object nullable(String value) {
+    private String nullable(String value) {
         return value == null || value.isBlank() ? null : value;
     }
 

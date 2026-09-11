@@ -67,15 +67,18 @@ class PlanningProblemRepositoryIntegrationTest {
 
         try {
             PlanningProblem problem = repository.loadDefault();
+            Timetable timetable = problem.toTimetable();
             LessonOccurrence occurrence =
-                    problem.occurrences().stream()
+                    timetable.getOccurrences().stream()
                             .filter(item -> item.getId().equals(requirementId * 100))
                             .findFirst()
                             .orElseThrow();
             assertThat(occurrence.getDuration()).isEqualTo(2);
             assertThat(occurrence.isPinned()).isTrue();
             assertThat(occurrence.getTimeslot().getId()).isEqualTo("TUE-1");
-            assertThat(occurrence.getRoom()).isNull();
+            assertThat(occurrence.getRoomAssignmentMode()).isEqualTo("HOME");
+            assertThat(occurrence.getHomeRoomCode()).isEqualTo("A101");
+            assertThat(occurrence.getRoom().getId()).isEqualTo("A101");
         } finally {
             jdbc.update("DELETE FROM teaching_requirement WHERE id = ?", requirementId);
         }
@@ -122,6 +125,30 @@ class PlanningProblemRepositoryIntegrationTest {
         } finally {
             jdbc.update("DELETE FROM teaching_requirement WHERE id = ?", requirementId);
             jdbc.update("DELETE FROM room WHERE id = ?", roomId);
+        }
+    }
+
+    @Test
+    void flexibleRequirementKeepsTheFullEligibleRoomPool() {
+        Long requirementId =
+                jdbc.queryForObject(
+                        "INSERT INTO teaching_requirement (code, term_id, student_group_id, subject_id, teacher_id, weekly_periods, duration_periods, room_assignment_mode) VALUES ('REQ-FLEXIBLE-ROOM', (SELECT id FROM academic_term WHERE code='2026-FALL'), (SELECT id FROM student_group WHERE code='G7-1'), (SELECT id FROM subject WHERE code='MATH'), (SELECT id FROM teacher WHERE code='T001'), 1, 1, 'FLEXIBLE') RETURNING id",
+                        Long.class);
+
+        try {
+            Timetable timetable = repository.loadDefault().toTimetable();
+            LessonOccurrence occurrence =
+                    timetable.getOccurrences().stream()
+                            .filter(item -> item.getId().equals(requirementId * 100))
+                            .findFirst()
+                            .orElseThrow();
+
+            assertThat(occurrence.getRoomAssignmentMode()).isEqualTo("FLEXIBLE");
+            assertThat(occurrence.getRoomRange())
+                    .extracting(Room::getId)
+                    .containsExactly("A101", "A102");
+        } finally {
+            jdbc.update("DELETE FROM teaching_requirement WHERE id = ?", requirementId);
         }
     }
 }

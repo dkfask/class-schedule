@@ -224,7 +224,7 @@ onMounted(() => void load())
 }
 .published-workspace {
   margin-top: 22px;
-  border-top: 1px solid #edf2ef;
+  border-top: 1px solid #EEF1F3;
   padding-top: 22px;
 }
 .published-filter-bar {
@@ -244,41 +244,41 @@ onMounted(() => void load())
   flex-wrap: wrap;
 }
 .view-tabs button {
-  border: 1px solid #dce4e0;
+  border: 1px solid #D9DEE3;
   background: #fff;
-  color: #50605c;
+  color: #566474;
   border-radius: 6px;
   padding: 8px 11px;
   font-size: 12px;
   cursor: pointer;
 }
 .view-tabs button.selected {
-  border-color: #173b36;
-  background: #173b36;
+  border-color: #202A35;
+  background: #202A35;
   color: #fff;
 }
 .resource-picker {
   display: grid;
   gap: 5px;
-  color: #50605c;
+  color: #566474;
   font-size: 11px;
 }
 .resource-picker select {
   min-width: 0;
-  border: 1px solid #dce4e0;
+  border: 1px solid #D9DEE3;
   border-radius: 6px;
-  background: #fbfdfc;
+  background: #F9FAFB;
   color: #191c1d;
   padding: 8px 10px;
   font-size: 12px;
 }
-.published-search { display: grid; gap: 5px; color: #50605c; font-size: 11px; }
-.published-search input { min-width: 0; border: 1px solid #dce4e0; border-radius: 6px; background: #fbfdfc; color: #191c1d; padding: 8px 10px; font-size: 12px; }
+.published-search { display: grid; gap: 5px; color: #566474; font-size: 11px; }
+.published-search input { min-width: 0; border: 1px solid #D9DEE3; border-radius: 6px; background: #F9FAFB; color: #191c1d; padding: 8px 10px; font-size: 12px; }
 .published-search input:focus { outline: 2px solid rgba(77, 138, 120, .2); border-color: #4d8a78; }
 .published-empty {
   border: 1px dashed #cddbd5;
   border-radius: 8px;
-  color: #687874;
+  color: #566474;
   padding: 30px 16px;
   text-align: center;
   font-size: 12px;
@@ -287,8 +287,8 @@ onMounted(() => void load())
   display: grid;
   gap: 1px;
   overflow-x: auto;
-  background: #dce4e0;
-  border: 1px solid #dce4e0;
+  background: #D9DEE3;
+  border: 1px solid #D9DEE3;
   border-radius: 8px;
   min-width: 620px;
 }
@@ -298,7 +298,7 @@ onMounted(() => void load())
 }
 .grid-corner, .day-head, .period-label {
   background: #f6faf8 !important;
-  color: #50605c;
+  color: #566474;
   font-size: 11px;
   font-weight: 700;
   padding: 10px 8px;
@@ -315,7 +315,7 @@ onMounted(() => void load())
   border-left: 3px solid #4d8a78;
   border-radius: 5px;
   background: #edf7f2;
-  color: #173b36;
+  color: #202A35;
   font-size: 11px;
 }
 .published-lesson strong, .published-lesson small, .published-lesson em {

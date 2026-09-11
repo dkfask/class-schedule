@@ -463,9 +463,9 @@ onMounted(() => void loadAll())
   overflow: hidden;
 }
 .styled-input, .styled-select {
-  border: 1px solid #dce4e0;
+  border: 1px solid #D9DEE3;
   padding: 8px 10px;
-  background: #fbfdfc;
+  background: #F9FAFB;
   color: #191c1d;
   border-radius: 6px;
   font-size: 12.5px;
@@ -474,12 +474,12 @@ onMounted(() => void loadAll())
 }
 .styled-input:focus, .styled-select:focus {
   background: #ffffff;
-  border-color: #173b36;
+  border-color: #202A35;
   box-shadow: 0 0 0 2px rgba(23, 59, 54, 0.1);
 }
 .rule-btn {
   border: 0;
-  background: #173b36;
+  background: #202A35;
   color: #ffffff;
   padding: 9px 14px;
   border-radius: 6px;
@@ -512,7 +512,7 @@ onMounted(() => void loadAll())
   background: #fafcfb;
   padding: 12px;
   border-radius: 8px;
-  border: 1px solid #edf2ef;
+  border: 1px solid #EEF1F3;
 }
 .rule-explanation {
   grid-column: 1 / -1;
@@ -530,7 +530,7 @@ onMounted(() => void loadAll())
 }
 .rule-explanation p {
   margin: 6px 0 3px;
-  color: #173b36;
+  color: #202A35;
   font-size: 12px;
   font-weight: 600;
 }
@@ -545,7 +545,7 @@ onMounted(() => void loadAll())
   gap: 14px;
   flex-wrap: wrap;
   margin-top: 8px;
-  color: #50605c;
+  color: #566474;
   font-size: 11px;
 }
 .severity-pill {

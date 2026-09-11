@@ -44,7 +44,7 @@ describe('MasterDataView pagination and errors', () => {
     const wrapper = mountMasterData()
     await flushPromises()
     const vm = wrapper.vm as any
-    expect(calls[0]).toContain('/api/master-data/teachers?active=false&page=0&size=20')
+    expect(calls).toContain('/api/master-data/teachers?active=false&page=0&size=20')
     expect(vm.total).toBe(41)
     expect(vm.items).toHaveLength(1)
     wrapper.unmount()

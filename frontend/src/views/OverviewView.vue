@@ -87,15 +87,56 @@ const hasCoreData = computed(() => resourceCounts.value.teachers > 0
     ? readiness.value.roomCount > 0 && readiness.value.timeslotCount > 0
     : resourceCounts.value.periods > 0))
 const readinessIssues = computed(() => readiness.value?.issues ?? [])
-
-const metrics = computed(() => [
-  { label: '教师', value: resourceCounts.value.teachers, unit: '位', to: '/master-data' },
-  { label: '行政班', value: resourceCounts.value.studentGroups, unit: '个', to: '/master-data' },
-  { label: '课程', value: resourceCounts.value.subjects, unit: '门', to: '/master-data' },
-  { label: '教室', value: resourceCounts.value.rooms, unit: '间', to: '/master-data' },
-  { label: '教学需求', value: requirementCount.value, unit: '项', to: '/teaching-plan' },
-  { label: '可排节次', value: resourceCounts.value.periods, unit: '节', to: '/rule-facts' },
+const dataReadinessPercent = computed(() => {
+  if (!overview.value) return '—'
+  const checks = [
+    resourceCounts.value.teachers > 0,
+    resourceCounts.value.studentGroups > 0,
+    resourceCounts.value.subjects > 0,
+    resourceCounts.value.rooms > 0,
+    resourceCounts.value.periods > 0,
+  ]
+  return `${Math.round((checks.filter(Boolean).length / checks.length) * 100)}%`
+})
+const dashboardMetrics = computed(() => [
+  {
+    label: '核心数据就绪度',
+    value: dataReadinessPercent.value,
+    detail: overview.value ? `${[resourceCounts.value.teachers, resourceCounts.value.studentGroups, resourceCounts.value.subjects, resourceCounts.value.rooms, resourceCounts.value.periods].filter(Boolean).length} / 5 类数据已载入` : '等待同步',
+    to: '/master-data',
+    tone: hasCoreData.value ? 'success' : 'info',
+    icon: '◇',
+  },
+  {
+    label: '待处理问题',
+    value: String(readinessIssues.value.length),
+    detail: readinessIssues.value.length ? '需要处理的前置检查项' : '当前没有阻塞项',
+    to: '/rule-facts',
+    tone: readinessIssues.value.length ? 'warning' : 'success',
+    icon: '!',
+  },
+  {
+    label: '当前工作版本',
+    value: latestVersion.value ? `v${latestVersion.value.id}` : '—',
+    detail: latestVersion.value ? versionStatusLabel(latestVersion.value.status) : '尚未提交求解',
+    to: '/versions',
+    tone: 'info',
+    icon: '□',
+  },
+  {
+    label: '正式发布版本',
+    value: publishedVersion.value ? `v${publishedVersion.value.id}` : '—',
+    detail: publishedVersion.value ? '当前学期已发布' : '尚未发布正式版本',
+    to: '/published',
+    tone: publishedVersion.value ? 'success' : 'muted',
+    icon: '✓',
+  },
 ])
+const readinessWidth = computed(() => {
+  if (readiness.value?.ready) return 100
+  if (!overview.value) return 8
+  return Math.max(12, Math.round((stageItems.value.filter(item => item.status === 'done').length / stageItems.value.length) * 100))
+})
 
 const readinessState = computed(() => {
   if (loading.value) return { label: '正在同步', tone: 'loading' }
@@ -267,13 +308,15 @@ onMounted(async () => {
 <template>
   <div class="overview-page">
     <header class="topbar">
-      <div>
-        <p class="eyebrow">SEMESTER OVERVIEW / CONTROL CENTER</p>
+      <div class="overview-heading">
+        <p class="overview-breadcrumb">智程排课系统 <span>/</span> 学期总览 <span>/</span> <strong>{{ termLabel }}</strong></p>
         <h1>学期总览</h1>
+        <p class="topbar-subtitle">排课准备度与发布状态一览</p>
       </div>
       <div class="top-actions">
-        <span class="sync-state" :class="{ 'sync-loading': loading }">● {{ loading ? '正在同步' : '状态已同步' }}</span>
+        <span class="sync-state" :class="{ 'sync-loading': loading }"><i></i>{{ loading ? '正在同步' : `最后同步 ${lastLoadedAt || '尚未同步'}` }}</span>
         <button class="icon-button" type="button" aria-label="刷新总览" title="刷新总览" :disabled="loading" @click="refresh">↻</button>
+        <button class="icon-button" type="button" aria-label="通知" title="通知">!</button>
         <div class="avatar">教</div>
       </div>
     </header>
@@ -287,41 +330,29 @@ onMounted(async () => {
       <button type="button" class="text-button" :disabled="loading" @click="refresh">重新加载</button>
     </div>
 
-    <section class="overview-hero" aria-labelledby="overview-title">
-      <div class="overview-hero-main">
-        <p class="eyebrow">CURRENT TERM</p>
-        <h2 id="overview-title">{{ termLabel }}</h2>
-        <p class="overview-description">从数据准备到正式发布，集中查看当前学期的排课进度和需要处理的事项。</p>
-        <div class="overview-hero-actions">
-          <RouterLink class="primary-action" :to="nextAction.to">{{ nextAction.label }} <span aria-hidden="true">→</span></RouterLink>
-          <RouterLink class="secondary-action" to="/workspace">打开排课工作台</RouterLink>
+    <section class="overview-metrics dashboard-metrics" aria-label="当前学期状态概览">
+      <RouterLink v-for="metric in dashboardMetrics" :key="metric.label" class="overview-metric" :class="`metric-${metric.tone}`" :to="metric.to">
+        <div class="metric-topline"><span>{{ metric.label }}</span><b class="metric-icon" aria-hidden="true">{{ metric.icon }}</b></div>
+        <div class="metric-value-line">
+          <strong>{{ metric.value }}</strong>
+          <small>{{ metric.detail }}</small>
         </div>
-      </div>
-      <div class="readiness-card" :class="`readiness-${readinessState.tone}`">
-        <span class="readiness-label">当前准备度</span>
-        <strong>{{ readinessState.label }}</strong>
-        <p>{{ nextAction.title }}</p>
-        <div class="readiness-line"><i :style="{ width: `${readiness?.ready ? 100 : Math.min(90, Math.max(12, stageItems.filter(item => item.status === 'done').length * 20))}%` }"></i></div>
-        <small>{{ nextAction.description }}</small>
-      </div>
-    </section>
-
-    <section class="overview-metrics" aria-label="当前学期数据概览">
-      <RouterLink v-for="metric in metrics" :key="metric.label" class="overview-metric" :to="metric.to">
-        <span>{{ metric.label }}</span>
-        <strong>{{ metric.value }}</strong>
-        <small>{{ metric.unit }}</small>
       </RouterLink>
     </section>
 
-    <section class="overview-content-grid">
-      <div class="overview-panel pipeline-panel">
+    <section class="overview-content-grid overview-primary-grid">
+      <div class="overview-panel pipeline-panel preparation-panel">
         <div class="panel-heading">
           <div>
-            <span class="eyebrow">WORKFLOW</span>
-            <h2>排课流程</h2>
+            <span class="eyebrow">PREPARATION / WORKFLOW</span>
+            <h2>排课准备度与流水线推进</h2>
           </div>
-          <span class="panel-caption">{{ stageItems.filter(item => item.status === 'done').length }}/5 已完成</span>
+          <span class="panel-caption" :class="`caption-${readinessState.tone}`">{{ readinessState.label }}</span>
+        </div>
+        <div class="preparation-summary">
+          <div><strong>{{ dataReadinessPercent }}</strong><span>核心数据就绪度</span></div>
+          <div class="preparation-track"><i :style="{ width: `${readinessWidth}%` }"></i></div>
+          <small>{{ nextAction.title }} · {{ nextAction.description }}</small>
         </div>
         <ol class="stage-list">
           <li v-for="stage in stageItems" :key="stage.key" class="stage-row" :class="`stage-${stage.status}`">
@@ -334,13 +365,72 @@ onMounted(async () => {
             <RouterLink class="stage-action" :to="stage.to">{{ stage.action }} <span aria-hidden="true">→</span></RouterLink>
           </li>
         </ol>
+        <div class="panel-action-row">
+          <span>{{ stageItems.filter(item => item.status === 'done').length }}/{{ stageItems.length }} 个阶段已完成</span>
+          <RouterLink class="primary-action" :to="nextAction.to">{{ nextAction.label }} <span aria-hidden="true">→</span></RouterLink>
+        </div>
+      </div>
+
+      <div class="overview-panel health-panel">
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">SYSTEM HEALTH</span>
+            <h2>约束与算法健康度</h2>
+          </div>
+          <span class="panel-caption">{{ termLabel }}</span>
+        </div>
+        <div class="health-list">
+          <div class="health-row health-success">
+            <span class="health-mark">✓</span>
+            <div><strong>排课前置检查</strong><small>{{ readiness?.ready ? '当前学期已满足求解条件' : readiness ? '存在需要处理的前置问题' : '等待接口返回检查结果' }}</small></div>
+            <b>{{ readiness?.ready ? '已通过' : readiness ? `${readinessIssues.length} 项` : '待检查' }}</b>
+          </div>
+          <div class="health-row health-info">
+            <span class="health-mark">□</span>
+            <div><strong>可排节次</strong><small>当前学期可用的时间片数量</small></div>
+            <b>{{ resourceCounts.periods || '—' }}</b>
+          </div>
+          <div class="health-row health-warning">
+            <span class="health-mark">!</span>
+            <div><strong>教学需求</strong><small>已进入教学计划的排课需求</small></div>
+            <b>{{ requirementCount || '—' }}</b>
+          </div>
+        </div>
+        <div class="health-footer">
+          <span>规则状态：{{ readinessIssues.length ? '需要关注' : readiness?.ready ? '正常' : '等待同步' }}</span>
+          <RouterLink to="/rule-facts" class="panel-link">查看规则中心 →</RouterLink>
+        </div>
+      </div>
+    </section>
+
+    <section class="overview-content-grid lower-grid">
+      <div class="overview-panel version-panel">
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">VERSION LIFECYCLE</span>
+            <h2>排课版本生命周期</h2>
+          </div>
+          <RouterLink class="panel-link" to="/versions">版本对比 →</RouterLink>
+        </div>
+        <div v-if="versions.length" class="version-list">
+          <RouterLink v-for="version in versions.slice(0, 3)" :key="version.id" class="version-row" to="/versions">
+            <span class="version-id">v{{ version.id }}</span>
+            <span class="version-info"><strong>{{ versionStatusLabel(version.status) }}</strong><small>{{ version.publishable ? '满足发布门禁' : `revision ${version.revision ?? 0}` }} · {{ formatDate(version.updatedAt ?? version.createdAt) }}</small></span>
+            <span class="version-arrow" aria-hidden="true">→</span>
+          </RouterLink>
+        </div>
+        <div v-else class="empty-state overview-empty">
+          <span class="empty-icon">□</span>
+          <strong>还没有排课版本</strong>
+          <small>完成前置检查后，可以从排课工作台提交首次求解。</small>
+        </div>
       </div>
 
       <div class="overview-panel blocker-panel">
         <div class="panel-heading">
           <div>
-            <span class="eyebrow">ATTENTION</span>
-            <h2>当前需要处理</h2>
+            <span class="eyebrow">ATTENTION QUEUE</span>
+            <h2>待办与冲突阻断清单</h2>
           </div>
           <span class="panel-caption warning-caption">{{ readinessIssues.length }} 项</span>
         </div>
@@ -365,43 +455,19 @@ onMounted(async () => {
       </div>
     </section>
 
-    <section class="overview-content-grid lower-grid">
-      <div class="overview-panel signal-panel">
-        <div class="panel-heading">
-          <div>
-            <span class="eyebrow">RECENT SIGNALS</span>
-            <h2>近期状态</h2>
-          </div>
-          <span class="panel-caption">{{ termLabel }}</span>
+    <section class="overview-panel signal-panel activity-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">RECENT SIGNALS / AUDIT</span>
+          <h2>最近状态与同步记录</h2>
         </div>
-        <div class="signal-list">
-          <div v-for="signal in recentSignals" :key="signal.label" class="signal-row">
-            <span class="signal-dot"></span>
-            <div><strong>{{ signal.label }}</strong><small>{{ signal.detail }}</small></div>
-            <time>{{ signal.time }}</time>
-          </div>
-        </div>
+        <span class="panel-caption">{{ lastLoadedAt ? `同步于 ${lastLoadedAt}` : '尚未同步' }}</span>
       </div>
-
-      <div class="overview-panel version-panel">
-        <div class="panel-heading">
-          <div>
-            <span class="eyebrow">VERSION CONTROL</span>
-            <h2>版本动态</h2>
-          </div>
-          <RouterLink class="panel-link" to="/versions">查看全部 →</RouterLink>
-        </div>
-        <div v-if="versions.length" class="version-list">
-          <RouterLink v-for="version in versions.slice(0, 3)" :key="version.id" class="version-row" to="/versions">
-            <span class="version-id">v{{ version.id }}</span>
-            <span class="version-info"><strong>{{ versionStatusLabel(version.status) }}</strong><small>{{ version.publishable ? '满足发布门禁' : `revision ${version.revision ?? 0}` }}</small></span>
-            <span class="version-arrow" aria-hidden="true">→</span>
-          </RouterLink>
-        </div>
-        <div v-else class="empty-state overview-empty">
-          <span class="empty-icon">◷</span>
-          <strong>还没有排课版本</strong>
-          <small>完成前置检查后，可以从排课工作台提交首次求解。</small>
+      <div class="signal-list">
+        <div v-for="signal in recentSignals" :key="signal.label" class="signal-row">
+          <span class="signal-dot"></span>
+          <div><strong>{{ signal.label }}</strong><small>{{ signal.detail }}</small></div>
+          <time>{{ signal.time }}</time>
         </div>
       </div>
     </section>
@@ -411,82 +477,82 @@ onMounted(async () => {
 <style scoped>
 .overview-page { display: grid; gap: 20px; }
 .top-actions { align-items: center; }
-.icon-button { width: 32px; height: 32px; border: 1px solid #d9e2dc; background: #fff; color: #4c7762; cursor: pointer; font-size: 18px; line-height: 1; }
-.icon-button:hover:not(:disabled) { border-color: #75ad8b; color: #23654a; }
+.icon-button { display: inline-grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; padding: 0; border: 1px solid #D9DEE3; background: #fff; color: #4c7762; cursor: pointer; font-size: 18px; line-height: 1; }
+.icon-button:hover:not(:disabled) { border-color: #3B6F8F; color: #23654a; }
 .icon-button:disabled { opacity: .5; cursor: wait; }
 .sync-loading { color: #9b6c2f; }
-.overview-alert { display: flex; align-items: center; gap: 12px; border: 1px solid #efd6a9; background: #fff8ec; color: #7a5728; padding: 13px 16px; }
-.alert-icon, .blocker-mark { display: grid; place-items: center; width: 22px; height: 22px; flex: 0 0 auto; border-radius: 50%; background: #e2a34c; color: #fff; font-weight: 700; font-size: 12px; }
+.overview-alert { display: flex; align-items: center; gap: 12px; border: 1px solid #EED8AF; background: #fff8ec; color: #7a5728; padding: 13px 16px; }
+.alert-icon, .blocker-mark { display: grid; place-items: center; width: 22px; height: 22px; flex: 0 0 auto; border-radius: 50%; background: #D19A3B; color: #fff; font-weight: 700; font-size: 12px; }
 .overview-alert strong, .overview-alert p { display: block; }
 .overview-alert strong { font-size: 12px; }
 .overview-alert p { margin: 3px 0 0; font-size: 11px; line-height: 1.5; }
 .overview-alert .text-button { margin-left: auto; }
 .text-button { border: 0; background: transparent; color: #317957; cursor: pointer; font-size: 11px; padding: 4px 0; text-decoration: none; }
-.text-button:hover { color: #1b5a45; text-decoration: underline; }
+.text-button:hover { color: #984936; text-decoration: underline; }
 .text-button:disabled { opacity: .5; cursor: wait; }
-.overview-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, 330px); gap: 26px; background: #fff; border: 1px solid #d9e2dc; padding: 28px 30px; }
+.overview-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, 330px); gap: 26px; background: #fff; border: 1px solid #D9DEE3; padding: 28px 30px; }
 .overview-hero-main { min-width: 0; }
 .overview-hero h2 { margin: 0; color: #213b32; font-size: 25px; font-weight: 650; }
 .overview-description { max-width: 620px; margin: 12px 0 21px; color: #6d8579; font-size: 13px; line-height: 1.7; }
 .overview-hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
 .primary-action, .secondary-action { display: inline-flex; align-items: center; gap: 12px; min-height: 38px; padding: 0 16px; text-decoration: none; font-size: 12px; }
-.primary-action { background: #2e8a65; color: #fff; }
+.primary-action { background: #B85C45; color: #fff; }
 .primary-action:hover { background: #236f50; }
 .secondary-action { border-bottom: 1px solid #c5d9cc; color: #387957; }
-.secondary-action:hover { color: #1b5a45; border-color: #71a98a; }
-.readiness-card { display: flex; flex-direction: column; justify-content: center; min-width: 0; border-left: 3px solid #78b394; padding: 8px 0 8px 22px; }
-.readiness-card.readiness-warning { border-color: #d89b45; }
-.readiness-card.readiness-muted { border-color: #a9bbb2; }
-.readiness-card.readiness-loading { border-color: #80a794; }
-.readiness-label { color: #7d958a; font-size: 11px; }
+.secondary-action:hover { color: #984936; border-color: #71a98a; }
+.readiness-card { display: flex; flex-direction: column; justify-content: center; min-width: 0; border-left: 3px solid #3F806F; padding: 8px 0 8px 22px; }
+.readiness-card.readiness-warning { border-color: #D19A3B; }
+.readiness-card.readiness-muted { border-color: #8795A5; }
+.readiness-card.readiness-loading { border-color: #3B6F8F; }
+.readiness-label { color: #566474; font-size: 11px; }
 .readiness-card strong { margin-top: 6px; color: #27734e; font-size: 20px; }
 .readiness-warning strong { color: #946128; }
 .readiness-card p { margin: 9px 0 0; color: #4e6e5e; font-size: 12px; font-weight: 650; }
-.readiness-card small { margin-top: 9px; color: #80968b; font-size: 10px; line-height: 1.55; }
+.readiness-card small { margin-top: 9px; color: #566474; font-size: 10px; line-height: 1.55; }
 .readiness-line { height: 5px; margin-top: 16px; background: #e8efeb; }
-.readiness-line i { display: block; height: 100%; background: #62ad83; transition: width .2s ease; }
+.readiness-line i { display: block; height: 100%; background: #3F806F; transition: width .2s ease; }
 .readiness-warning .readiness-line i { background: #d6a05a; }
-.overview-metrics { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; border: 1px solid #d9e2dc; background: #d9e2dc; }
-.overview-metric { min-width: 0; background: #fff; padding: 16px 17px; color: #7b9188; text-decoration: none; }
-.overview-metric:hover { background: #f6fbf8; }
+.overview-metrics { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; border: 1px solid #D9DEE3; background: #D9DEE3; }
+.overview-metric { min-width: 0; background: #fff; padding: 16px 17px; color: #566474; text-decoration: none; }
+.overview-metric:hover { background: #F9FAFB; }
 .overview-metric span, .overview-metric small { display: block; font-size: 10px; }
 .overview-metric strong { display: inline-block; margin-top: 8px; color: #244a3b; font-size: 23px; line-height: 1; }
-.overview-metric small { display: inline-block; margin-left: 4px; color: #8ba197; }
+.overview-metric small { display: inline-block; margin-left: 4px; color: #8795A5; }
 .overview-content-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr); gap: 20px; }
-.overview-panel { min-width: 0; background: #fff; border: 1px solid #d9e2dc; }
-.panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 19px 15px; border-bottom: 1px solid #e5ece8; }
+.overview-panel { min-width: 0; background: #fff; border: 1px solid #D9DEE3; }
+.panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 19px 15px; border-bottom: 1px solid #EEF1F3; }
 .panel-heading h2 { margin: 1px 0 0; color: #294d3f; font-size: 16px; font-weight: 650; }
-.panel-caption { flex: 0 0 auto; color: #80968b; font-size: 10px; }
+.panel-caption { flex: 0 0 auto; color: #566474; font-size: 10px; }
 .warning-caption { color: #af7632; }
 .panel-link { color: #3b8061; font-size: 10px; text-decoration: none; }
 .panel-link:hover { text-decoration: underline; }
 .stage-list, .signal-list, .version-list { margin: 0; padding: 0; list-style: none; }
-.stage-row { display: grid; grid-template-columns: 30px 22px minmax(0, 1fr) auto; align-items: center; gap: 7px; min-height: 64px; padding: 9px 19px; border-bottom: 1px solid #edf2ef; }
+.stage-row { display: grid; grid-template-columns: 30px 22px minmax(0, 1fr) auto; align-items: center; gap: 7px; min-height: 64px; padding: 9px 19px; border-bottom: 1px solid #EEF1F3; }
 .stage-row:last-child, .signal-row:last-child, .version-row:last-child { border-bottom: 0; }
-.stage-row:hover { background: #fbfdfb; }
+.stage-row:hover { background: #F9FAFB; }
 .stage-number { color: #a6b7ae; font-size: 10px; }
 .stage-state { display: grid; place-items: center; width: 21px; height: 21px; border: 1px solid #c5d5cd; border-radius: 50%; color: #7f978a; font-size: 11px; }
-.stage-done .stage-state { border-color: #71b38c; background: #e7f5ed; color: #2d875a; }
+.stage-done .stage-state { border-color: #3F806F; background: #EAF2EF; color: #2d875a; }
 .stage-active .stage-state { border-color: #78a991; background: #eef7f1; color: #3c815f; }
-.stage-blocked .stage-state { border-color: #d9a15a; background: #fff5e4; color: #a16b2b; }
+.stage-blocked .stage-state { border-color: #d9a15a; background: #FBF4E7; color: #a16b2b; }
 .stage-content { min-width: 0; }
 .stage-title-line { display: flex; align-items: center; gap: 9px; }
-.stage-title-line strong { color: #365b4b; font-size: 12px; }
+.stage-title-line strong { color: #182029; font-size: 12px; }
 .stage-title-line span { color: #779184; font-size: 10px; }
 .stage-blocked .stage-title-line span { color: #ad7333; }
-.stage-content small { display: block; overflow: hidden; margin-top: 4px; color: #83978d; font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.stage-content small { display: block; overflow: hidden; margin-top: 4px; color: #8795A5; font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .stage-action { color: #478466; font-size: 10px; text-decoration: none; white-space: nowrap; }
-.stage-action:hover { color: #1b5a45; }
+.stage-action:hover { color: #984936; }
 .blocker-list { padding: 3px 0; }
 .blocker-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 16px; align-items: start; gap: 11px; padding: 15px 19px; color: #76582f; text-decoration: none; border-bottom: 1px solid #f0eadf; }
-.blocker-row:hover { background: #fffaf1; }
+.blocker-row:hover { background: #FBF4E7; }
 .blocker-row:last-child { border-bottom: 0; }
 .blocker-mark { width: 20px; height: 20px; background: #dfa65e; font-size: 11px; }
 .blocker-row strong, .blocker-row small { display: block; }
 .blocker-row strong { color: #79582f; font-size: 11px; line-height: 1.45; }
 .blocker-row small { margin-top: 5px; color: #ad8960; font-size: 9px; }
 .clear-state { display: flex; flex-direction: column; align-items: flex-start; padding: 38px 24px; }
-.clear-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #e3f4e9; color: #2b8a5b; font-size: 15px; }
+.clear-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #EAF2EF; color: #2b8a5b; font-size: 15px; }
 .clear-state strong { margin-top: 13px; color: #35634e; font-size: 13px; }
 .clear-state small { max-width: 270px; margin-top: 7px; color: #82978d; font-size: 10px; line-height: 1.6; }
 .clear-state .text-button { margin-top: 14px; }
@@ -494,34 +560,85 @@ onMounted(async () => {
 .overview-empty strong { margin-top: 10px; color: #557365; font-size: 12px; }
 .overview-empty small { max-width: 260px; }
 .lower-grid { align-items: start; }
-.signal-row, .version-row { display: grid; align-items: center; gap: 11px; min-height: 67px; padding: 10px 19px; border-bottom: 1px solid #edf2ef; }
+.signal-row, .version-row { display: grid; align-items: center; gap: 11px; min-height: 67px; padding: 10px 19px; border-bottom: 1px solid #EEF1F3; }
 .signal-row { grid-template-columns: 8px minmax(0, 1fr) auto; }
-.signal-dot { width: 7px; height: 7px; border-radius: 50%; background: #65ad82; }
+.signal-dot { width: 7px; height: 7px; border-radius: 50%; background: #3F806F; }
 .signal-row strong, .signal-row small { display: block; }
 .signal-row strong { color: #416551; font-size: 11px; }
-.signal-row small { overflow: hidden; margin-top: 4px; color: #83978d; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.signal-row time { color: #9aaca3; font-size: 9px; white-space: nowrap; }
-.version-row { grid-template-columns: 45px minmax(0, 1fr) 15px; color: #365b4b; text-decoration: none; }
-.version-row:hover { background: #fbfdfb; }
+.signal-row small { overflow: hidden; margin-top: 4px; color: #8795A5; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.signal-row time { color: #8795A5; font-size: 9px; white-space: nowrap; }
+.version-row { grid-template-columns: 45px minmax(0, 1fr) 15px; color: #182029; text-decoration: none; }
+.version-row:hover { background: #F9FAFB; }
 .version-id { color: #3c805f; font-size: 12px; font-weight: 700; }
 .version-info strong, .version-info small { display: block; }
 .version-info strong { font-size: 11px; }
 .version-info small { margin-top: 4px; color: #84988e; font-size: 10px; }
-.version-arrow { color: #85a294; font-size: 12px; }
-.overview-page a:focus-visible, .overview-page button:focus-visible { outline: 2px solid #2e8a65; outline-offset: 2px; }
+.version-arrow { color: #8795A5; font-size: 12px; }
+.overview-page a:focus-visible, .overview-page button:focus-visible { outline: 2px solid #B85C45; outline-offset: 2px; }
+.overview-heading { min-width: 0; }
+.overview-breadcrumb { margin: 0 0 5px; color: #8795A5; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; }
+.overview-breadcrumb span { padding: 0 7px; color: #D9DEE3; }
+.overview-breadcrumb strong { color: #566474; font-weight: 500; }
+.topbar-subtitle { display: inline-block; margin: 4px 0 0 11px; color: #566474; font-size: 12px; vertical-align: middle; }
+.dashboard-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; border: 0; background: transparent; }
+.dashboard-metrics .overview-metric { border: 1px solid #D9DEE3; border-radius: 6px; padding: 16px 17px; box-shadow: 0 1px 3px rgba(24, 32, 41, .05); }
+.dashboard-metrics .overview-metric:hover { border-color: #B8C2CB; background: #fff; box-shadow: 0 3px 10px rgba(24, 32, 41, .07); }
+.metric-topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #566474; }
+.metric-topline > span { font-size: 10px; }
+.metric-icon { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #D9DEE3; border-radius: 4px; color: #3B6F8F; font-family: ui-monospace, monospace; font-size: 12px; font-weight: 600; }
+.metric-success .metric-icon { border-color: #BBD6CC; background: #EAF2EF; color: #3F806F; }
+.metric-warning .metric-icon { border-color: #EED8AF; background: #FBF4E7; color: #D19A3B; }
+.metric-info .metric-icon { border-color: #C5D8E3; background: #EEF4F7; color: #3B6F8F; }
+.metric-muted .metric-icon { border-color: #D9DEE3; background: #F5F6F8; color: #8795A5; }
+.metric-value-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; min-width: 0; margin-top: 16px; }
+.dashboard-metrics .overview-metric strong { color: #182029; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 25px; font-variant-numeric: tabular-nums; line-height: 1; }
+.dashboard-metrics .overview-metric small { margin: 0; color: #8795A5; font-size: 10px; line-height: 1.35; }
+.overview-primary-grid { grid-template-columns: minmax(0, 1.18fr) minmax(310px, .82fr); gap: 16px; }
+.overview-primary-grid .overview-panel, .activity-panel { border-radius: 6px; box-shadow: 0 1px 3px rgba(24, 32, 41, .04); }
+.preparation-summary { padding: 17px 19px 16px; background: #F5F6F8; border-bottom: 1px solid #D9DEE3; }
+.preparation-summary > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.preparation-summary strong { color: #182029; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 25px; font-variant-numeric: tabular-nums; }
+.preparation-summary small { color: #566474; font-size: 10px; }
+.preparation-summary p { margin: 6px 0 0; color: #566474; font-size: 11px; line-height: 1.5; }
+.preparation-track { height: 6px; margin-top: 14px; overflow: hidden; background: #D9DEE3; }
+.preparation-track i { display: block; height: 100%; min-width: 3px; background: #B85C45; transition: width .2s ease; }
+.panel-action-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 19px; border-top: 1px solid #EEF1F3; }
+.panel-action-row small { color: #8795A5; font-size: 10px; }
+.panel-action-row .primary-action { min-height: 32px; padding: 0 12px; border-radius: 4px; font-size: 11px; }
+.health-list { padding: 5px 0; }
+.health-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 11px; min-height: 67px; padding: 10px 19px; border-bottom: 1px solid #EEF1F3; }
+.health-row:last-child { border-bottom: 0; }
+.health-mark { display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid #D9DEE3; border-radius: 4px; color: #8795A5; font-size: 12px; font-weight: 700; }
+.health-success .health-mark { border-color: #BBD6CC; background: #EAF2EF; color: #3F806F; }
+.health-info .health-mark { border-color: #C5D8E3; background: #EEF4F7; color: #3B6F8F; }
+.health-warning .health-mark { border-color: #EED8AF; background: #FBF4E7; color: #D19A3B; }
+.health-row strong, .health-row small { display: block; }
+.health-row strong { color: #182029; font-size: 11px; }
+.health-row small { margin-top: 4px; color: #8795A5; font-size: 10px; line-height: 1.4; }
+.health-row b { color: #566474; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px; font-weight: 500; }
+.health-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 19px; border-top: 1px solid #EEF1F3; color: #8795A5; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9px; }
+.health-footer .text-button { font-family: inherit; }
+.activity-panel { grid-column: 1 / -1; }
+.activity-panel .signal-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.activity-panel .signal-row { min-height: 70px; border-right: 1px solid #EEF1F3; }
+.activity-panel .signal-row:nth-child(3n) { border-right: 0; }
 @media (max-width: 1120px) {
   .overview-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
   .overview-hero, .overview-content-grid { grid-template-columns: 1fr; }
-  .readiness-card { border-top: 1px solid #e5ece8; border-left: 0; padding: 18px 0 0; }
-  .readiness-card.readiness-warning { border-color: #e5ece8; }
+  .readiness-card { border-top: 1px solid #EEF1F3; border-left: 0; padding: 18px 0 0; }
+  .readiness-card.readiness-warning { border-color: #EEF1F3; }
 }
 @media (max-width: 640px) {
   .overview-page { gap: 14px; }
   .overview-hero { padding: 21px 18px; }
   .overview-hero h2 { font-size: 21px; }
   .overview-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-metrics { grid-template-columns: 1fr; gap: 10px; }
+  .activity-panel .signal-list { grid-template-columns: 1fr; }
+  .activity-panel .signal-row { border-right: 0; }
   .stage-row { grid-template-columns: 25px 20px minmax(0, 1fr); padding: 9px 13px; }
   .stage-action { grid-column: 3; }
   .panel-heading { padding-left: 14px; padding-right: 14px; }

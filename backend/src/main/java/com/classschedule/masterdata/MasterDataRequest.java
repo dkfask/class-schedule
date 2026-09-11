@@ -10,8 +10,9 @@ public record MasterDataRequest(
         @NotBlank @Size(max = 128) String name,
         @Positive Integer capacity,
         @PositiveOrZero Integer studentCount,
-        @Size(max = 64) String roomType) {
+        @Size(max = 64) String roomType,
+        @Size(max = 64) String homeRoomCode) {
     public MasterDataRequest(String code, String name, Integer capacity, String roomType) {
-        this(code, name, capacity, 0, roomType);
+        this(code, name, capacity, 0, roomType, null);
     }
 }

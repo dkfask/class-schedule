@@ -21,8 +21,10 @@ export const useAuthStore = defineStore('auth', () => {
   const isViewer = computed(() => user.value?.roles.includes('VIEWER') ?? false)
   const isReviewer = computed(() => user.value?.roles.includes('REVIEWER') ?? false)
   const isBusinessOwner = computed(() => user.value?.roles.includes('BUSINESS_OWNER') ?? false)
+  const isSystemAdmin = computed(() => user.value?.roles.includes('USER_ADMIN') ?? false)
   const canReview = computed(() => isPlanner.value || isReviewer.value || isBusinessOwner.value)
   const canReadAudit = computed(() => isPlanner.value || (user.value?.roles.includes('AUDIT_READ') ?? false))
+  const canManageAi = computed(() => isSystemAdmin.value)
 
   async function loadMe() {
     loading.value = true
@@ -56,5 +58,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, loading, initialized, isAuthenticated, isPlanner, isViewer, isReviewer, isBusinessOwner, canReview, canReadAudit, loadMe, login, logout }
+  return { user, loading, initialized, isAuthenticated, isPlanner, isViewer, isReviewer, isBusinessOwner, isSystemAdmin, canReview, canReadAudit, canManageAi, loadMe, login, logout }
 })

@@ -16,6 +16,7 @@ interface Requirement {
   studentCount: number
   requiredFeatures: string
   pinnedPeriodCode: string | null
+  roomAssignmentMode: 'HOME' | 'FLEXIBLE'
   active: boolean
 }
 interface Option { code: string; name: string }
@@ -49,6 +50,7 @@ const form = ref({
   studentCount: 0,
   requiredFeatures: '',
   pinnedPeriodCode: '',
+  roomAssignmentMode: 'HOME' as 'HOME' | 'FLEXIBLE',
 })
 
 const selectedTerm = computed(() => term.terms.value.find(item => item.code === term.selectedTermCode.value))
@@ -91,7 +93,7 @@ function openCreate() {
   editingId.value = null
   form.value = {
     code: '', studentGroupCode: options.value.studentGroups?.[0]?.code ?? '', subjectCode: options.value.subjects?.[0]?.code ?? '',
-    teacherCode: options.value.teachers?.[0]?.code ?? '', weeklyPeriods: 1, durationPeriods: 1, studentCount: 0, requiredFeatures: '', pinnedPeriodCode: '',
+    teacherCode: options.value.teachers?.[0]?.code ?? '', weeklyPeriods: 1, durationPeriods: 1, studentCount: 0, requiredFeatures: '', pinnedPeriodCode: '', roomAssignmentMode: 'HOME',
   }
   dialogOpen.value = true
 }
@@ -102,6 +104,7 @@ function openEdit(item: Requirement) {
     code: item.code, studentGroupCode: item.studentGroupCode, subjectCode: item.subjectCode, teacherCode: item.teacherCode,
     weeklyPeriods: item.weeklyPeriods, durationPeriods: item.durationPeriods, studentCount: item.studentCount,
     requiredFeatures: item.requiredFeatures, pinnedPeriodCode: item.pinnedPeriodCode ?? '',
+    roomAssignmentMode: item.roomAssignmentMode ?? 'HOME',
   }
   dialogOpen.value = true
 }
@@ -210,6 +213,9 @@ onMounted(async () => {
         <el-table-column prop="requiredFeatures" label="特征" min-width="120">
           <template #default="scope">{{ scope.row.requiredFeatures || '—' }}</template>
         </el-table-column>
+        <el-table-column prop="roomAssignmentMode" label="教室模式" width="130">
+          <template #default="scope">{{ scope.row.roomAssignmentMode === 'FLEXIBLE' ? '可选教室' : '班级绑定教室' }}</template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="scope">
             <el-tag :type="scope.row.active ? 'success' : 'info'" effect="plain" round size="small">
@@ -279,6 +285,12 @@ onMounted(async () => {
       <el-form-item label="场地特征">
         <el-input v-model="form.requiredFeatures" placeholder="逗号分隔，如 LAB, MULTIMEDIA" />
       </el-form-item>
+      <el-form-item label="教室模式">
+        <el-select v-model="form.roomAssignmentMode" class="full-width">
+          <el-option label="班级绑定教室" value="HOME" />
+          <el-option label="可选教室（专用/走班）" value="FLEXIBLE" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="固定节次">
         <el-select v-model="form.pinnedPeriodCode" clearable placeholder="可选：如无硬性需求请留空" class="full-width">
           <el-option v-for="item in options.periods ?? []" :key="item.code" :label="item.label" :value="item.code" />
@@ -303,7 +315,7 @@ onMounted(async () => {
 .code-badge {
   font-family: monospace;
   font-size: 11.5px;
-  color: #2c694e;
+  color: #B85C45;
   background: #f0f7f3;
   padding: 2px 6px;
   border-radius: 4px;
@@ -312,7 +324,7 @@ onMounted(async () => {
   display: inline-block;
   font-size: 11.5px;
   font-weight: 600;
-  color: #173b36;
+  color: #202A35;
   background: #f4faf6;
   padding: 1px 8px;
   border-radius: 9999px;

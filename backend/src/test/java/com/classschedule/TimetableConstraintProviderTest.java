@@ -112,6 +112,56 @@ class TimetableConstraintProviderTest {
     }
 
     @Test
+    void homeRequirementMustUseItsBoundRoom() {
+        Timeslot timeslot = new Timeslot("MON-1", 1, 1, "周一 第1节");
+        Room homeRoom = new Room("A101", "教学楼 A101", 50);
+        Room otherRoom = new Room("A102", "教学楼 A102", 50);
+        LessonOccurrence occurrence = occurrence(1L, "T001", "G7-1");
+        occurrence.setRoomAssignmentMode("HOME");
+        occurrence.setHomeRoomCode(homeRoom.getId());
+        occurrence.setTimeslot(timeslot);
+        occurrence.setRoom(otherRoom);
+
+        verifier.verifyThat(TimetableConstraintProvider::homeRoomBindingForTest)
+                .given(occurrence)
+                .penalizesBy(1);
+
+        occurrence.setRoom(homeRoom);
+        verifier.verifyThat(TimetableConstraintProvider::homeRoomBindingForTest)
+                .given(occurrence)
+                .penalizesBy(0);
+    }
+
+    @Test
+    void joinedClassroomCapacityUsesTheCombinedStudentCount() {
+        Timeslot timeslot = new Timeslot("MON-1", 1, 1, "周一 第1节");
+        Room room = new Room("A101", "教学楼 A101", 50);
+        LessonOccurrence left = occurrence(1L, "T001", "G7-1");
+        LessonOccurrence right = occurrence(2L, "T002", "G7-2");
+        left.setStudentCount(30);
+        right.setStudentCount(25);
+        left.setActivityGroupCode("JOIN-CAPACITY");
+        right.setActivityGroupCode("JOIN-CAPACITY");
+        left.setActivityType("JOINED");
+        right.setActivityType("JOINED");
+        left.setActivityIndex(0);
+        right.setActivityIndex(0);
+        left.setTimeslot(timeslot);
+        right.setTimeslot(timeslot);
+        left.setRoom(room);
+        right.setRoom(room);
+
+        verifier.verifyThat(TimetableConstraintProvider::joinedRoomCapacityForTest)
+                .given(left, right)
+                .penalizesBy(1);
+
+        right.setStudentCount(20);
+        verifier.verifyThat(TimetableConstraintProvider::joinedRoomCapacityForTest)
+                .given(left, right)
+                .penalizesBy(0);
+    }
+
+    @Test
     void consecutiveActivityMustUseAdjacentPeriods() {
         Timeslot first = new Timeslot("MON-1", 1, 1, "周一 第1节");
         Timeslot third = new Timeslot("MON-3", 1, 3, "周一 第3节");

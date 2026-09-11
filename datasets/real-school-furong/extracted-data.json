@@ -1,0 +1,1521 @@
+{
+  "termCode": "2026-FALL-FR",
+  "lessonCells": 486,
+  "classes": [
+    "一年级 1",
+    "一年级 2",
+    "一年级 3",
+    "二年级 1",
+    "二年级 2",
+    "二年级 3",
+    "三年级 1",
+    "三年级 2",
+    "三年级 3",
+    "四年级 1",
+    "四年级 2",
+    "四年级 3",
+    "五年级 1",
+    "五年级 2",
+    "五年级 3",
+    "六年级 1",
+    "六年级 2"
+  ],
+  "teachers": [
+    "常雨晴",
+    "吴喻欣",
+    "刘勇",
+    "唐天娇",
+    "杨胜楠",
+    "黄咏薇",
+    "刘洋",
+    "刘洪君",
+    "姜金瑜",
+    "李旭梅",
+    "罗田柯",
+    "赵悦名",
+    "钟波",
+    "严文玲",
+    "朱以涓",
+    "涂小鸥",
+    "王梁思",
+    "蒋建",
+    "谢晓芸",
+    "邓珊珊",
+    "李明",
+    "蔡永",
+    "金建敏",
+    "何莹燕",
+    "刘开琴",
+    "刘馨潞",
+    "唐倩",
+    "宋雨娟",
+    "张思韵",
+    "张豆豆",
+    "曾令雪",
+    "杨雪",
+    "罗芸",
+    "蒋雨昊",
+    "赵进",
+    "雷秀勤",
+    "马梦",
+    "高静",
+    "黄先红",
+    "黄超月",
+    "商靖",
+    "曾琴",
+    "张珺",
+    "李从刚",
+    "杨敏",
+    "张艾玲"
+  ],
+  "subjects": [
+    "语文",
+    "体育与健康",
+    "数学",
+    "英语",
+    "艺术-美术",
+    "艺术-音乐",
+    "道法/习近平新时代中国特色社会主义思想学生读本",
+    "科学",
+    "书法",
+    "体育活动",
+    "劳动",
+    "班团队/综合实践/生生安/心理",
+    "信息科技",
+    "校本（英语活动）"
+  ],
+  "requirements": 224,
+  "flexibleRoomRequirements": 101,
+  "slotsPerClass": 30,
+  "totalSlots": 510,
+  "utilization": 0.9529,
+  "classLoad": {
+    "一年级 1": 26,
+    "一年级 2": 26,
+    "一年级 3": 26,
+    "二年级 1": 26,
+    "二年级 2": 26,
+    "二年级 3": 26,
+    "三年级 1": 30,
+    "三年级 2": 30,
+    "三年级 3": 30,
+    "四年级 1": 30,
+    "四年级 2": 30,
+    "四年级 3": 30,
+    "五年级 1": 30,
+    "五年级 2": 30,
+    "五年级 3": 30,
+    "六年级 1": 30,
+    "六年级 2": 30
+  },
+  "subjectLoad": {
+    "语文": 97,
+    "劳动": 17,
+    "艺术-美术": 34,
+    "体育与健康": 68,
+    "数学": 68,
+    "艺术-音乐": 34,
+    "体育活动": 17,
+    "英语": 36,
+    "科学": 33,
+    "道法/习近平新时代中国特色社会主义思想学生读本": 34,
+    "班团队/综合实践/生生安/心理": 17,
+    "书法": 17,
+    "校本（英语活动）": 3,
+    "信息科技": 11
+  },
+  "teacherLoad": {
+    "杨雪": 9,
+    "黄咏薇": 16,
+    "唐天娇": 16,
+    "朱以涓": 12,
+    "赵悦名": 15,
+    "李旭梅": 15,
+    "张豆豆": 9,
+    "蔡永": 10,
+    "杨敏": 4,
+    "曾令雪": 9,
+    "吴喻欣": 18,
+    "黄先红": 9,
+    "谢晓芸": 12,
+    "王梁思": 12,
+    "罗田柯": 15,
+    "钟波": 15,
+    "杨胜楠": 16,
+    "张思韵": 9,
+    "张艾玲": 2,
+    "宋雨娟": 9,
+    "李明": 10,
+    "马梦": 9,
+    "张珺": 6,
+    "李从刚": 4,
+    "刘洋": 15,
+    "何莹燕": 9,
+    "严文玲": 12,
+    "黄超月": 9,
+    "蒋雨昊": 9,
+    "邓珊珊": 12,
+    "刘洪君": 15,
+    "涂小鸥": 12,
+    "赵进": 9,
+    "刘开琴": 9,
+    "商靖": 8,
+    "刘勇": 16,
+    "雷秀勤": 9,
+    "姜金瑜": 15,
+    "唐倩": 9,
+    "金建敏": 10,
+    "刘馨潞": 9,
+    "罗芸": 9,
+    "蒋建": 12,
+    "曾琴": 8,
+    "高静": 9
+  },
+  "realTimetableTeacherConflicts": 0,
+  "requirementsDetail": [
+    {
+      "class": "一年级 1",
+      "subject": "语文",
+      "teacher": "杨雪",
+      "weeklyPeriods": 6
+    },
+    {
+      "class": "一年级 1",
+      "subject": "劳动",
+      "teacher": "杨雪",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 1",
+      "subject": "艺术-美术",
+      "teacher": "黄咏薇",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "一年级 1",
+      "subject": "体育与健康",
+      "teacher": "唐天娇",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "一年级 1",
+      "subject": "数学",
+      "teacher": "朱以涓",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "一年级 1",
+      "subject": "艺术-音乐",
+      "teacher": "赵悦名",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "一年级 1",
+      "subject": "体育活动",
+      "teacher": "李旭梅",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 1",
+      "subject": "英语",
+      "teacher": "李旭梅",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 1",
+      "subject": "科学",
+      "teacher": "赵悦名",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 1",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "朱以涓",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "一年级 1",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "杨雪",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 1",
+      "subject": "书法",
+      "teacher": "杨雪",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 2",
+      "subject": "语文",
+      "teacher": "张豆豆",
+      "weeklyPeriods": 6
+    },
+    {
+      "class": "一年级 2",
+      "subject": "数学",
+      "teacher": "蔡永",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "一年级 2",
+      "subject": "艺术-美术",
+      "teacher": "黄咏薇",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "一年级 2",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "蔡永",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 2",
+      "subject": "体育与健康",
+      "teacher": "唐天娇",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "一年级 2",
+      "subject": "英语",
+      "teacher": "李旭梅",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 2",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "张豆豆",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 2",
+      "subject": "艺术-音乐",
+      "teacher": "赵悦名",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "一年级 2",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "杨敏",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 2",
+      "subject": "劳动",
+      "teacher": "张豆豆",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 2",
+      "subject": "科学",
+      "teacher": "赵悦名",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 2",
+      "subject": "体育活动",
+      "teacher": "李旭梅",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 2",
+      "subject": "书法",
+      "teacher": "张豆豆",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 3",
+      "subject": "语文",
+      "teacher": "曾令雪",
+      "weeklyPeriods": 6
+    },
+    {
+      "class": "一年级 3",
+      "subject": "数学",
+      "teacher": "朱以涓",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "一年级 3",
+      "subject": "体育与健康",
+      "teacher": "吴喻欣",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "一年级 3",
+      "subject": "体育活动",
+      "teacher": "李旭梅",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 3",
+      "subject": "劳动",
+      "teacher": "曾令雪",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 3",
+      "subject": "科学",
+      "teacher": "赵悦名",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 3",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "朱以涓",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "一年级 3",
+      "subject": "英语",
+      "teacher": "李旭梅",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 3",
+      "subject": "艺术-音乐",
+      "teacher": "赵悦名",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "一年级 3",
+      "subject": "艺术-美术",
+      "teacher": "黄咏薇",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "一年级 3",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "曾令雪",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "一年级 3",
+      "subject": "书法",
+      "teacher": "曾令雪",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 1",
+      "subject": "语文",
+      "teacher": "黄先红",
+      "weeklyPeriods": 6
+    },
+    {
+      "class": "二年级 1",
+      "subject": "数学",
+      "teacher": "谢晓芸",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "二年级 1",
+      "subject": "体育与健康",
+      "teacher": "王梁思",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "二年级 1",
+      "subject": "体育活动",
+      "teacher": "罗田柯",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 1",
+      "subject": "科学",
+      "teacher": "钟波",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 1",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "谢晓芸",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "二年级 1",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "黄先红",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 1",
+      "subject": "劳动",
+      "teacher": "黄先红",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 1",
+      "subject": "艺术-美术",
+      "teacher": "黄咏薇",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "二年级 1",
+      "subject": "艺术-音乐",
+      "teacher": "杨胜楠",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "二年级 1",
+      "subject": "英语",
+      "teacher": "罗田柯",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 1",
+      "subject": "书法",
+      "teacher": "黄先红",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 2",
+      "subject": "语文",
+      "teacher": "张思韵",
+      "weeklyPeriods": 6
+    },
+    {
+      "class": "二年级 2",
+      "subject": "艺术-音乐",
+      "teacher": "杨胜楠",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "二年级 2",
+      "subject": "数学",
+      "teacher": "谢晓芸",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "二年级 2",
+      "subject": "体育与健康",
+      "teacher": "王梁思",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "二年级 2",
+      "subject": "科学",
+      "teacher": "钟波",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 2",
+      "subject": "艺术-美术",
+      "teacher": "张艾玲",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "二年级 2",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "谢晓芸",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "二年级 2",
+      "subject": "英语",
+      "teacher": "罗田柯",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 2",
+      "subject": "体育活动",
+      "teacher": "罗田柯",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 2",
+      "subject": "书法",
+      "teacher": "张思韵",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 2",
+      "subject": "劳动",
+      "teacher": "张思韵",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 2",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "张思韵",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 3",
+      "subject": "语文",
+      "teacher": "宋雨娟",
+      "weeklyPeriods": 6
+    },
+    {
+      "class": "二年级 3",
+      "subject": "体育与健康",
+      "teacher": "王梁思",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "二年级 3",
+      "subject": "数学",
+      "teacher": "李明",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "二年级 3",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "杨敏",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 3",
+      "subject": "英语",
+      "teacher": "罗田柯",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 3",
+      "subject": "科学",
+      "teacher": "钟波",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 3",
+      "subject": "劳动",
+      "teacher": "宋雨娟",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 3",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "李明",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 3",
+      "subject": "艺术-美术",
+      "teacher": "黄咏薇",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "二年级 3",
+      "subject": "艺术-音乐",
+      "teacher": "杨胜楠",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "二年级 3",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "宋雨娟",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 3",
+      "subject": "体育活动",
+      "teacher": "罗田柯",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "二年级 3",
+      "subject": "书法",
+      "teacher": "宋雨娟",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 1",
+      "subject": "语文",
+      "teacher": "马梦",
+      "weeklyPeriods": 6
+    },
+    {
+      "class": "三年级 1",
+      "subject": "英语",
+      "teacher": "罗田柯",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 1",
+      "subject": "数学",
+      "teacher": "李明",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "三年级 1",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "马梦",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 1",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "杨敏",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 1",
+      "subject": "科学",
+      "teacher": "张珺",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 1",
+      "subject": "艺术-音乐",
+      "teacher": "钟波",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 1",
+      "subject": "体育与健康",
+      "teacher": "唐天娇",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "三年级 1",
+      "subject": "艺术-美术",
+      "teacher": "黄咏薇",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 1",
+      "subject": "体育活动",
+      "teacher": "李从刚",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 1",
+      "subject": "校本（英语活动）",
+      "teacher": "罗田柯",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 1",
+      "subject": "书法",
+      "teacher": "马梦",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 1",
+      "subject": "信息科技",
+      "teacher": "刘洋",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 1",
+      "subject": "劳动",
+      "teacher": "马梦",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 1",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "李明",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 2",
+      "subject": "语文",
+      "teacher": "何莹燕",
+      "weeklyPeriods": 6
+    },
+    {
+      "class": "三年级 2",
+      "subject": "数学",
+      "teacher": "严文玲",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "三年级 2",
+      "subject": "体育与健康",
+      "teacher": "吴喻欣",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "三年级 2",
+      "subject": "劳动",
+      "teacher": "何莹燕",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 2",
+      "subject": "校本（英语活动）",
+      "teacher": "罗田柯",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 2",
+      "subject": "英语",
+      "teacher": "罗田柯",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 2",
+      "subject": "艺术-音乐",
+      "teacher": "钟波",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 2",
+      "subject": "信息科技",
+      "teacher": "刘洋",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 2",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "严文玲",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 2",
+      "subject": "科学",
+      "teacher": "张珺",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 2",
+      "subject": "艺术-美术",
+      "teacher": "黄咏薇",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 2",
+      "subject": "书法",
+      "teacher": "何莹燕",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 2",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "何莹燕",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 2",
+      "subject": "体育活动",
+      "teacher": "李从刚",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 3",
+      "subject": "语文",
+      "teacher": "黄超月",
+      "weeklyPeriods": 6
+    },
+    {
+      "class": "三年级 3",
+      "subject": "艺术-音乐",
+      "teacher": "钟波",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 3",
+      "subject": "数学",
+      "teacher": "严文玲",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "三年级 3",
+      "subject": "英语",
+      "teacher": "罗田柯",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 3",
+      "subject": "体育活动",
+      "teacher": "李从刚",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 3",
+      "subject": "体育与健康",
+      "teacher": "唐天娇",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "三年级 3",
+      "subject": "劳动",
+      "teacher": "黄超月",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 3",
+      "subject": "信息科技",
+      "teacher": "刘洋",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 3",
+      "subject": "科学",
+      "teacher": "张珺",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 3",
+      "subject": "书法",
+      "teacher": "黄超月",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 3",
+      "subject": "校本（英语活动）",
+      "teacher": "罗田柯",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "三年级 3",
+      "subject": "艺术-美术",
+      "teacher": "黄咏薇",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 3",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "严文玲",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "三年级 3",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "黄超月",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 1",
+      "subject": "语文",
+      "teacher": "蒋雨昊",
+      "weeklyPeriods": 6
+    },
+    {
+      "class": "四年级 1",
+      "subject": "数学",
+      "teacher": "邓珊珊",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "四年级 1",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "邓珊珊",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "四年级 1",
+      "subject": "英语",
+      "teacher": "刘洪君",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "四年级 1",
+      "subject": "体育与健康",
+      "teacher": "吴喻欣",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "四年级 1",
+      "subject": "书法",
+      "teacher": "蒋雨昊",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 1",
+      "subject": "艺术-音乐",
+      "teacher": "赵悦名",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "四年级 1",
+      "subject": "科学",
+      "teacher": "钟波",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "四年级 1",
+      "subject": "劳动",
+      "teacher": "蒋雨昊",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 1",
+      "subject": "艺术-美术",
+      "teacher": "涂小鸥",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "四年级 1",
+      "subject": "体育活动",
+      "teacher": "吴喻欣",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 1",
+      "subject": "信息科技",
+      "teacher": "刘洋",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 1",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "蒋雨昊",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 2",
+      "subject": "语文",
+      "teacher": "赵进",
+      "weeklyPeriods": 6
+    },
+    {
+      "class": "四年级 2",
+      "subject": "体育与健康",
+      "teacher": "吴喻欣",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "四年级 2",
+      "subject": "艺术-音乐",
+      "teacher": "赵悦名",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "四年级 2",
+      "subject": "科学",
+      "teacher": "钟波",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "四年级 2",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "赵进",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 2",
+      "subject": "信息科技",
+      "teacher": "刘洋",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 2",
+      "subject": "英语",
+      "teacher": "刘洪君",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "四年级 2",
+      "subject": "数学",
+      "teacher": "邓珊珊",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "四年级 2",
+      "subject": "书法",
+      "teacher": "赵进",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 2",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "邓珊珊",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "四年级 2",
+      "subject": "艺术-美术",
+      "teacher": "涂小鸥",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "四年级 2",
+      "subject": "劳动",
+      "teacher": "赵进",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 2",
+      "subject": "体育活动",
+      "teacher": "吴喻欣",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 3",
+      "subject": "语文",
+      "teacher": "刘开琴",
+      "weeklyPeriods": 6
+    },
+    {
+      "class": "四年级 3",
+      "subject": "英语",
+      "teacher": "刘洪君",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "四年级 3",
+      "subject": "数学",
+      "teacher": "商靖",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "四年级 3",
+      "subject": "艺术-音乐",
+      "teacher": "赵悦名",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "四年级 3",
+      "subject": "体育与健康",
+      "teacher": "刘勇",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "四年级 3",
+      "subject": "艺术-美术",
+      "teacher": "涂小鸥",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "四年级 3",
+      "subject": "劳动",
+      "teacher": "刘开琴",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 3",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "商靖",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "四年级 3",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "刘开琴",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 3",
+      "subject": "书法",
+      "teacher": "刘开琴",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 3",
+      "subject": "信息科技",
+      "teacher": "刘洋",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "四年级 3",
+      "subject": "科学",
+      "teacher": "钟波",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "四年级 3",
+      "subject": "体育活动",
+      "teacher": "李从刚",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 1",
+      "subject": "数学",
+      "teacher": "蔡永",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "五年级 1",
+      "subject": "语文",
+      "teacher": "雷秀勤",
+      "weeklyPeriods": 5
+    },
+    {
+      "class": "五年级 1",
+      "subject": "体育与健康",
+      "teacher": "刘勇",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "五年级 1",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "杨敏",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 1",
+      "subject": "艺术-美术",
+      "teacher": "涂小鸥",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "五年级 1",
+      "subject": "体育活动",
+      "teacher": "雷秀勤",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 1",
+      "subject": "英语",
+      "teacher": "刘洪君",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "五年级 1",
+      "subject": "科学",
+      "teacher": "姜金瑜",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "五年级 1",
+      "subject": "信息科技",
+      "teacher": "刘洋",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 1",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "蔡永",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 1",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "雷秀勤",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 1",
+      "subject": "艺术-音乐",
+      "teacher": "杨胜楠",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "五年级 1",
+      "subject": "劳动",
+      "teacher": "雷秀勤",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 1",
+      "subject": "书法",
+      "teacher": "雷秀勤",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 2",
+      "subject": "语文",
+      "teacher": "唐倩",
+      "weeklyPeriods": 5
+    },
+    {
+      "class": "五年级 2",
+      "subject": "科学",
+      "teacher": "姜金瑜",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "五年级 2",
+      "subject": "艺术-美术",
+      "teacher": "涂小鸥",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "五年级 2",
+      "subject": "数学",
+      "teacher": "金建敏",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "五年级 2",
+      "subject": "体育与健康",
+      "teacher": "刘勇",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "五年级 2",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "金建敏",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 2",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "唐倩",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 2",
+      "subject": "英语",
+      "teacher": "刘洪君",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "五年级 2",
+      "subject": "艺术-音乐",
+      "teacher": "杨胜楠",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "五年级 2",
+      "subject": "信息科技",
+      "teacher": "刘洋",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 2",
+      "subject": "书法",
+      "teacher": "唐倩",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 2",
+      "subject": "体育活动",
+      "teacher": "唐倩",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 2",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "商靖",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 2",
+      "subject": "劳动",
+      "teacher": "唐倩",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 3",
+      "subject": "语文",
+      "teacher": "刘馨潞",
+      "weeklyPeriods": 5
+    },
+    {
+      "class": "五年级 3",
+      "subject": "数学",
+      "teacher": "金建敏",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "五年级 3",
+      "subject": "科学",
+      "teacher": "姜金瑜",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "五年级 3",
+      "subject": "英语",
+      "teacher": "李旭梅",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "五年级 3",
+      "subject": "艺术-音乐",
+      "teacher": "杨胜楠",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "五年级 3",
+      "subject": "艺术-美术",
+      "teacher": "涂小鸥",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "五年级 3",
+      "subject": "体育与健康",
+      "teacher": "刘勇",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "五年级 3",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "刘馨潞",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 3",
+      "subject": "体育活动",
+      "teacher": "刘馨潞",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 3",
+      "subject": "信息科技",
+      "teacher": "刘洋",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 3",
+      "subject": "劳动",
+      "teacher": "刘馨潞",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 3",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "商靖",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 3",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "金建敏",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "五年级 3",
+      "subject": "书法",
+      "teacher": "刘馨潞",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "六年级 1",
+      "subject": "语文",
+      "teacher": "罗芸",
+      "weeklyPeriods": 5
+    },
+    {
+      "class": "六年级 1",
+      "subject": "英语",
+      "teacher": "李旭梅",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "六年级 1",
+      "subject": "数学",
+      "teacher": "蒋建",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "六年级 1",
+      "subject": "艺术-音乐",
+      "teacher": "杨胜楠",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "六年级 1",
+      "subject": "信息科技",
+      "teacher": "刘洋",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "六年级 1",
+      "subject": "科学",
+      "teacher": "姜金瑜",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "六年级 1",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "罗芸",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "六年级 1",
+      "subject": "体育与健康",
+      "teacher": "曾琴",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "六年级 1",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "蒋建",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "六年级 1",
+      "subject": "体育活动",
+      "teacher": "罗芸",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "六年级 1",
+      "subject": "艺术-美术",
+      "teacher": "刘洋",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "六年级 1",
+      "subject": "书法",
+      "teacher": "罗芸",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "六年级 1",
+      "subject": "劳动",
+      "teacher": "罗芸",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "六年级 2",
+      "subject": "语文",
+      "teacher": "高静",
+      "weeklyPeriods": 5
+    },
+    {
+      "class": "六年级 2",
+      "subject": "数学",
+      "teacher": "蒋建",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "六年级 2",
+      "subject": "英语",
+      "teacher": "李旭梅",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "六年级 2",
+      "subject": "艺术-音乐",
+      "teacher": "杨胜楠",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "六年级 2",
+      "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+      "teacher": "蒋建",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "六年级 2",
+      "subject": "艺术-美术",
+      "teacher": "刘洋",
+      "weeklyPeriods": 2
+    },
+    {
+      "class": "六年级 2",
+      "subject": "体育与健康",
+      "teacher": "曾琴",
+      "weeklyPeriods": 4
+    },
+    {
+      "class": "六年级 2",
+      "subject": "班团队/综合实践/生生安/心理",
+      "teacher": "高静",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "六年级 2",
+      "subject": "科学",
+      "teacher": "姜金瑜",
+      "weeklyPeriods": 3
+    },
+    {
+      "class": "六年级 2",
+      "subject": "信息科技",
+      "teacher": "刘洋",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "六年级 2",
+      "subject": "体育活动",
+      "teacher": "高静",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "六年级 2",
+      "subject": "劳动",
+      "teacher": "高静",
+      "weeklyPeriods": 1
+    },
+    {
+      "class": "六年级 2",
+      "subject": "书法",
+      "teacher": "高静",
+      "weeklyPeriods": 1
+    }
+  ]
+}

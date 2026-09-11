@@ -37,11 +37,7 @@ public class MasterDataRepository {
                 q.isBlank()
                         ? jdbc.query(
                                 "SELECT id, code, name, active, "
-                                        + (resource == MasterDataResource.ROOMS
-                                                ? "capacity, room_type, NULL::integer AS student_count"
-                                                : resource == MasterDataResource.STUDENT_GROUPS
-                                                        ? "NULL::integer AS capacity, NULL::varchar AS room_type, student_count"
-                                                        : "NULL::integer AS capacity, NULL::varchar AS room_type, NULL::integer AS student_count")
+                                        + selectColumns(resource)
                                         + " FROM "
                                         + table
                                         + " WHERE "
@@ -52,11 +48,7 @@ public class MasterDataRepository {
                                 offset)
                         : jdbc.query(
                                 "SELECT id, code, name, active, "
-                                        + (resource == MasterDataResource.ROOMS
-                                                ? "capacity, room_type, NULL::integer AS student_count"
-                                                : resource == MasterDataResource.STUDENT_GROUPS
-                                                        ? "NULL::integer AS capacity, NULL::varchar AS room_type, student_count"
-                                                        : "NULL::integer AS capacity, NULL::varchar AS room_type, NULL::integer AS student_count")
+                                        + selectColumns(resource)
                                         + " FROM "
                                         + table
                                         + " WHERE "
@@ -75,11 +67,7 @@ public class MasterDataRepository {
         try {
             return jdbc.queryForObject(
                     "SELECT id, code, name, active, "
-                            + (resource == MasterDataResource.ROOMS
-                                    ? "capacity, room_type, NULL::integer AS student_count"
-                                    : resource == MasterDataResource.STUDENT_GROUPS
-                                            ? "NULL::integer AS capacity, NULL::varchar AS room_type, student_count"
-                                            : "NULL::integer AS capacity, NULL::varchar AS room_type, NULL::integer AS student_count")
+                            + selectColumns(resource)
                             + " FROM "
                             + resource.table()
                             + " WHERE id = ?",
@@ -97,29 +85,36 @@ public class MasterDataRepository {
                         Integer.class,
                         request.code())
                 > 0) throw new IllegalArgumentException("编码已存在: " + request.code());
-        Long id =
-                resource == MasterDataResource.ROOMS
-                        ? jdbc.queryForObject(
-                                "INSERT INTO room (code,name,capacity,room_type) VALUES (?,?,?,?) RETURNING id",
-                                Long.class,
-                                request.code(),
-                                request.name(),
-                                request.capacity(),
-                                request.roomType())
-                        : resource == MasterDataResource.STUDENT_GROUPS
-                                ? jdbc.queryForObject(
-                                        "INSERT INTO student_group (code,name,student_count) VALUES (?,?,?) RETURNING id",
-                                        Long.class,
-                                        request.code(),
-                                        request.name(),
-                                        request.studentCount())
-                                : jdbc.queryForObject(
-                                        "INSERT INTO "
-                                                + table
-                                                + " (code,name) VALUES (?,?) RETURNING id",
-                                        Long.class,
-                                        request.code(),
-                                        request.name());
+        if (resource == MasterDataResource.STUDENT_GROUPS) validateHomeRoom(request.homeRoomCode());
+        Long id;
+        if (resource == MasterDataResource.ROOMS) {
+            id =
+                    jdbc.queryForObject(
+                            "INSERT INTO room (code,name,capacity,room_type) VALUES (?,?,?,?) RETURNING id",
+                            Long.class,
+                            request.code(),
+                            request.name(),
+                            request.capacity(),
+                            request.roomType());
+        } else if (resource == MasterDataResource.STUDENT_GROUPS) {
+            id =
+                    jdbc.queryForObject(
+                            "INSERT INTO student_group (code,name,student_count,home_room_id) VALUES (?,?,?,(SELECT id FROM room WHERE code=? AND active=TRUE)) RETURNING id",
+                            Long.class,
+                            request.code(),
+                            request.name(),
+                            request.studentCount(),
+                            nullable(request.homeRoomCode()));
+        } else {
+            id =
+                    jdbc.queryForObject(
+                            "INSERT INTO "
+                                    + table
+                                    + " (code,name) VALUES (?,?) RETURNING id",
+                            Long.class,
+                            request.code(),
+                            request.name());
+        }
         jdbc.update(
                 "INSERT INTO audit_event (action, aggregate_type, aggregate_id, detail) VALUES ('CREATE', ?, ?, jsonb_build_object('code', ?))",
                 resource.name(),
@@ -146,13 +141,16 @@ public class MasterDataRepository {
                     request.capacity(),
                     request.roomType(),
                     id);
-        else if (resource == MasterDataResource.STUDENT_GROUPS)
+        else if (resource == MasterDataResource.STUDENT_GROUPS) {
+            validateHomeRoom(request.homeRoomCode());
             jdbc.update(
-                    "UPDATE student_group SET code=?, name=?, student_count=? WHERE id=?",
+                    "UPDATE student_group SET code=?, name=?, student_count=?, home_room_id=(SELECT id FROM room WHERE code=? AND active=TRUE) WHERE id=?",
                     request.code(),
                     request.name(),
                     request.studentCount(),
+                    nullable(request.homeRoomCode()),
                     id);
+        }
         else
             jdbc.update(
                     "UPDATE " + resource.table() + " SET code=?, name=? WHERE id=?",
@@ -193,6 +191,7 @@ public class MasterDataRepository {
             attributes.put("roomType", rs.getString("room_type"));
         } else if (resource == MasterDataResource.STUDENT_GROUPS) {
             attributes.put("studentCount", rs.getInt("student_count"));
+            attributes.put("homeRoomCode", rs.getString("home_room_code"));
         }
         return new MasterDataItem(
                 rs.getLong("id"),
@@ -200,5 +199,28 @@ public class MasterDataRepository {
                 rs.getString("name"),
                 rs.getBoolean("active"),
                 attributes);
+    }
+
+    private String selectColumns(MasterDataResource resource) {
+        if (resource == MasterDataResource.ROOMS)
+            return "capacity, room_type, NULL::integer AS student_count, NULL::varchar AS home_room_code";
+        if (resource == MasterDataResource.STUDENT_GROUPS)
+            return "NULL::integer AS capacity, NULL::varchar AS room_type, student_count, (SELECT code FROM room WHERE id=student_group.home_room_id) AS home_room_code";
+        return "NULL::integer AS capacity, NULL::varchar AS room_type, NULL::integer AS student_count, NULL::varchar AS home_room_code";
+    }
+
+    private void validateHomeRoom(String homeRoomCode) {
+        if (homeRoomCode == null || homeRoomCode.isBlank()) return;
+        Integer count =
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM room WHERE code=? AND active=TRUE",
+                        Integer.class,
+                        homeRoomCode.trim());
+        if (count == null || count == 0)
+            throw new IllegalArgumentException("绑定教室不存在或已停用: " + homeRoomCode.trim());
+    }
+
+    private String nullable(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

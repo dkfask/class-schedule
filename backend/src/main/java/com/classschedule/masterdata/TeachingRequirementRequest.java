@@ -15,4 +15,11 @@ public record TeachingRequirementRequest(
         @Positive int durationPeriods,
         @PositiveOrZero int studentCount,
         @Size(max = 512) String requiredFeatures,
-        @Size(max = 64) String pinnedPeriodCode) {}
+        @Size(max = 64) String pinnedPeriodCode,
+        @Size(max = 16) String roomAssignmentMode) {
+    public String effectiveRoomAssignmentMode() {
+        return roomAssignmentMode == null || roomAssignmentMode.isBlank()
+                ? "HOME"
+                : roomAssignmentMode.trim().toUpperCase();
+    }
+}

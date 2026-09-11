@@ -6,6 +6,7 @@ import { http, jsonRequest } from '../api/http'
 
 type Resource = 'teachers' | 'student-groups' | 'subjects' | 'rooms'
 interface Item { id: number; code: string; name: string; active: boolean; attributes: Record<string, unknown> }
+interface RoomOption { code: string; name: string; capacity: number; roomType?: string }
 const resources: Array<{ key: Resource; label: string }> = [
   { key: 'teachers', label: '教师' },
   { key: 'student-groups', label: '班级' },
@@ -22,7 +23,8 @@ const editingId = ref<number | null>(null)
 const page = ref(0)
 const size = ref(20)
 const total = ref(0)
-const form = ref({ code: '', name: '', capacity: 50, studentCount: 0, roomType: '普通教室' })
+const roomOptions = ref<RoomOption[]>([])
+const form = ref({ code: '', name: '', capacity: 50, studentCount: 0, roomType: '普通教室', homeRoomCode: '' })
 const resourceLabel = computed(() => resources.find(item => item.key === activeResource.value)?.label ?? '')
 
 async function loadItems() {
@@ -43,6 +45,20 @@ async function loadItems() {
   }
 }
 
+async function loadRoomOptions() {
+  try {
+    const data = await http<{ items?: Item[] }>('/api/master-data/rooms?active=true&page=0&size=100')
+    roomOptions.value = (data.items ?? []).map(item => ({
+      code: item.code,
+      name: item.name,
+      capacity: Number(item.attributes.capacity ?? 0),
+      roomType: String(item.attributes.roomType ?? ''),
+    }))
+  } catch {
+    roomOptions.value = []
+  }
+}
+
 function selectResource(resource: Resource) {
   activeResource.value = resource
   page.value = 0
@@ -60,8 +76,8 @@ function changePageSize(nextSize: number) {
   void loadItems()
 }
 
-function openCreate() { editingId.value = null; form.value = { code: '', name: '', capacity: 50, studentCount: 0, roomType: '普通教室' }; dialogOpen.value = true }
-function openEdit(item: Item) { editingId.value = item.id; form.value = { code: item.code, name: item.name, capacity: Number(item.attributes.capacity ?? 50), studentCount: Number(item.attributes.studentCount ?? 0), roomType: String(item.attributes.roomType ?? '普通教室') }; dialogOpen.value = true }
+function openCreate() { editingId.value = null; form.value = { code: '', name: '', capacity: 50, studentCount: 0, roomType: '普通教室', homeRoomCode: '' }; dialogOpen.value = true }
+function openEdit(item: Item) { editingId.value = item.id; form.value = { code: item.code, name: item.name, capacity: Number(item.attributes.capacity ?? 50), studentCount: Number(item.attributes.studentCount ?? 0), roomType: String(item.attributes.roomType ?? '普通教室'), homeRoomCode: String(item.attributes.homeRoomCode ?? '') }; dialogOpen.value = true }
 async function save() {
   const method = editingId.value ? 'PATCH' : 'POST'
   const url = `/api/master-data/${activeResource.value}${editingId.value ? `/${editingId.value}` : ''}`
@@ -70,6 +86,7 @@ async function save() {
     dialogOpen.value = false
     ElMessage.success('已保存')
     await loadItems()
+    await loadRoomOptions()
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '保存失败')
   }
@@ -88,7 +105,7 @@ async function activate(item: Item) {
   try { await http<void>(`/api/master-data/${activeResource.value}/${item.id}/activate`, { method: 'POST' }); ElMessage.success('已启用'); await loadItems() }
   catch (error) { ElMessage.error(error instanceof Error ? error.message : '启用失败') }
 }
-onMounted(() => void loadItems())
+onMounted(async () => { await loadRoomOptions(); await loadItems() })
 </script>
 
 <template>
@@ -146,6 +163,9 @@ onMounted(() => void loadItems())
       </el-table-column>
       <el-table-column v-if="activeResource === 'student-groups'" label="人数" width="130">
         <template #default="scope">{{ scope.row.attributes.studentCount ?? 0 }} 人</template>
+      </el-table-column>
+      <el-table-column v-if="activeResource === 'student-groups'" label="绑定教室" width="150">
+        <template #default="scope">{{ scope.row.attributes.homeRoomCode || '未绑定' }}</template>
       </el-table-column>
       <el-table-column v-if="activeResource === 'rooms'" label="容量" width="130">
         <template #default="scope">{{ scope.row.attributes.capacity ?? 0 }} 座</template>
@@ -214,6 +234,11 @@ onMounted(() => void loadItems())
       <el-form-item v-if="activeResource === 'student-groups'" label="人数">
         <el-input-number v-model="form.studentCount" :min="0" class="full-width" />
       </el-form-item>
+      <el-form-item v-if="activeResource === 'student-groups'" label="绑定教室">
+        <el-select v-model="form.homeRoomCode" clearable placeholder="行政班默认教室" class="full-width">
+          <el-option v-for="item in roomOptions" :key="item.code" :label="`${item.name} · ${item.code}`" :value="item.code" />
+        </el-select>
+      </el-form-item>
       <el-form-item v-if="activeResource === 'rooms'" label="容量">
         <el-input-number v-model="form.capacity" :min="1" class="full-width" />
       </el-form-item>
@@ -238,7 +263,7 @@ onMounted(() => void loadItems())
 .code-badge {
   font-family: monospace;
   font-size: 12px;
-  color: #2c694e;
+  color: #B85C45;
   background: #f0f7f3;
   padding: 2px 6px;
   border-radius: 4px;

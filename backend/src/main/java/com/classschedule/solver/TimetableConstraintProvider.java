@@ -14,6 +14,8 @@ public class TimetableConstraintProvider implements ConstraintProvider {
             teacherConflict(factory),
             studentGroupConflict(factory),
             roomConflict(factory),
+            homeRoomBinding(factory),
+            joinedRoomCapacity(factory),
             unassignedOccurrence(factory),
             pinnedPeriod(factory),
             roomCapacity(factory),
@@ -79,6 +81,55 @@ public class TimetableConstraintProvider implements ConstraintProvider {
                                         && !sameJoinedBlock(left, right))
                 .penalize(HardMediumSoftScore.ONE_HARD)
                 .asConstraint("教室同一时段冲突");
+    }
+
+    private Constraint homeRoomBinding(ConstraintFactory factory) {
+        return factory.forEach(LessonOccurrence.class)
+                .filter(
+                        item ->
+                                "HOME".equals(item.getRoomAssignmentMode())
+                                        && (item.getHomeRoomCode() == null
+                                                || item.getRoom() == null
+                                                || !item.getHomeRoomCode()
+                                                        .equals(item.getRoom().getId())))
+                .penalize(HardMediumSoftScore.ONE_HARD)
+                .asConstraint("行政班未使用绑定教室");
+    }
+
+    private Constraint joinedRoomCapacity(ConstraintFactory factory) {
+        return factory.forEach(LessonOccurrence.class)
+                .filter(
+                        item ->
+                                "JOINED".equals(item.getActivityType())
+                                        && item.getActivityGroupCode() != null
+                                        && item.getRoom() != null)
+                .groupBy(
+                        item ->
+                                item.getActivityGroupCode()
+                                        + "#"
+                                        + item.getActivityIndex()
+                                        + "\u0000"
+                                        + item.getRoom().getId(),
+                        ConstraintCollectors.toList())
+                .filter(
+                        (ignored, members) -> {
+                            Room room = members.get(0).getRoom();
+                            int studentCount =
+                                    members.stream()
+                                            .mapToInt(LessonOccurrence::getStudentCount)
+                                            .sum();
+                            return studentCount > 0 && studentCount > room.getCapacity();
+                        })
+                .penalize(HardMediumSoftScore.ONE_HARD)
+                .asConstraint("合班教室容量不足");
+    }
+
+    Constraint homeRoomBindingForTest(ConstraintFactory factory) {
+        return homeRoomBinding(factory);
+    }
+
+    Constraint joinedRoomCapacityForTest(ConstraintFactory factory) {
+        return joinedRoomCapacity(factory);
     }
 
     Constraint unassignedOccurrence(ConstraintFactory factory) {

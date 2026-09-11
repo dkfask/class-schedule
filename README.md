@@ -22,10 +22,10 @@
 - assignment 结果契约包含稳定资源 code、`source`、`locked` 和 `duration`
 - 版本 options、按班级/教师/教室 code 过滤和调整预览 API
 - 调整确认会在后端再次校验冲突和锁定状态，并返回 `commandId`
-- Excel 统一模板导入：下载 `MASTER_DATA v1` 模板，使用中文列名导入教师、班级、课程和教学需求；教室、资源可用性、特征及活动组数据为可选项，可省略或留空。缺少的可选 Sheet 和数据行不会删除已有配置，只有明确提交的停用/解绑行才会修改对应关系。
+- Excel 统一模板导入：下载 `MASTER_DATA v1` 模板，使用中文列名导入教师、班级、课程和教学需求；班级可绑定默认教室，教学需求可选择 `HOME`（行政班绑定教室）或 `FLEXIBLE`（走班/专用教室池）。教室、资源可用性、特征及活动组数据为可选项，可省略或留空。缺少的可选 Sheet 和数据行不会删除已有配置，只有明确提交的停用/解绑行才会修改对应关系。
 - 导入失败事务回滚和重复确认保护
 - Vue 排课工作台、真实求解状态、动态课表网格、班级/教师/教室三维视图和发布操作
-- AI 辅助：候选方案智能诊断（本地规则分析未分配/负载/空档/教室占用并给出改进建议）与对话式排课助手（OpenAI 兼容端点，配置 APP_AI_BASE_URL/API_KEY/MODEL 后启用）
+- AI 辅助：候选方案智能诊断（本地规则分析未分配/负载/空档/教室占用并给出改进建议）与对话式排课助手（支持 OpenAI 与 Anthropic 兼容端点）；USER_ADMIN 可在系统内更新模型配置，API Key 使用 APP_AI_CONFIG_ENCRYPTION_KEY 加密保存
 - 点击课程或拖动课程打开调整 Drawer，调用后端预览并在允许后确认调整
 - `/versions` 提供版本列表和稳定 occurrence key 差异查看
 - `/versions` 显示 revision、锁/归档状态，支持任意基线和只看变化
@@ -95,6 +95,8 @@ npm run dev
   - SMTP 通过 `SMTP_HOST`、`SMTP_PORT`、`SMTP_USERNAME`、`SMTP_PASSWORD`、`SMTP_AUTH`、`SMTP_STARTTLS`、`MAIL_FROM` 注入；当前邮箱注册默认关闭，真实凭据不得提交到仓库。
   - 如需恢复邮箱注册，先配置 SMTP 变量并设置根目录 `.env` 中的 `APP_AUTH_REGISTRATION_ENABLED=true`，然后重新构建前端并重启后端。前端构建读取同一开关；开发服务修改开关后也需重启。如需只读审计模式，可通过环境变量 `APP_AUTH_REGISTRATION_DEFAULT_ROLE=VIEWER` 调整默认角色。
 - `APP_PDF_FONT_PATH`：可选 CJK TTF/TTC 字体路径。未配置时 PDF 使用西文字体回退，中文字符不保证可显示。
+- `APP_AI_CONFIG_ENCRYPTION_KEY`：管理员在系统内保存 API Key 时使用的加密密钥，生产环境必须配置稳定且仅部署端可读取的值。
+- MiniMax Anthropic 兼容服务：在“AI 模型设置”选择“Anthropic 兼容”，接口地址填写 `https://api.minimax.cn/anthropic`，模型名按 MiniMax 控制台提供的模型填写。
 
 ## 设计原则
 

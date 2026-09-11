@@ -395,7 +395,7 @@ onMounted(() => void loadVersions())
   cursor: pointer;
 }
 .styled-diff-select {
-  border: 1px solid #dce4e0;
+  border: 1px solid #D9DEE3;
   border-radius: 6px;
   padding: 4px 8px;
   font-size: 11px;
@@ -415,14 +415,14 @@ onMounted(() => void loadVersions())
 .release-checks li { display: grid; grid-template-columns: 19px minmax(0, 1fr); gap: 8px; align-items: start; }
 .release-checks li > span { display: grid; place-items: center; width: 19px; height: 19px; border-radius: 50%; font-size: 10px; }
 .release-checks strong, .release-checks small { display: block; }
-.release-checks strong { color: #456552; font-size: 11px; }
+.release-checks strong { color: #566474; font-size: 11px; }
 .release-checks small { margin-top: 3px; color: #85998e; font-size: 10px; line-height: 1.45; }
 .check-ok > span { color: #2a8658; background: #e0f3e7; }
-.check-blocked > span { color: #9a662d; background: #fff0d5; }
+.check-blocked > span { color: #9a662d; background: #FBF4E7; }
 .check-muted > span { color: #7b9587; background: #edf3ef; }
 .release-button { width: 100%; }
-.release-note-field { display: grid; gap: 5px; margin: 12px 0 8px; color: #456552; font-size: 11px; }
-.release-note-field textarea { resize: vertical; border: 1px solid #dce8e0; border-radius: 6px; padding: 8px; color: #173b36; font: inherit; line-height: 1.5; }
+.release-note-field { display: grid; gap: 5px; margin: 12px 0 8px; color: #566474; font-size: 11px; }
+.release-note-field textarea { resize: vertical; border: 1px solid #D9DEE3; border-radius: 6px; padding: 8px; color: #202A35; font: inherit; line-height: 1.5; }
 .release-note-field textarea:focus { outline: 2px solid rgba(77, 138, 120, .25); border-color: #4d8a78; }
 .release-confirm { display: flex; gap: 6px; align-items: flex-start; margin: 8px 0 12px; color: #64786e; font-size: 11px; line-height: 1.45; }
 .release-confirm input { margin-top: 1px; }

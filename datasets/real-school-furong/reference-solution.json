@@ -1,0 +1,4376 @@
+[
+ {
+  "class": "一年级 1",
+  "subject": "语文",
+  "teacher": "杨雪",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R101",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "语文",
+  "teacher": "张豆豆",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R102",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "语文",
+  "teacher": "曾令雪",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R103",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "语文",
+  "teacher": "黄先红",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R201",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "语文",
+  "teacher": "张思韵",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R202",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "语文",
+  "teacher": "宋雨娟",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R203",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "语文",
+  "teacher": "马梦",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R301",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "语文",
+  "teacher": "何莹燕",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R302",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "语文",
+  "teacher": "黄超月",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R303",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "语文",
+  "teacher": "蒋雨昊",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R401",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "语文",
+  "teacher": "赵进",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R402",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "语文",
+  "teacher": "刘开琴",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R403",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "数学",
+  "teacher": "蔡永",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R501",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "语文",
+  "teacher": "唐倩",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R502",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "语文",
+  "teacher": "刘馨潞",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R503",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "语文",
+  "teacher": "罗芸",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R601",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "语文",
+  "teacher": "高静",
+  "day": "星期一",
+  "period": 1,
+  "room": "FR-R602",
+  "periodCode": "MON-1"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R101",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "数学",
+  "teacher": "蔡永",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R102",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "数学",
+  "teacher": "朱以涓",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R103",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "数学",
+  "teacher": "谢晓芸",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R201",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "体育与健康",
+  "teacher": "王梁思",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R202",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "数学",
+  "teacher": "李明",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R203",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "马梦",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R301",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "数学",
+  "teacher": "严文玲",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R302",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "英语",
+  "teacher": "罗田柯",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R303",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "数学",
+  "teacher": "邓珊珊",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R401",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R402",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "艺术-音乐",
+  "teacher": "赵悦名",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R403",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "语文",
+  "teacher": "雷秀勤",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R501",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "数学",
+  "teacher": "金建敏",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R502",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "英语",
+  "teacher": "李旭梅",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R503",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "数学",
+  "teacher": "蒋建",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R601",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期一",
+  "period": 2,
+  "room": "FR-R602",
+  "periodCode": "MON-2"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "数学",
+  "teacher": "朱以涓",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R101",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R102",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "科学",
+  "teacher": "赵悦名",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R103",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "劳动",
+  "teacher": "黄先红",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R201",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "数学",
+  "teacher": "谢晓芸",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R202",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "劳动",
+  "teacher": "宋雨娟",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R203",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "数学",
+  "teacher": "李明",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R301",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "英语",
+  "teacher": "罗田柯",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R302",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "数学",
+  "teacher": "严文玲",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R303",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R401",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "数学",
+  "teacher": "邓珊珊",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R402",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "艺术-美术",
+  "teacher": "涂小鸥",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R403",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R501",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "唐倩",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R502",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R503",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R601",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "英语",
+  "teacher": "李旭梅",
+  "day": "星期一",
+  "period": 3,
+  "room": "FR-R602",
+  "periodCode": "DAY-1-3"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "英语",
+  "teacher": "李旭梅",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R101",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "张豆豆",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R102",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R103",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R201",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "书法",
+  "teacher": "张思韵",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R202",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "体育与健康",
+  "teacher": "王梁思",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R203",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R301",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "语文",
+  "teacher": "何莹燕",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R302",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "书法",
+  "teacher": "黄超月",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R303",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "科学",
+  "teacher": "钟波",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R401",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "书法",
+  "teacher": "赵进",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R402",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "劳动",
+  "teacher": "刘开琴",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R403",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R501",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R502",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "数学",
+  "teacher": "金建敏",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R503",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R601",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "数学",
+  "teacher": "蒋建",
+  "day": "星期一",
+  "period": 4,
+  "room": "FR-R602",
+  "periodCode": "DAY-1-4"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "朱以涓",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R101",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "科学",
+  "teacher": "赵悦名",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R102",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R103",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "体育与健康",
+  "teacher": "王梁思",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R201",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "艺术-美术",
+  "teacher": "张艾玲",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R202",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "宋雨娟",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R203",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "校本（英语活动）",
+  "teacher": "罗田柯",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R301",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "严文玲",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R302",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R303",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "劳动",
+  "teacher": "蒋雨昊",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R401",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "科学",
+  "teacher": "钟波",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R402",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "商靖",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R403",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R501",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "体育活动",
+  "teacher": "唐倩",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R502",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "艺术-美术",
+  "teacher": "涂小鸥",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R503",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "体育活动",
+  "teacher": "罗芸",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R601",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "信息科技",
+  "teacher": "刘洋",
+  "day": "星期一",
+  "period": 5,
+  "room": "FR-R602",
+  "periodCode": "DAY-1-5"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期一",
+  "period": 6,
+  "room": "FR-R301",
+  "periodCode": "DAY-1-6"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期一",
+  "period": 6,
+  "room": "FR-R302",
+  "periodCode": "DAY-1-6"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期一",
+  "period": 6,
+  "room": "FR-R101",
+  "periodCode": "DAY-1-6"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "艺术-音乐",
+  "teacher": "赵悦名",
+  "day": "星期一",
+  "period": 6,
+  "room": "FR-R102",
+  "periodCode": "DAY-1-6"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "艺术-美术",
+  "teacher": "涂小鸥",
+  "day": "星期一",
+  "period": 6,
+  "room": "FR-R103",
+  "periodCode": "DAY-1-6"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "科学",
+  "teacher": "钟波",
+  "day": "星期一",
+  "period": 6,
+  "room": "FR-R201",
+  "periodCode": "DAY-1-6"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "劳动",
+  "teacher": "雷秀勤",
+  "day": "星期一",
+  "period": 6,
+  "room": "FR-R501",
+  "periodCode": "DAY-1-6"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "商靖",
+  "day": "星期一",
+  "period": 6,
+  "room": "FR-R502",
+  "periodCode": "DAY-1-6"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期一",
+  "period": 6,
+  "room": "FR-R202",
+  "periodCode": "DAY-1-6"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "艺术-美术",
+  "teacher": "刘洋",
+  "day": "星期一",
+  "period": 6,
+  "room": "FR-R203",
+  "periodCode": "DAY-1-6"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "体育活动",
+  "teacher": "高静",
+  "day": "星期一",
+  "period": 6,
+  "room": "FR-R602",
+  "periodCode": "DAY-1-6"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R101",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "数学",
+  "teacher": "蔡永",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R102",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "数学",
+  "teacher": "朱以涓",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R103",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "数学",
+  "teacher": "谢晓芸",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R201",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R202",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "体育与健康",
+  "teacher": "王梁思",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R203",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "数学",
+  "teacher": "李明",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R301",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R302",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "艺术-音乐",
+  "teacher": "钟波",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R303",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "数学",
+  "teacher": "邓珊珊",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R401",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "艺术-音乐",
+  "teacher": "赵悦名",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R402",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R403",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R501",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "艺术-美术",
+  "teacher": "涂小鸥",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R502",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "数学",
+  "teacher": "金建敏",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R503",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "英语",
+  "teacher": "李旭梅",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R601",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "数学",
+  "teacher": "蒋建",
+  "day": "星期三",
+  "period": 1,
+  "room": "FR-R602",
+  "periodCode": "DAY-3-1"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "艺术-音乐",
+  "teacher": "赵悦名",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R101",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R102",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R103",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "科学",
+  "teacher": "钟波",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R201",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "体育与健康",
+  "teacher": "王梁思",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R202",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "英语",
+  "teacher": "罗田柯",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R203",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "杨敏",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R301",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "数学",
+  "teacher": "严文玲",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R302",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "体育活动",
+  "teacher": "李从刚",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R303",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "邓珊珊",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R401",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "信息科技",
+  "teacher": "刘洋",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R402",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R403",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "数学",
+  "teacher": "蔡永",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R501",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "数学",
+  "teacher": "金建敏",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R502",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R503",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "数学",
+  "teacher": "蒋建",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R601",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "英语",
+  "teacher": "李旭梅",
+  "day": "星期三",
+  "period": 2,
+  "room": "FR-R602",
+  "periodCode": "DAY-3-2"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R101",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R102",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "朱以涓",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R103",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "谢晓芸",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R201",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "英语",
+  "teacher": "罗田柯",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R202",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "李明",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R203",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "科学",
+  "teacher": "张珺",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R301",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "信息科技",
+  "teacher": "刘洋",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R302",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "数学",
+  "teacher": "严文玲",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R303",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "艺术-音乐",
+  "teacher": "赵悦名",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R401",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R402",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "数学",
+  "teacher": "商靖",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R403",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "艺术-美术",
+  "teacher": "涂小鸥",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R501",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R502",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R503",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R601",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "体育与健康",
+  "teacher": "曾琴",
+  "day": "星期三",
+  "period": 3,
+  "room": "FR-R602",
+  "periodCode": "DAY-3-3"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "数学",
+  "teacher": "朱以涓",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R101",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "杨敏",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R102",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R103",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "体育与健康",
+  "teacher": "王梁思",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R201",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "数学",
+  "teacher": "谢晓芸",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R202",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R203",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "体育活动",
+  "teacher": "李从刚",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R301",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "科学",
+  "teacher": "张珺",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R302",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "校本（英语活动）",
+  "teacher": "罗田柯",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R303",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "科学",
+  "teacher": "钟波",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R401",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "数学",
+  "teacher": "邓珊珊",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R402",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "商靖",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R403",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R501",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "信息科技",
+  "teacher": "刘洋",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R502",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "英语",
+  "teacher": "李旭梅",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R503",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "体育与健康",
+  "teacher": "曾琴",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R601",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期三",
+  "period": 4,
+  "room": "FR-R602",
+  "periodCode": "DAY-3-4"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "语文",
+  "teacher": "杨雪",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R101",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "语文",
+  "teacher": "张豆豆",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R102",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "语文",
+  "teacher": "曾令雪",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R103",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "语文",
+  "teacher": "黄先红",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R201",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "语文",
+  "teacher": "张思韵",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R202",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "语文",
+  "teacher": "宋雨娟",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R203",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "语文",
+  "teacher": "马梦",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R301",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "语文",
+  "teacher": "何莹燕",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R302",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "语文",
+  "teacher": "黄超月",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R303",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "语文",
+  "teacher": "蒋雨昊",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R401",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "语文",
+  "teacher": "赵进",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R402",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "语文",
+  "teacher": "刘开琴",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R403",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "语文",
+  "teacher": "雷秀勤",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R501",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "语文",
+  "teacher": "唐倩",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R502",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "语文",
+  "teacher": "刘馨潞",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R503",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "语文",
+  "teacher": "罗芸",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R601",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "语文",
+  "teacher": "高静",
+  "day": "星期三",
+  "period": 5,
+  "room": "FR-R602",
+  "periodCode": "DAY-3-5"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "劳动",
+  "teacher": "马梦",
+  "day": "星期三",
+  "period": 6,
+  "room": "FR-R301",
+  "periodCode": "DAY-3-6"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "何莹燕",
+  "day": "星期三",
+  "period": 6,
+  "room": "FR-R302",
+  "periodCode": "DAY-3-6"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "语文",
+  "teacher": "黄超月",
+  "day": "星期三",
+  "period": 6,
+  "room": "FR-R303",
+  "periodCode": "DAY-3-6"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "体育活动",
+  "teacher": "吴喻欣",
+  "day": "星期三",
+  "period": 6,
+  "room": "FR-R401",
+  "periodCode": "DAY-3-6"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期三",
+  "period": 6,
+  "room": "FR-R402",
+  "periodCode": "DAY-3-6"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "体育活动",
+  "teacher": "李从刚",
+  "day": "星期三",
+  "period": 6,
+  "room": "FR-R403",
+  "periodCode": "DAY-3-6"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "书法",
+  "teacher": "雷秀勤",
+  "day": "星期三",
+  "period": 6,
+  "room": "FR-R501",
+  "periodCode": "DAY-3-6"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期三",
+  "period": 6,
+  "room": "FR-R502",
+  "periodCode": "DAY-3-6"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期三",
+  "period": 6,
+  "room": "FR-R101",
+  "periodCode": "DAY-3-6"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "书法",
+  "teacher": "罗芸",
+  "day": "星期三",
+  "period": 6,
+  "room": "FR-R601",
+  "periodCode": "DAY-3-6"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "书法",
+  "teacher": "高静",
+  "day": "星期三",
+  "period": 6,
+  "room": "FR-R602",
+  "periodCode": "DAY-3-6"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "劳动",
+  "teacher": "杨雪",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R101",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "语文",
+  "teacher": "张豆豆",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R102",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "数学",
+  "teacher": "朱以涓",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R103",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "语文",
+  "teacher": "黄先红",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R201",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "语文",
+  "teacher": "张思韵",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R202",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "语文",
+  "teacher": "宋雨娟",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R203",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "英语",
+  "teacher": "罗田柯",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R301",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "数学",
+  "teacher": "严文玲",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R302",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "语文",
+  "teacher": "黄超月",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R303",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "语文",
+  "teacher": "蒋雨昊",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R401",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R402",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "语文",
+  "teacher": "刘开琴",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R403",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "语文",
+  "teacher": "雷秀勤",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R501",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R502",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "语文",
+  "teacher": "刘馨潞",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R503",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "语文",
+  "teacher": "罗芸",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R601",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "语文",
+  "teacher": "高静",
+  "day": "星期二",
+  "period": 1,
+  "room": "FR-R602",
+  "periodCode": "TUE-1"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "语文",
+  "teacher": "杨雪",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R101",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "蔡永",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R102",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R103",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "数学",
+  "teacher": "谢晓芸",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R201",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "科学",
+  "teacher": "钟波",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R202",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "杨敏",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R203",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "语文",
+  "teacher": "马梦",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R301",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "语文",
+  "teacher": "何莹燕",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R302",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "数学",
+  "teacher": "严文玲",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R303",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R401",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "赵进",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R402",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "语文",
+  "teacher": "刘开琴",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R403",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "艺术-美术",
+  "teacher": "涂小鸥",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R501",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R502",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R503",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "英语",
+  "teacher": "李旭梅",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R601",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "蒋建",
+  "day": "星期二",
+  "period": 2,
+  "room": "FR-R602",
+  "periodCode": "TUE-2"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R101",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "英语",
+  "teacher": "李旭梅",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R102",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "语文",
+  "teacher": "曾令雪",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R103",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "体育与健康",
+  "teacher": "王梁思",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R201",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "谢晓芸",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R202",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "数学",
+  "teacher": "李明",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R203",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R301",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "艺术-音乐",
+  "teacher": "钟波",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R302",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "劳动",
+  "teacher": "黄超月",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R303",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "书法",
+  "teacher": "蒋雨昊",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R401",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "数学",
+  "teacher": "邓珊珊",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R402",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "数学",
+  "teacher": "商靖",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R403",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R501",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "语文",
+  "teacher": "唐倩",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R502",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "刘馨潞",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R503",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "信息科技",
+  "teacher": "刘洋",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R601",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "体育与健康",
+  "teacher": "曾琴",
+  "day": "星期二",
+  "period": 3,
+  "room": "FR-R602",
+  "periodCode": "DAY-2-3"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R101",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "艺术-音乐",
+  "teacher": "赵悦名",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R102",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "语文",
+  "teacher": "曾令雪",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R103",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "英语",
+  "teacher": "罗田柯",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R201",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R202",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R203",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "数学",
+  "teacher": "李明",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R301",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R302",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "艺术-音乐",
+  "teacher": "钟波",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R303",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "数学",
+  "teacher": "邓珊珊",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R401",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "语文",
+  "teacher": "赵进",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R402",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "艺术-美术",
+  "teacher": "涂小鸥",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R403",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "数学",
+  "teacher": "蔡永",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R501",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "数学",
+  "teacher": "金建敏",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R502",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R503",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "数学",
+  "teacher": "蒋建",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R601",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "艺术-美术",
+  "teacher": "刘洋",
+  "day": "星期二",
+  "period": 4,
+  "room": "FR-R602",
+  "periodCode": "DAY-2-4"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "杨雪",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R101",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R102",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "艺术-音乐",
+  "teacher": "赵悦名",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R103",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R201",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "体育与健康",
+  "teacher": "王梁思",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R202",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "体育活动",
+  "teacher": "罗田柯",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R203",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "书法",
+  "teacher": "马梦",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R301",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R302",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "严文玲",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R303",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R401",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "邓珊珊",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R402",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "信息科技",
+  "teacher": "刘洋",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R403",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R501",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R502",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "劳动",
+  "teacher": "刘馨潞",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R503",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "体育与健康",
+  "teacher": "曾琴",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R601",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期二",
+  "period": 5,
+  "room": "FR-R602",
+  "periodCode": "DAY-2-5"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "朱以涓",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R101",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "书法",
+  "teacher": "张豆豆",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R102",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "书法",
+  "teacher": "曾令雪",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R103",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "书法",
+  "teacher": "黄先红",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R201",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "张思韵",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R202",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "书法",
+  "teacher": "宋雨娟",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R203",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "艺术-音乐",
+  "teacher": "钟波",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R301",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "书法",
+  "teacher": "何莹燕",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R302",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R303",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "艺术-美术",
+  "teacher": "涂小鸥",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R401",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "劳动",
+  "teacher": "赵进",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R402",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R403",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R501",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "劳动",
+  "teacher": "唐倩",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R502",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "金建敏",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R503",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R601",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "劳动",
+  "teacher": "高静",
+  "day": "星期二",
+  "period": 6,
+  "room": "FR-R602",
+  "periodCode": "DAY-2-6"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "数学",
+  "teacher": "朱以涓",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R101",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "数学",
+  "teacher": "蔡永",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R102",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "体育活动",
+  "teacher": "李旭梅",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R103",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "体育活动",
+  "teacher": "罗田柯",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R201",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "数学",
+  "teacher": "谢晓芸",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R202",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "数学",
+  "teacher": "李明",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R203",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "语文",
+  "teacher": "马梦",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R301",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "语文",
+  "teacher": "何莹燕",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R302",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "数学",
+  "teacher": "严文玲",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R303",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "数学",
+  "teacher": "邓珊珊",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R401",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "科学",
+  "teacher": "钟波",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R402",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "数学",
+  "teacher": "商靖",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R403",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "杨敏",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R501",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "数学",
+  "teacher": "金建敏",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R502",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R503",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "数学",
+  "teacher": "蒋建",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R601",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "语文",
+  "teacher": "高静",
+  "day": "星期五",
+  "period": 1,
+  "room": "FR-R602",
+  "periodCode": "DAY-5-1"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "体育活动",
+  "teacher": "李旭梅",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R101",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "语文",
+  "teacher": "张豆豆",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R102",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "劳动",
+  "teacher": "曾令雪",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R103",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "黄先红",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R201",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "艺术-美术",
+  "teacher": "张艾玲",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R202",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "语文",
+  "teacher": "宋雨娟",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R203",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "艺术-音乐",
+  "teacher": "钟波",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R301",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "英语",
+  "teacher": "罗田柯",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R302",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "语文",
+  "teacher": "黄超月",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R303",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "语文",
+  "teacher": "蒋雨昊",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R401",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "语文",
+  "teacher": "赵进",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R402",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R403",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "体育活动",
+  "teacher": "雷秀勤",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R501",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "语文",
+  "teacher": "唐倩",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R502",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "语文",
+  "teacher": "刘馨潞",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R503",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "语文",
+  "teacher": "罗芸",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R601",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "艺术-美术",
+  "teacher": "刘洋",
+  "day": "星期五",
+  "period": 2,
+  "room": "FR-R602",
+  "periodCode": "DAY-5-2"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "语文",
+  "teacher": "杨雪",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R101",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "语文",
+  "teacher": "张豆豆",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R102",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "艺术-音乐",
+  "teacher": "赵悦名",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R103",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R201",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "语文",
+  "teacher": "张思韵",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R202",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "语文",
+  "teacher": "宋雨娟",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R203",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "英语",
+  "teacher": "罗田柯",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R301",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "艺术-音乐",
+  "teacher": "钟波",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R302",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "科学",
+  "teacher": "张珺",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R303",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "语文",
+  "teacher": "蒋雨昊",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R401",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R402",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "语文",
+  "teacher": "刘开琴",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R403",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "信息科技",
+  "teacher": "刘洋",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R501",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R502",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "体育活动",
+  "teacher": "刘馨潞",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R503",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R601",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "高静",
+  "day": "星期五",
+  "period": 3,
+  "room": "FR-R602",
+  "periodCode": "DAY-5-3"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "语文",
+  "teacher": "杨雪",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R101",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "艺术-音乐",
+  "teacher": "赵悦名",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R102",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "语文",
+  "teacher": "曾令雪",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R103",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "语文",
+  "teacher": "黄先红",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R201",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "语文",
+  "teacher": "张思韵",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R202",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "体育与健康",
+  "teacher": "王梁思",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R203",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R301",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "科学",
+  "teacher": "张珺",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R302",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R303",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R401",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "语文",
+  "teacher": "赵进",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R402",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "书法",
+  "teacher": "刘开琴",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R403",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "雷秀勤",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R501",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "书法",
+  "teacher": "唐倩",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R502",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "信息科技",
+  "teacher": "刘洋",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R503",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "蒋建",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R601",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "体育与健康",
+  "teacher": "曾琴",
+  "day": "星期五",
+  "period": 4,
+  "room": "FR-R602",
+  "periodCode": "DAY-5-4"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "艺术-音乐",
+  "teacher": "赵悦名",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R101",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "体育活动",
+  "teacher": "李旭梅",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R102",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "数学",
+  "teacher": "朱以涓",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R103",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "数学",
+  "teacher": "谢晓芸",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R201",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "体育与健康",
+  "teacher": "王梁思",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R202",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R203",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "数学",
+  "teacher": "李明",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R301",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "数学",
+  "teacher": "严文玲",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R302",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "英语",
+  "teacher": "罗田柯",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R303",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R401",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "数学",
+  "teacher": "邓珊珊",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R402",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R403",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "数学",
+  "teacher": "蔡永",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R501",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R502",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "数学",
+  "teacher": "金建敏",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R503",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "体育与健康",
+  "teacher": "曾琴",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R601",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "数学",
+  "teacher": "蒋建",
+  "day": "星期五",
+  "period": 5,
+  "room": "FR-R602",
+  "periodCode": "DAY-5-5"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期五",
+  "period": 6,
+  "room": "FR-R101",
+  "periodCode": "DAY-5-6"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "体育活动",
+  "teacher": "李从刚",
+  "day": "星期五",
+  "period": 6,
+  "room": "FR-R302",
+  "periodCode": "DAY-5-6"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期五",
+  "period": 6,
+  "room": "FR-R303",
+  "periodCode": "DAY-5-6"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "蒋雨昊",
+  "day": "星期五",
+  "period": 6,
+  "room": "FR-R401",
+  "periodCode": "DAY-5-6"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "体育活动",
+  "teacher": "吴喻欣",
+  "day": "星期五",
+  "period": 6,
+  "room": "FR-R402",
+  "periodCode": "DAY-5-6"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期五",
+  "period": 6,
+  "room": "FR-R403",
+  "periodCode": "DAY-5-6"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期五",
+  "period": 6,
+  "room": "FR-R102",
+  "periodCode": "DAY-5-6"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期五",
+  "period": 6,
+  "room": "FR-R502",
+  "periodCode": "DAY-5-6"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "英语",
+  "teacher": "李旭梅",
+  "day": "星期五",
+  "period": 6,
+  "room": "FR-R503",
+  "periodCode": "DAY-5-6"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "艺术-美术",
+  "teacher": "刘洋",
+  "day": "星期五",
+  "period": 6,
+  "room": "FR-R103",
+  "periodCode": "DAY-5-6"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期五",
+  "period": 6,
+  "room": "FR-R201",
+  "periodCode": "DAY-5-6"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R101",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R102",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R103",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "体育与健康",
+  "teacher": "王梁思",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R201",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "数学",
+  "teacher": "谢晓芸",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R202",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "数学",
+  "teacher": "李明",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R203",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "语文",
+  "teacher": "马梦",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R301",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "劳动",
+  "teacher": "何莹燕",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R302",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "语文",
+  "teacher": "黄超月",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R303",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "邓珊珊",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R401",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "语文",
+  "teacher": "赵进",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R402",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "语文",
+  "teacher": "刘开琴",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R403",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "语文",
+  "teacher": "雷秀勤",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R501",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "语文",
+  "teacher": "唐倩",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R502",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "语文",
+  "teacher": "刘馨潞",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R503",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "语文",
+  "teacher": "罗芸",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R601",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "英语",
+  "teacher": "李旭梅",
+  "day": "星期四",
+  "period": 1,
+  "room": "FR-R602",
+  "periodCode": "DAY-4-1"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "语文",
+  "teacher": "杨雪",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R101",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "语文",
+  "teacher": "张豆豆",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R102",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "语文",
+  "teacher": "曾令雪",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R103",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "谢晓芸",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R201",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "语文",
+  "teacher": "张思韵",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R202",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "科学",
+  "teacher": "钟波",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R203",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "科学",
+  "teacher": "张珺",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R301",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "校本（英语活动）",
+  "teacher": "罗田柯",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R302",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R303",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R401",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R402",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "数学",
+  "teacher": "商靖",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R403",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "语文",
+  "teacher": "雷秀勤",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R501",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "金建敏",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R502",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "艺术-美术",
+  "teacher": "涂小鸥",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R503",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "英语",
+  "teacher": "李旭梅",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R601",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "语文",
+  "teacher": "高静",
+  "day": "星期四",
+  "period": 2,
+  "room": "FR-R602",
+  "periodCode": "DAY-4-2"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "数学",
+  "teacher": "朱以涓",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R101",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "数学",
+  "teacher": "蔡永",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R102",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "英语",
+  "teacher": "李旭梅",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R103",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "语文",
+  "teacher": "黄先红",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R201",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "体育活动",
+  "teacher": "罗田柯",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R202",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R203",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R301",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "严文玲",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R302",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "信息科技",
+  "teacher": "刘洋",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R303",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "英语",
+  "teacher": "刘洪君",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R401",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R402",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R403",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R501",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "艺术-美术",
+  "teacher": "涂小鸥",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R502",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "数学",
+  "teacher": "金建敏",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R503",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "罗芸",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R601",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期四",
+  "period": 3,
+  "room": "FR-R602",
+  "periodCode": "DAY-4-3"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "科学",
+  "teacher": "赵悦名",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R101",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "劳动",
+  "teacher": "张豆豆",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R102",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "朱以涓",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R103",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "语文",
+  "teacher": "黄先红",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R201",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "谢晓芸",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R202",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "语文",
+  "teacher": "宋雨娟",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R203",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "语文",
+  "teacher": "马梦",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R301",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "语文",
+  "teacher": "何莹燕",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R302",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "科学",
+  "teacher": "张珺",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R303",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "语文",
+  "teacher": "蒋雨昊",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R401",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "邓珊珊",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R402",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "刘开琴",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R403",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "蔡永",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R501",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "科学",
+  "teacher": "姜金瑜",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R502",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R503",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "体育与健康",
+  "teacher": "曾琴",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R601",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "数学",
+  "teacher": "蒋建",
+  "day": "星期四",
+  "period": 4,
+  "room": "FR-R602",
+  "periodCode": "DAY-4-4"
+ },
+ {
+  "class": "一年级 1",
+  "subject": "书法",
+  "teacher": "杨雪",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R101",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "一年级 2",
+  "subject": "体育与健康",
+  "teacher": "唐天娇",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R102",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "一年级 3",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "曾令雪",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R103",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "二年级 1",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R201",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "二年级 2",
+  "subject": "劳动",
+  "teacher": "张思韵",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R202",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "二年级 3",
+  "subject": "体育与健康",
+  "teacher": "王梁思",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R203",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "信息科技",
+  "teacher": "刘洋",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R301",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "体育与健康",
+  "teacher": "吴喻欣",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R302",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "严文玲",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R303",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "艺术-美术",
+  "teacher": "涂小鸥",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R401",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "艺术-音乐",
+  "teacher": "赵悦名",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R402",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "科学",
+  "teacher": "钟波",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R403",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R501",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R502",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "商靖",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R503",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "蒋建",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R601",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "体育与健康",
+  "teacher": "曾琴",
+  "day": "星期四",
+  "period": 5,
+  "room": "FR-R602",
+  "periodCode": "DAY-4-5"
+ },
+ {
+  "class": "三年级 1",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "李明",
+  "day": "星期四",
+  "period": 6,
+  "room": "FR-R301",
+  "periodCode": "DAY-4-6"
+ },
+ {
+  "class": "三年级 2",
+  "subject": "艺术-美术",
+  "teacher": "黄咏薇",
+  "day": "星期四",
+  "period": 6,
+  "room": "FR-R101",
+  "periodCode": "DAY-4-6"
+ },
+ {
+  "class": "三年级 3",
+  "subject": "班团队/综合实践/生生安/心理",
+  "teacher": "黄超月",
+  "day": "星期四",
+  "period": 6,
+  "room": "FR-R303",
+  "periodCode": "DAY-4-6"
+ },
+ {
+  "class": "四年级 1",
+  "subject": "信息科技",
+  "teacher": "刘洋",
+  "day": "星期四",
+  "period": 6,
+  "room": "FR-R401",
+  "periodCode": "DAY-4-6"
+ },
+ {
+  "class": "四年级 2",
+  "subject": "艺术-美术",
+  "teacher": "涂小鸥",
+  "day": "星期四",
+  "period": 6,
+  "room": "FR-R102",
+  "periodCode": "DAY-4-6"
+ },
+ {
+  "class": "四年级 3",
+  "subject": "艺术-音乐",
+  "teacher": "赵悦名",
+  "day": "星期四",
+  "period": 6,
+  "room": "FR-R103",
+  "periodCode": "DAY-4-6"
+ },
+ {
+  "class": "五年级 1",
+  "subject": "体育与健康",
+  "teacher": "刘勇",
+  "day": "星期四",
+  "period": 6,
+  "room": "FR-R501",
+  "periodCode": "DAY-4-6"
+ },
+ {
+  "class": "五年级 2",
+  "subject": "艺术-音乐",
+  "teacher": "杨胜楠",
+  "day": "星期四",
+  "period": 6,
+  "room": "FR-R201",
+  "periodCode": "DAY-4-6"
+ },
+ {
+  "class": "五年级 3",
+  "subject": "书法",
+  "teacher": "刘馨潞",
+  "day": "星期四",
+  "period": 6,
+  "room": "FR-R503",
+  "periodCode": "DAY-4-6"
+ },
+ {
+  "class": "六年级 1",
+  "subject": "劳动",
+  "teacher": "罗芸",
+  "day": "星期四",
+  "period": 6,
+  "room": "FR-R601",
+  "periodCode": "DAY-4-6"
+ },
+ {
+  "class": "六年级 2",
+  "subject": "道法/习近平新时代中国特色社会主义思想学生读本",
+  "teacher": "蒋建",
+  "day": "星期四",
+  "period": 6,
+  "room": "FR-R602",
+  "periodCode": "DAY-4-6"
+ }
+]

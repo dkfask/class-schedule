@@ -55,6 +55,7 @@ app:
     base-url: ${APP_AI_BASE_URL:}
     api-key: ${APP_AI_API_KEY:}
     model: ${APP_AI_MODEL:}
+    config-encryption-key: ${APP_AI_CONFIG_ENCRYPTION_KEY:}
 
 management:
   health:

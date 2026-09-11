@@ -220,6 +220,42 @@ public class ScheduleRuleValidator {
                                             .distinct()
                                             .count()
                                     <= 1;
+                    if ("JOINED".equals(type)) {
+                        members.stream()
+                                .filter(item -> item.roomCode() != null)
+                                .collect(
+                                        java.util.stream.Collectors.groupingBy(
+                                                ScheduleAssignmentView::roomCode,
+                                                LinkedHashMap::new,
+                                                java.util.stream.Collectors.toList()))
+                                .forEach(
+                                        (roomCode, roomMembers) -> {
+                                            int studentCount =
+                                                    roomMembers.stream()
+                                                            .mapToInt(
+                                                                    ScheduleAssignmentView
+                                                                            ::studentCount)
+                                                            .sum();
+                                            int capacity =
+                                                    roomMembers.stream()
+                                                            .mapToInt(
+                                                                    ScheduleAssignmentView
+                                                                            ::roomCapacity)
+                                                            .max()
+                                                            .orElse(0);
+                                            if (studentCount > 0
+                                                    && capacity > 0
+                                                    && studentCount > capacity) {
+                                                add(
+                                                        violations,
+                                                        emitted,
+                                                        "JOINED_ROOM_CAPACITY",
+                                                        "合班成员人数超过教室容量",
+                                                        roomCode,
+                                                        blockKey);
+                                            }
+                                        });
+                    }
                     if ("JOINED".equals(type) && (!sameSlot || !sameRoom)) {
                         add(
                                 violations,
@@ -310,7 +346,7 @@ public class ScheduleRuleValidator {
 
         Map<Long, RequirementBaseline> requirements = new LinkedHashMap<>();
         jdbc.query(
-                "SELECT r.id, r.code, r.weekly_periods, r.duration_periods, r.pinned_period_code FROM teaching_requirement r JOIN schedule_scenario s ON s.term_id = r.term_id JOIN schedule_version v ON v.scenario_id = s.id WHERE v.id = ? AND r.active = TRUE ORDER BY r.id",
+                "SELECT r.id, r.code, r.weekly_periods, r.duration_periods, r.pinned_period_code, r.room_assignment_mode, home.code AS home_room_code FROM teaching_requirement r JOIN schedule_scenario s ON s.term_id = r.term_id JOIN schedule_version v ON v.scenario_id = s.id JOIN student_group g ON g.id = r.student_group_id LEFT JOIN room home ON home.id = g.home_room_id WHERE v.id = ? AND r.active = TRUE ORDER BY r.id",
                 (rs, rowNum) -> {
                     requirements.put(
                             rs.getLong("id"),
@@ -319,7 +355,9 @@ public class ScheduleRuleValidator {
                                     rs.getString("code"),
                                     rs.getInt("weekly_periods"),
                                     rs.getInt("duration_periods"),
-                                    rs.getString("pinned_period_code")));
+                                    rs.getString("pinned_period_code"),
+                                    rs.getString("room_assignment_mode"),
+                                    rs.getString("home_room_code")));
                     return null;
                 },
                 versionId);
@@ -417,6 +455,25 @@ public class ScheduleRuleValidator {
                             requirement.code(),
                             assignment.occurrenceKey());
                 }
+                if ("HOME".equals(requirement.roomAssignmentMode())) {
+                    if (requirement.homeRoomCode() == null) {
+                        add(
+                                violations,
+                                emitted,
+                                "HOME_ROOM_NOT_CONFIGURED",
+                                "行政班未配置绑定教室",
+                                assignment.studentGroupCode(),
+                                assignment.occurrenceKey());
+                    } else if (!requirement.homeRoomCode().equals(assignment.roomCode())) {
+                        add(
+                                violations,
+                                emitted,
+                                "HOME_ROOM_MISMATCH",
+                                "行政班必须使用绑定教室: " + requirement.homeRoomCode(),
+                                assignment.studentGroupCode(),
+                                assignment.occurrenceKey());
+                    }
+                }
             }
         }
         byRequirement.forEach(
@@ -450,7 +507,9 @@ public class ScheduleRuleValidator {
             String code,
             int weeklyPeriods,
             int durationPeriods,
-            String pinnedPeriodCode) {}
+            String pinnedPeriodCode,
+            String roomAssignmentMode,
+            String homeRoomCode) {}
 
     private void validateActivityGroupCompleteness(
             long termId,

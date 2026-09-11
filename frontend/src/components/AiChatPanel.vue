@@ -162,7 +162,7 @@ async function send() {
           <span class="hint-icon">⚙</span>
           <div>
             <strong>AI 代理服务未就绪</strong>
-            <p>请在部署环境配置 <code>APP_AI_BASE_URL</code> 与 <code>APP_AI_API_KEY</code> 后重启服务。</p>
+            <p>请联系系统管理员在“AI 模型设置”中配置服务。</p>
           </div>
         </div>
         <div v-else class="ai-chat-input">
@@ -193,7 +193,7 @@ async function send() {
 </template>
 
 <style scoped>
-/* 悬浮 FAB 按钮：毛玻璃渐变科技感 */
+/* 悬浮 FAB 按钮 */
 .ai-fab {
   position: fixed;
   right: 24px;
@@ -203,26 +203,24 @@ async function send() {
   align-items: center;
   gap: 8px;
   padding: 10px 18px 10px 14px;
-  background: linear-gradient(135deg, #1b4d3e 0%, #0d2b22 100%);
+  background: #202A35;
   color: #e5f6ed;
   border: 1px solid rgba(157, 219, 187, 0.35);
-  border-radius: 9999px;
+  border-radius: 6px;
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
-  box-shadow: 0 10px 25px -5px rgba(17, 53, 43, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  box-shadow: 0 6px 16px rgba(32, 42, 53, .2);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(8px);
 }
 .ai-fab:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 14px 30px -4px rgba(20, 68, 55, 0.5), 0 0 16px rgba(118, 209, 163, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(32, 42, 53, .26);
   border-color: rgba(157, 219, 187, 0.7);
 }
 .ai-fab-sparkle {
   color: #6ee7b7;
   font-size: 14px;
-  filter: drop-shadow(0 0 4px #34d399);
 }
 .ai-fab-text {
   letter-spacing: 0.02em;
@@ -233,7 +231,7 @@ async function send() {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #fbfdfc;
+  background: #F9FAFB;
   color: #1a2a24;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
@@ -256,7 +254,7 @@ async function send() {
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #1b5a45 0%, #2f7a5c 100%);
+  background: #B85C45;
   color: #a7f3d0;
   display: grid;
   place-items: center;
@@ -337,7 +335,7 @@ async function send() {
   left: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  opacity: 0.035;
+  opacity: 0.06;
 }
 .watermark-symbol {
   font-size: 40px;
@@ -362,7 +360,7 @@ async function send() {
   height: 26px;
   border-radius: 8px;
   background: #e1f0e8;
-  color: #1b5a45;
+  color: #984936;
   font-size: 12px;
   display: grid;
   place-items: center;
@@ -391,14 +389,14 @@ async function send() {
   box-shadow: 0 2px 12px rgba(22, 54, 43, 0.05), 0 0 0 1px rgba(223, 233, 228, 0.7);
 }
 .ai-chat-line.user .ai-chat-bubble {
-  background: linear-gradient(135deg, #1b5a45 0%, #226b52 100%);
+  background: #B85C45;
   color: #ffffff;
   border-radius: 16px 4px 16px 16px;
   box-shadow: 0 4px 14px rgba(27, 90, 69, 0.2);
 }
 .msg-meta {
   font-size: 10px;
-  color: #9bb0a7;
+  color: #8795A5;
   margin-top: 4px;
   padding: 0 4px;
 }
@@ -470,7 +468,7 @@ async function send() {
 }
 .input-card:focus-within {
   background: #ffffff;
-  border-color: #2e8a65;
+  border-color: #B85C45;
   box-shadow: 0 0 0 3px rgba(46, 138, 101, 0.12), 0 4px 12px rgba(25, 46, 38, 0.05);
 }
 .styled-textarea {
@@ -497,7 +495,7 @@ async function send() {
 }
 .input-tip {
   font-size: 11px;
-  color: #9bb0a7;
+  color: #8795A5;
 }
 .send-btn {
   border: 0;
@@ -550,4 +548,3 @@ async function send() {
   font-family: monospace;
 }
 </style>
-

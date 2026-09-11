@@ -95,6 +95,9 @@ class SolveReadinessServiceTest {
                 .thenReturn(2);
         when(jdbc.queryForObject(contains("teaching_requirement"), eq(Integer.class), eq(1L)))
                 .thenReturn(3);
+        when(jdbc.queryForObject(
+                        contains("room_assignment_mode"), eq(Integer.class), eq(1L)))
+                .thenReturn(0);
 
         SolveReadiness result = new SolveReadinessService(jdbc).check("2026-FALL");
 

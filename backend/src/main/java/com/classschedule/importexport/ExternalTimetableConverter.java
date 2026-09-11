@@ -409,7 +409,8 @@ public final class ExternalTimetableConverter {
                     put(sheet, rowIndex, 1, group.name());
                     put(sheet, rowIndex, 2, "HOMEROOM");
                     put(sheet, rowIndex, 3, group.studentCount());
-                    put(sheet, rowIndex++, 4, true);
+                    put(sheet, rowIndex, 4, true);
+                    put(sheet, rowIndex++, 5, "");
                 }
             }
             case "课程" -> {
@@ -439,7 +440,8 @@ public final class ExternalTimetableConverter {
                     put(sheet, rowIndex, 6, 1);
                     put(sheet, rowIndex, 7, requirement.studentCount());
                     put(sheet, rowIndex, 8, "");
-                    put(sheet, rowIndex++, 9, true);
+                    put(sheet, rowIndex, 9, true);
+                    put(sheet, rowIndex++, 10, "FLEXIBLE");
                 }
             }
             default -> {

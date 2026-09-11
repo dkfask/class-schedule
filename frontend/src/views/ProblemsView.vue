@@ -142,42 +142,42 @@ onMounted(() => { applyContext(); void load() })
 <style scoped>
 .canvas-card { background: #fff; border: 1px solid rgba(23, 59, 54, .1); border-radius: 12px; box-shadow: 0 4px 16px -2px rgba(23, 59, 54, .03); overflow: hidden; }
 .problem-page { padding: 20px; }
-.problem-page h2, .problem-page h3 { margin: 5px 0 0; color: #173b36; }
+.problem-page h2, .problem-page h3 { margin: 5px 0 0; color: #202A35; }
 .problem-page h2 { font-size: 18px; }
 .problem-page h3 { font-size: 15px; }
 .panel-heading small { display: block; margin-top: 6px; color: #6a7b75; font-size: 11px; }
 .problem-create { margin: 20px 0; padding: 16px; border: 1px solid #dfeae3; border-radius: 9px; background: #f7fbf8; }
 .form-heading, .problem-toolbar, .problem-card-header, .problem-card-footer { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
-.form-heading > span, .problem-toolbar > div > span { color: #789087; font-size: 11px; }
+.form-heading > span, .problem-toolbar > div > span { color: #566474; font-size: 11px; }
 .form-grid { display: grid; grid-template-columns: minmax(0, 1fr) 140px 140px; gap: 10px; margin-top: 14px; }
-.form-grid label, .context-fields label, .problem-card-footer label { display: grid; gap: 5px; color: #50605c; font-size: 11px; }
+.form-grid label, .context-fields label, .problem-card-footer label { display: grid; gap: 5px; color: #566474; font-size: 11px; }
 .form-grid .wide { grid-column: 1 / -1; }
-.form-grid input, .form-grid textarea, .form-grid select, .context-fields input, .problem-card-footer input, .problem-card-footer select, .problem-filters select { min-width: 0; border: 1px solid #dce4e0; border-radius: 6px; padding: 8px 9px; background: #fff; color: #191c1d; font: inherit; font-size: 12px; }
+.form-grid input, .form-grid textarea, .form-grid select, .context-fields input, .problem-card-footer input, .problem-card-footer select, .problem-filters select { min-width: 0; border: 1px solid #D9DEE3; border-radius: 6px; padding: 8px 9px; background: #fff; color: #191c1d; font: inherit; font-size: 12px; }
 .form-grid textarea { resize: vertical; line-height: 1.45; }
 .context-fields { display: grid; grid-template-columns: repeat(3, minmax(100px, 1fr)) auto; gap: 10px; align-items: end; margin-top: 10px; }
 .problem-toolbar { align-items: center; margin: 18px 0 10px; padding-bottom: 10px; border-bottom: 1px solid #e8efeb; color: #36594a; }
 .problem-toolbar > div:first-child { display: flex; gap: 8px; align-items: center; }
 .problem-filters { display: flex; gap: 7px; }
 .problem-list { display: grid; gap: 10px; }
-.problem-card { padding: 14px; border: 1px solid #e4ece7; border-left: 3px solid #76a589; border-radius: 8px; background: #fff; }
+.problem-card { padding: 14px; border: 1px solid #EEF1F3; border-left: 3px solid #76a589; border-radius: 8px; background: #fff; }
 .problem-card.priority-high { border-left-color: #d7964d; }
 .problem-card.priority-urgent { border-left-color: #ca6a5e; background: #fffafa; }
-.problem-card-header strong { margin-left: 7px; color: #173b36; font-size: 13px; }
+.problem-card-header strong { margin-left: 7px; color: #202A35; font-size: 13px; }
 .problem-id { color: #8a9b92; font-size: 10px; }
 .problem-tags { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
 .problem-tag { padding: 3px 7px; border-radius: 999px; color: #47715b; background: #e8f4ec; font-size: 10px; }
-.priority-tag { color: #8e641f; background: #fff0d5; }
+.priority-tag { color: #8e641f; background: #FBF4E7; }
 .problem-card p { margin: 10px 0 7px; color: #50685d; font-size: 12px; line-height: 1.55; white-space: pre-wrap; }
 .problem-context { color: #8a9a91; font-size: 10px; }
-.problem-evidence { margin-top: 8px; padding: 7px 9px; color: #657d70; background: #f6faf7; font-size: 11px; line-height: 1.45; }
+.problem-evidence { margin-top: 8px; padding: 7px 9px; color: #657d70; background: #F5F6F8; font-size: 11px; line-height: 1.45; }
 .problem-card-footer { align-items: end; margin-top: 12px; padding-top: 10px; border-top: 1px solid #eef3ef; }
 .problem-card-footer label:first-child { flex: 0 0 150px; }
 .resolution-field { flex: 1; }
 .primary-button, .quiet-button { border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 12px; white-space: nowrap; }
-.primary-button { border: 1px solid #173b36; background: #173b36; color: #fff; }
-.quiet-button { border: 1px solid #dce4e0; background: #fff; color: #50605c; }
+.primary-button { border: 1px solid #202A35; background: #202A35; color: #fff; }
+.quiet-button { border: 1px solid #D9DEE3; background: #fff; color: #566474; }
 .primary-button:disabled, .quiet-button:disabled { cursor: not-allowed; opacity: .55; }
-.problem-empty { padding: 32px 16px; border: 1px dashed #cddbd5; border-radius: 8px; color: #687874; text-align: center; font-size: 12px; }
+.problem-empty { padding: 32px 16px; border: 1px dashed #cddbd5; border-radius: 8px; color: #566474; text-align: center; font-size: 12px; }
 .inline-message { margin-bottom: 14px; padding: 10px 14px; border-radius: 8px; font-size: 12px; }
 .success-message { border: 1px solid #bbdec6; background: #effaf2; color: #28623d; }
 .error-message { border: 1px solid #fecaca; background: #fef2f2; color: #991b1b; }

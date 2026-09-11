@@ -35,6 +35,8 @@ public class LessonOccurrence {
     private List<Timeslot> timeslotPool = List.of();
     private List<Timeslot> timeslotRange = List.of();
     private List<Room> roomRange = List.of();
+    private String roomAssignmentMode = "FLEXIBLE";
+    private String homeRoomCode;
     private boolean pinned;
 
     @PlanningVariable(valueRangeProviderRefs = "timeslotRange")
@@ -91,6 +93,8 @@ public class LessonOccurrence {
         copy.timeslotPool = List.copyOf(timeslotPool);
         copy.timeslotRange = List.copyOf(timeslotRange);
         copy.roomRange = List.copyOf(roomRange);
+        copy.roomAssignmentMode = roomAssignmentMode;
+        copy.homeRoomCode = homeRoomCode;
         copy.pinned = pinned;
         copy.timeslot = timeslot;
         copy.room = room;
@@ -314,6 +318,26 @@ public class LessonOccurrence {
 
     public void setRoomRange(List<Room> roomRange) {
         this.roomRange = roomRange == null ? List.of() : List.copyOf(roomRange);
+    }
+
+    public String getRoomAssignmentMode() {
+        return roomAssignmentMode;
+    }
+
+    public void setRoomAssignmentMode(String roomAssignmentMode) {
+        this.roomAssignmentMode =
+                roomAssignmentMode == null || roomAssignmentMode.isBlank()
+                        ? "FLEXIBLE"
+                        : roomAssignmentMode.trim().toUpperCase();
+    }
+
+    public String getHomeRoomCode() {
+        return homeRoomCode;
+    }
+
+    public void setHomeRoomCode(String homeRoomCode) {
+        this.homeRoomCode =
+                homeRoomCode == null || homeRoomCode.isBlank() ? null : homeRoomCode.trim();
     }
 
     public boolean isPinned() {
