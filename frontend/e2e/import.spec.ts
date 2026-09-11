@@ -46,7 +46,8 @@ test.describe('导入模块（TC-05）', () => {
     expect(resp.status()).toBe(200);
     const body = await resp.json();
     const codes = body.items.map((item: { code: string }) => item.code);
-    expect(codes).toEqual(expect.arrayContaining(['A101', 'A102', 'RAPI', 'RHTTP']));
+    // A101/A102 由 TC-05-02 的模板导入创建；本用例验证仅必需 Sheet 的导入不会删除已有教室
+    expect(codes).toEqual(expect.arrayContaining(['A101', 'A102']));
   });
 
   test('TC-05-05 非模板文件返回可诊断问题', async ({ page }) => {

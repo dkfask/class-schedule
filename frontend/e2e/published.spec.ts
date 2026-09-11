@@ -19,9 +19,13 @@ test.describe('已发布课表与导出（TC-08）', () => {
   });
 
   test('TC-08-02 Excel 导出真实下载', async ({ page, context }) => {
-    test.skip((await page.locator('button:has-text("下载 Excel")').count()) === 0, '本地库无已发布版本');
+    const row = page.locator('.version-row, button:has-text("版本 v")').first();
+    test.skip((await row.count()) === 0, '本地库无已发布版本');
+    await row.click();
+    const button = page.getByRole('button', { name: '下载 Excel' });
+    await expect(button).toBeEnabled();
     const downloadPromise = context.waitForEvent('download', { timeout: 20_000 });
-    await page.getByRole('button', { name: '下载 Excel' }).click();
+    await button.click();
     const download = await downloadPromise;
     const path = await download.path();
     expect(path).toBeTruthy();
@@ -29,9 +33,13 @@ test.describe('已发布课表与导出（TC-08）', () => {
   });
 
   test('TC-08-03 PDF 导出真实下载且中文可渲染', async ({ page, context }) => {
-    test.skip((await page.locator('button:has-text("下载 PDF")').count()) === 0, '本地库无已发布版本');
+    const row = page.locator('.version-row, button:has-text("版本 v")').first();
+    test.skip((await row.count()) === 0, '本地库无已发布版本');
+    await row.click();
+    const button = page.getByRole('button', { name: '下载 PDF' });
+    await expect(button).toBeEnabled();
     const downloadPromise = context.waitForEvent('download', { timeout: 20_000 });
-    await page.getByRole('button', { name: '下载 PDF' }).click();
+    await button.click();
     const download = await downloadPromise;
     const path = await download.path();
     expect(path).toBeTruthy();
