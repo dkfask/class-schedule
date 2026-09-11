@@ -1,0 +1,1766 @@
+[
+  {
+    "class": "一年级1班",
+    "day": "星期一",
+    "period": 1,
+    "subject": "劳动",
+    "teacher": "一年级劳老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期一",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期一",
+    "period": 3,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期一",
+    "period": 4,
+    "subject": "艺术-音乐",
+    "teacher": "一年级音老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期一",
+    "period": 5,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期一",
+    "period": 6,
+    "subject": "英语",
+    "teacher": "一年级英老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期二",
+    "period": 1,
+    "subject": "英语",
+    "teacher": "一年级英老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期二",
+    "period": 2,
+    "subject": "体育与健康",
+    "teacher": "一年级体老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期二",
+    "period": 3,
+    "subject": "信息科技",
+    "teacher": "一年级信老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期二",
+    "period": 4,
+    "subject": "道德与法治",
+    "teacher": "一年级道老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期二",
+    "period": 5,
+    "subject": "艺术-美术",
+    "teacher": "一年级美老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期二",
+    "period": 6,
+    "subject": "科学",
+    "teacher": "一年级科老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期三",
+    "period": 1,
+    "subject": "道德与法治",
+    "teacher": "一年级道老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期三",
+    "period": 2,
+    "subject": "英语",
+    "teacher": "一年级英老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期三",
+    "period": 3,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期三",
+    "period": 4,
+    "subject": "艺术-美术",
+    "teacher": "一年级美老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期三",
+    "period": 5,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期三",
+    "period": 6,
+    "subject": "科学",
+    "teacher": "一年级科老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期四",
+    "period": 1,
+    "subject": "体育与健康",
+    "teacher": "一年级体老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期四",
+    "period": 2,
+    "subject": "艺术-音乐",
+    "teacher": "一年级音老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期四",
+    "period": 3,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期四",
+    "period": 4,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期四",
+    "period": 5,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期四",
+    "period": 6,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期五",
+    "period": 1,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期五",
+    "period": 2,
+    "subject": "体育与健康",
+    "teacher": "一年级体老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期五",
+    "period": 3,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级1班",
+    "day": "星期五",
+    "period": 4,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期一",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期一",
+    "period": 2,
+    "subject": "艺术-音乐",
+    "teacher": "一年级音老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期一",
+    "period": 3,
+    "subject": "英语",
+    "teacher": "一年级英老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期一",
+    "period": 4,
+    "subject": "道德与法治",
+    "teacher": "一年级道老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期一",
+    "period": 5,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期一",
+    "period": 6,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期二",
+    "period": 1,
+    "subject": "艺术-音乐",
+    "teacher": "一年级音老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期二",
+    "period": 2,
+    "subject": "艺术-美术",
+    "teacher": "一年级美老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期二",
+    "period": 3,
+    "subject": "道德与法治",
+    "teacher": "一年级道老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期二",
+    "period": 4,
+    "subject": "体育与健康",
+    "teacher": "一年级体老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期二",
+    "period": 5,
+    "subject": "科学",
+    "teacher": "一年级科老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期二",
+    "period": 6,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期三",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期三",
+    "period": 2,
+    "subject": "劳动",
+    "teacher": "一年级劳老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期三",
+    "period": 3,
+    "subject": "艺术-美术",
+    "teacher": "一年级美老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期三",
+    "period": 4,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期三",
+    "period": 5,
+    "subject": "信息科技",
+    "teacher": "一年级信老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期三",
+    "period": 6,
+    "subject": "体育与健康",
+    "teacher": "一年级体老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期四",
+    "period": 1,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期四",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期四",
+    "period": 3,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期四",
+    "period": 4,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期四",
+    "period": 5,
+    "subject": "英语",
+    "teacher": "一年级英老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期四",
+    "period": 6,
+    "subject": "体育与健康",
+    "teacher": "一年级体老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期五",
+    "period": 1,
+    "subject": "科学",
+    "teacher": "一年级科老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期五",
+    "period": 2,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期五",
+    "period": 3,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级2班",
+    "day": "星期五",
+    "period": 4,
+    "subject": "英语",
+    "teacher": "一年级英老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期一",
+    "period": 1,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期一",
+    "period": 2,
+    "subject": "道德与法治",
+    "teacher": "一年级道老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期一",
+    "period": 3,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期一",
+    "period": 4,
+    "subject": "劳动",
+    "teacher": "一年级劳老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期一",
+    "period": 5,
+    "subject": "艺术-美术",
+    "teacher": "一年级美老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期一",
+    "period": 6,
+    "subject": "信息科技",
+    "teacher": "一年级信老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期二",
+    "period": 1,
+    "subject": "道德与法治",
+    "teacher": "一年级道老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期二",
+    "period": 2,
+    "subject": "科学",
+    "teacher": "一年级科老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期二",
+    "period": 3,
+    "subject": "英语",
+    "teacher": "一年级英老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期二",
+    "period": 4,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期二",
+    "period": 5,
+    "subject": "艺术-音乐",
+    "teacher": "一年级音老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期二",
+    "period": 6,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期三",
+    "period": 1,
+    "subject": "科学",
+    "teacher": "一年级科老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期三",
+    "period": 2,
+    "subject": "艺术-美术",
+    "teacher": "一年级美老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期三",
+    "period": 3,
+    "subject": "英语",
+    "teacher": "一年级英老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期三",
+    "period": 4,
+    "subject": "艺术-音乐",
+    "teacher": "一年级音老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期三",
+    "period": 5,
+    "subject": "体育与健康",
+    "teacher": "一年级体老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期三",
+    "period": 6,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期四",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期四",
+    "period": 2,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期四",
+    "period": 3,
+    "subject": "英语",
+    "teacher": "一年级英老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期四",
+    "period": 4,
+    "subject": "体育与健康",
+    "teacher": "一年级体老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期四",
+    "period": 5,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期四",
+    "period": 6,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期五",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期五",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "一年级数老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期五",
+    "period": 3,
+    "subject": "体育与健康",
+    "teacher": "一年级体老师"
+  },
+  {
+    "class": "一年级3班",
+    "day": "星期五",
+    "period": 4,
+    "subject": "语文",
+    "teacher": "一年级语老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期一",
+    "period": 1,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期一",
+    "period": 2,
+    "subject": "艺术-音乐",
+    "teacher": "三年级音老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期一",
+    "period": 3,
+    "subject": "体育与健康",
+    "teacher": "三年级体老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期一",
+    "period": 4,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期一",
+    "period": 5,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期一",
+    "period": 6,
+    "subject": "道德与法治",
+    "teacher": "三年级道老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期二",
+    "period": 1,
+    "subject": "科学",
+    "teacher": "三年级科老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期二",
+    "period": 2,
+    "subject": "劳动",
+    "teacher": "三年级劳老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期二",
+    "period": 3,
+    "subject": "信息科技",
+    "teacher": "三年级信老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期二",
+    "period": 4,
+    "subject": "道德与法治",
+    "teacher": "三年级道老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期二",
+    "period": 5,
+    "subject": "艺术-音乐",
+    "teacher": "三年级音老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期二",
+    "period": 6,
+    "subject": "英语",
+    "teacher": "三年级英老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期三",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期三",
+    "period": 2,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期三",
+    "period": 3,
+    "subject": "艺术-美术",
+    "teacher": "三年级美老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期三",
+    "period": 4,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期三",
+    "period": 5,
+    "subject": "体育与健康",
+    "teacher": "三年级体老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期三",
+    "period": 6,
+    "subject": "英语",
+    "teacher": "三年级英老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期四",
+    "period": 1,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期四",
+    "period": 2,
+    "subject": "艺术-美术",
+    "teacher": "三年级美老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期四",
+    "period": 3,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期四",
+    "period": 4,
+    "subject": "体育与健康",
+    "teacher": "三年级体老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期四",
+    "period": 5,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期四",
+    "period": 6,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期五",
+    "period": 1,
+    "subject": "英语",
+    "teacher": "三年级英老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期五",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期五",
+    "period": 3,
+    "subject": "科学",
+    "teacher": "三年级科老师"
+  },
+  {
+    "class": "三年级1班",
+    "day": "星期五",
+    "period": 4,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期一",
+    "period": 1,
+    "subject": "体育与健康",
+    "teacher": "三年级体老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期一",
+    "period": 2,
+    "subject": "道德与法治",
+    "teacher": "三年级道老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期一",
+    "period": 3,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期一",
+    "period": 4,
+    "subject": "科学",
+    "teacher": "三年级科老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期一",
+    "period": 5,
+    "subject": "劳动",
+    "teacher": "三年级劳老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期一",
+    "period": 6,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期二",
+    "period": 1,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期二",
+    "period": 2,
+    "subject": "道德与法治",
+    "teacher": "三年级道老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期二",
+    "period": 3,
+    "subject": "科学",
+    "teacher": "三年级科老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期二",
+    "period": 4,
+    "subject": "英语",
+    "teacher": "三年级英老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期二",
+    "period": 5,
+    "subject": "艺术-美术",
+    "teacher": "三年级美老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期二",
+    "period": 6,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期三",
+    "period": 1,
+    "subject": "英语",
+    "teacher": "三年级英老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期三",
+    "period": 2,
+    "subject": "艺术-美术",
+    "teacher": "三年级美老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期三",
+    "period": 3,
+    "subject": "艺术-音乐",
+    "teacher": "三年级音老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期三",
+    "period": 4,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期三",
+    "period": 5,
+    "subject": "信息科技",
+    "teacher": "三年级信老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期三",
+    "period": 6,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期四",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期四",
+    "period": 2,
+    "subject": "艺术-音乐",
+    "teacher": "三年级音老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期四",
+    "period": 3,
+    "subject": "英语",
+    "teacher": "三年级英老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期四",
+    "period": 4,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期四",
+    "period": 5,
+    "subject": "体育与健康",
+    "teacher": "三年级体老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期四",
+    "period": 6,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期五",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期五",
+    "period": 2,
+    "subject": "体育与健康",
+    "teacher": "三年级体老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期五",
+    "period": 3,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级2班",
+    "day": "星期五",
+    "period": 4,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期一",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期一",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期一",
+    "period": 3,
+    "subject": "科学",
+    "teacher": "三年级科老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期一",
+    "period": 4,
+    "subject": "艺术-美术",
+    "teacher": "三年级美老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期一",
+    "period": 5,
+    "subject": "道德与法治",
+    "teacher": "三年级道老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期一",
+    "period": 6,
+    "subject": "体育与健康",
+    "teacher": "三年级体老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期二",
+    "period": 1,
+    "subject": "英语",
+    "teacher": "三年级英老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期二",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期二",
+    "period": 3,
+    "subject": "劳动",
+    "teacher": "三年级劳老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期二",
+    "period": 4,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期二",
+    "period": 5,
+    "subject": "信息科技",
+    "teacher": "三年级信老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期二",
+    "period": 6,
+    "subject": "科学",
+    "teacher": "三年级科老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期三",
+    "period": 1,
+    "subject": "艺术-美术",
+    "teacher": "三年级美老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期三",
+    "period": 2,
+    "subject": "艺术-音乐",
+    "teacher": "三年级音老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期三",
+    "period": 3,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期三",
+    "period": 4,
+    "subject": "英语",
+    "teacher": "三年级英老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期三",
+    "period": 5,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期三",
+    "period": 6,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期四",
+    "period": 1,
+    "subject": "英语",
+    "teacher": "三年级英老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期四",
+    "period": 2,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期四",
+    "period": 3,
+    "subject": "艺术-音乐",
+    "teacher": "三年级音老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期四",
+    "period": 4,
+    "subject": "道德与法治",
+    "teacher": "三年级道老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期四",
+    "period": 5,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期四",
+    "period": 6,
+    "subject": "体育与健康",
+    "teacher": "三年级体老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期五",
+    "period": 1,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期五",
+    "period": 2,
+    "subject": "语文",
+    "teacher": "三年级语老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期五",
+    "period": 3,
+    "subject": "数学",
+    "teacher": "三年级数老师"
+  },
+  {
+    "class": "三年级3班",
+    "day": "星期五",
+    "period": 4,
+    "subject": "体育与健康",
+    "teacher": "三年级体老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期一",
+    "period": 1,
+    "subject": "英语",
+    "teacher": "二年级英老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期一",
+    "period": 2,
+    "subject": "劳动",
+    "teacher": "二年级劳老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期一",
+    "period": 3,
+    "subject": "艺术-美术",
+    "teacher": "二年级美老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期一",
+    "period": 4,
+    "subject": "艺术-音乐",
+    "teacher": "二年级音老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期一",
+    "period": 5,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期一",
+    "period": 6,
+    "subject": "信息科技",
+    "teacher": "二年级信老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期二",
+    "period": 1,
+    "subject": "艺术-音乐",
+    "teacher": "二年级音老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期二",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期二",
+    "period": 3,
+    "subject": "英语",
+    "teacher": "二年级英老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期二",
+    "period": 4,
+    "subject": "科学",
+    "teacher": "二年级科老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期二",
+    "period": 5,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期二",
+    "period": 6,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期三",
+    "period": 1,
+    "subject": "道德与法治",
+    "teacher": "二年级道老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期三",
+    "period": 2,
+    "subject": "体育与健康",
+    "teacher": "二年级体老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期三",
+    "period": 3,
+    "subject": "英语",
+    "teacher": "二年级英老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期三",
+    "period": 4,
+    "subject": "艺术-美术",
+    "teacher": "二年级美老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期三",
+    "period": 5,
+    "subject": "科学",
+    "teacher": "二年级科老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期三",
+    "period": 6,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期四",
+    "period": 1,
+    "subject": "体育与健康",
+    "teacher": "二年级体老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期四",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期四",
+    "period": 3,
+    "subject": "道德与法治",
+    "teacher": "二年级道老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期四",
+    "period": 4,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期四",
+    "period": 5,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期四",
+    "period": 6,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期五",
+    "period": 1,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期五",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期五",
+    "period": 3,
+    "subject": "体育与健康",
+    "teacher": "二年级体老师"
+  },
+  {
+    "class": "二年级1班",
+    "day": "星期五",
+    "period": 4,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期一",
+    "period": 1,
+    "subject": "体育与健康",
+    "teacher": "二年级体老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期一",
+    "period": 2,
+    "subject": "艺术-美术",
+    "teacher": "二年级美老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期一",
+    "period": 3,
+    "subject": "劳动",
+    "teacher": "二年级劳老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期一",
+    "period": 4,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期一",
+    "period": 5,
+    "subject": "英语",
+    "teacher": "二年级英老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期一",
+    "period": 6,
+    "subject": "艺术-音乐",
+    "teacher": "二年级音老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期二",
+    "period": 1,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期二",
+    "period": 2,
+    "subject": "艺术-美术",
+    "teacher": "二年级美老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期二",
+    "period": 3,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期二",
+    "period": 4,
+    "subject": "英语",
+    "teacher": "二年级英老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期二",
+    "period": 5,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期二",
+    "period": 6,
+    "subject": "信息科技",
+    "teacher": "二年级信老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期三",
+    "period": 1,
+    "subject": "体育与健康",
+    "teacher": "二年级体老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期三",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期三",
+    "period": 3,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期三",
+    "period": 4,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期三",
+    "period": 5,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期三",
+    "period": 6,
+    "subject": "艺术-音乐",
+    "teacher": "二年级音老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期四",
+    "period": 1,
+    "subject": "科学",
+    "teacher": "二年级科老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期四",
+    "period": 2,
+    "subject": "体育与健康",
+    "teacher": "二年级体老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期四",
+    "period": 3,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期四",
+    "period": 4,
+    "subject": "道德与法治",
+    "teacher": "二年级道老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期四",
+    "period": 5,
+    "subject": "英语",
+    "teacher": "二年级英老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期四",
+    "period": 6,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期五",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期五",
+    "period": 2,
+    "subject": "科学",
+    "teacher": "二年级科老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期五",
+    "period": 3,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级2班",
+    "day": "星期五",
+    "period": 4,
+    "subject": "道德与法治",
+    "teacher": "二年级道老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期一",
+    "period": 1,
+    "subject": "科学",
+    "teacher": "二年级科老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期一",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期一",
+    "period": 3,
+    "subject": "信息科技",
+    "teacher": "二年级信老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期一",
+    "period": 4,
+    "subject": "道德与法治",
+    "teacher": "二年级道老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期一",
+    "period": 5,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期一",
+    "period": 6,
+    "subject": "英语",
+    "teacher": "二年级英老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期二",
+    "period": 1,
+    "subject": "道德与法治",
+    "teacher": "二年级道老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期二",
+    "period": 2,
+    "subject": "体育与健康",
+    "teacher": "二年级体老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期二",
+    "period": 3,
+    "subject": "劳动",
+    "teacher": "二年级劳老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期二",
+    "period": 4,
+    "subject": "艺术-美术",
+    "teacher": "二年级美老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期二",
+    "period": 5,
+    "subject": "科学",
+    "teacher": "二年级科老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期二",
+    "period": 6,
+    "subject": "艺术-音乐",
+    "teacher": "二年级音老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期三",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期三",
+    "period": 2,
+    "subject": "艺术-美术",
+    "teacher": "二年级美老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期三",
+    "period": 3,
+    "subject": "体育与健康",
+    "teacher": "二年级体老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期三",
+    "period": 4,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期三",
+    "period": 5,
+    "subject": "艺术-音乐",
+    "teacher": "二年级音老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期三",
+    "period": 6,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期四",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期四",
+    "period": 2,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期四",
+    "period": 3,
+    "subject": "英语",
+    "teacher": "二年级英老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期四",
+    "period": 5,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期四",
+    "period": 6,
+    "subject": "体育与健康",
+    "teacher": "二年级体老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期五",
+    "period": 1,
+    "subject": "英语",
+    "teacher": "二年级英老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期五",
+    "period": 2,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期五",
+    "period": 3,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期五",
+    "period": 4,
+    "subject": "数学",
+    "teacher": "二年级数老师"
+  },
+  {
+    "class": "二年级3班",
+    "day": "星期五",
+    "period": 5,
+    "subject": "语文",
+    "teacher": "二年级语老师"
+  }
+]

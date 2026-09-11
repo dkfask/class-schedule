@@ -51,9 +51,12 @@ mvn -Drun.solver.benchmark=true -Dsolver.benchmark.termination-ms=10000 -Dsolver
 - 完整用户管理和正式跨用户 RBAC 策略
 - 复杂合班拆分、分层走班和跨午休可配置规则
 - 更复杂的规则求解优化、完整教师空档可视化和教室容量/特征业务边界
-- 其余模块的 Playwright 浏览器自动化用例扩展（导入模块已落地：`frontend/e2e`，`npm run e2e`，真实 Chrome 通道含原生文件上传）和真实中型数据性能基准
+- 其余模块的 Playwright 浏览器自动化用例扩展（`frontend/e2e`，`npm run e2e`，真实 Chrome 通道含原生文件上传；CI 已含 Docker 集成测试与 E2E 任务）
 - Worker deadline、异常告警、Outbox 和生产部署编排
 - 许可证负责人对应用/基础镜像许可证的最终确认、runtime 数据库最小权限隔离和正式 RPO/RTO/灾备方案
+
+性能基线：真实学校数据（芙蓉校区 486 课次）与 4 个黄金数据集的求解基线见
+`docs/performance-baseline.md`；黄金数据集验收脚本 `scripts/golden-solve-check.sh`。
 
 阶段六已形成可审计的本地发布候选：前端依赖已锁定，后端/前端/镜像 SBOM 已生成，Java 17 镜像和固定 digest staging-like Compose 已验证，隔离数据库备份恢复已完成。上述证据不等同于生产发布批准。
 

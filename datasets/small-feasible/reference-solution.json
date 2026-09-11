@@ -1,0 +1,254 @@
+[
+  {
+    "class": "一班",
+    "day": "星期一",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "李老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期一",
+    "period": 2,
+    "subject": "音乐",
+    "teacher": "钱老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期一",
+    "period": 3,
+    "subject": "英语",
+    "teacher": "张老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期一",
+    "period": 4,
+    "subject": "语文",
+    "teacher": "王老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期二",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "李老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期二",
+    "period": 2,
+    "subject": "语文",
+    "teacher": "王老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期二",
+    "period": 3,
+    "subject": "英语",
+    "teacher": "张老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期二",
+    "period": 4,
+    "subject": "音乐",
+    "teacher": "钱老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期三",
+    "period": 1,
+    "subject": "语文",
+    "teacher": "王老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期三",
+    "period": 2,
+    "subject": "英语",
+    "teacher": "张老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期三",
+    "period": 3,
+    "subject": "音乐",
+    "teacher": "钱老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期三",
+    "period": 4,
+    "subject": "体育",
+    "teacher": "赵老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期四",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "李老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期四",
+    "period": 2,
+    "subject": "体育",
+    "teacher": "赵老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期四",
+    "period": 3,
+    "subject": "语文",
+    "teacher": "王老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期四",
+    "period": 4,
+    "subject": "英语",
+    "teacher": "张老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期五",
+    "period": 1,
+    "subject": "数学",
+    "teacher": "李老师"
+  },
+  {
+    "class": "一班",
+    "day": "星期五",
+    "period": 2,
+    "subject": "体育",
+    "teacher": "赵老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期一",
+    "period": 1,
+    "subject": "语文",
+    "teacher": "王老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期一",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "李老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期一",
+    "period": 3,
+    "subject": "体育",
+    "teacher": "赵老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期一",
+    "period": 4,
+    "subject": "英语",
+    "teacher": "张老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期二",
+    "period": 1,
+    "subject": "英语",
+    "teacher": "张老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期二",
+    "period": 2,
+    "subject": "音乐",
+    "teacher": "钱老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期二",
+    "period": 3,
+    "subject": "体育",
+    "teacher": "赵老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期二",
+    "period": 4,
+    "subject": "语文",
+    "teacher": "王老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期三",
+    "period": 1,
+    "subject": "音乐",
+    "teacher": "钱老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期三",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "李老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期三",
+    "period": 3,
+    "subject": "语文",
+    "teacher": "王老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期三",
+    "period": 4,
+    "subject": "英语",
+    "teacher": "张老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期四",
+    "period": 1,
+    "subject": "语文",
+    "teacher": "王老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期四",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "李老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期四",
+    "period": 3,
+    "subject": "音乐",
+    "teacher": "钱老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期四",
+    "period": 4,
+    "subject": "体育",
+    "teacher": "赵老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期五",
+    "period": 1,
+    "subject": "英语",
+    "teacher": "张老师"
+  },
+  {
+    "class": "二班",
+    "day": "星期五",
+    "period": 2,
+    "subject": "数学",
+    "teacher": "李老师"
+  }
+]
