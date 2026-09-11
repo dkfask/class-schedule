@@ -14,8 +14,8 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Backend tests
-        run: mvn -f backend/pom.xml test
+      - name: Backend tests and integration tests (Testcontainers)
+        run: mvn -f backend/pom.xml verify
 
   frontend:
     runs-on: ubuntu-latest
@@ -29,6 +29,48 @@ jobs:
       - run: npm ci
       - run: npm run test:run
       - run: npm run build
+
+  e2e:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_DB: class_schedule
+      POSTGRES_USER: class_schedule
+      POSTGRES_PASSWORD: class_schedule_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Start backend stack (postgres + api + worker)
+        run: docker compose up --build -d postgres api worker
+      - name: Wait for API health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/actuator/health | grep -q UP; then
+              echo "api healthy"; exit 0
+            fi
+            sleep 5
+          done
+          echo "api did not become healthy" >&2
+          docker compose logs api worker >&2
+          exit 1
+      - run: npm ci
+      - name: Start frontend dev server
+        run: |
+          npm run dev --workspace frontend &
+          npx -y wait-on http://localhost:5173 -t 120000
+      - name: Install Playwright chromium
+        run: npx --workspace frontend playwright install --with-deps chromium
+      - name: Run Playwright E2E
+        env:
+          PLAYWRIGHT_CHANNEL: chromium
+        run: npm run e2e --workspace frontend
+      - name: Dump stack logs on failure
+        if: failure()
+        run: docker compose logs --tail 200 api worker
 
   backend-image:
     needs: [backend, frontend]
