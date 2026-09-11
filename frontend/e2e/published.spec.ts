@@ -41,11 +41,19 @@ test.describe('已发布课表与导出（TC-08）', () => {
     expect(bytes.length).toBeGreaterThan(5_000);
   });
 
-  test('TC-08-06 校验报告导出可下载', async ({ page, context }) => {
+  test('TC-08-06 校验报告导出可下载（UI 入口）', async ({ page, context }) => {
     test.skip((await page.locator('.version-row, button:has-text("版本 v")').count()) === 0, '本地库无已发布版本');
-    // 当前 UI 未提供校验报告入口，走同版本 API 断言导出链路（观察项 O-1 残留）
-    const resp = await context.request.get('/api/schedule-versions/25/validation/export.xlsx');
-    if (resp.status() === 404) test.skip(true, '版本 25 不存在');
-    expect(resp.status()).toBe(200);
+    // 观察项 O-1 已修复：已发布页提供校验报告导出按钮，走真实 UI 下载链路
+    const row = page.locator('.version-row, button:has-text("版本 v")').first();
+    await row.click();
+    const xlsxButton = page.getByTestId('validation-export-xlsx');
+    await expect(xlsxButton).toBeEnabled();
+    const downloadPromise = context.waitForEvent('download', { timeout: 20_000 });
+    await xlsxButton.click();
+    const download = await downloadPromise;
+    const path = await download.path();
+    expect(path).toBeTruthy();
+    expect(readFileSync(path as string).subarray(0, 2).toString('latin1')).toBe('PK');
+    await expect(page.getByTestId('validation-export-pdf')).toBeEnabled();
   });
 });

@@ -103,6 +103,11 @@ function download(format: 'xlsx' | 'pdf') {
   window.open(`/api/schedule-versions/${selected.value}/exports/${format}?view=${viewType.value}${resource}`, '_blank')
 }
 
+function downloadValidation(format: 'xlsx' | 'pdf') {
+  if (!selected.value) return
+  window.open(`/api/schedule-versions/${selected.value}/validation/export.${format}`, '_blank')
+}
+
 function print() {
   if (!selected.value) return
   const resource = resourceCode.value ? `&resourceCode=${encodeURIComponent(resourceCode.value)}` : ''
@@ -138,6 +143,8 @@ onMounted(() => void load())
       <div class="published-actions">
         <el-button plain :disabled="!selected" @click="download('xlsx')">下载 Excel</el-button>
         <el-button plain :disabled="!selected" @click="download('pdf')">下载 PDF</el-button>
+        <el-button plain :disabled="!selected" data-testid="validation-export-xlsx" @click="downloadValidation('xlsx')">校验 Excel</el-button>
+        <el-button plain :disabled="!selected" data-testid="validation-export-pdf" @click="downloadValidation('pdf')">校验 PDF</el-button>
         <el-button plain :disabled="!selected" @click="print">打印课表</el-button>
         <el-button plain :loading="loading" @click="load">刷新</el-button>
       </div>

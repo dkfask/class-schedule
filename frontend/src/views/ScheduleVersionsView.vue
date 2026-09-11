@@ -186,6 +186,11 @@ function forkVersion() {
     .catch(() => undefined)
 }
 
+function downloadValidation(format: 'xlsx' | 'pdf') {
+  if (!selectedVersion.value) return
+  window.open(`/api/schedule-versions/${selectedVersion.value}/validation/export.${format}`, '_blank')
+}
+
 function undoCommand(groupId: string) {
   return mutate(() => http(`/api/schedule-versions/${selectedVersion.value}/adjustments/commands/${groupId}/undo`, commandRequest(newIdempotencyKey('undo'))))
 }
@@ -287,6 +292,8 @@ onMounted(() => void loadVersions())
         <el-button size="small" plain :disabled="!canUnlock || mutating" :loading="mutating" @click="unlockVersion">解锁</el-button>
         <el-button size="small" plain :disabled="!canArchive || mutating" :loading="mutating" @click="archiveVersion">归档</el-button>
         <el-button size="small" type="primary" plain :disabled="!canFork || mutating" :loading="mutating" @click="forkVersion">复制为新草稿 (Fork)</el-button>
+        <el-button size="small" plain data-testid="validation-export-xlsx" @click="downloadValidation('xlsx')">校验 Excel</el-button>
+        <el-button size="small" plain data-testid="validation-export-pdf" @click="downloadValidation('pdf')">校验 PDF</el-button>
       </div>
 
       <div v-if="selectedVersion" class="release-panel" data-testid="release-checklist">
