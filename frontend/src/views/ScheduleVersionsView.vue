@@ -23,6 +23,9 @@ interface VersionSummary {
 }
 interface DiffItem { changeType: string; occurrenceKey: string; before?: Record<string, unknown>; after?: Record<string, unknown> }
 interface CommandGroup { groupId: string; commandType: string; state: string; reason: string; resultRevision: number }
+interface RuleCatalogItem { ruleCode: string; label: string; valueType: 'INTEGER' | 'TEXT'; scopes: string[] }
+interface TrialSolveResult { versionId: number; jobId: number; status: string; ruleCode: string }
+interface TrialImpactPreview { affectedCount: number; blockingCount: number; summary: string; violations: Array<{ occurrenceKey: string; subjectName?: string; message: string }> }
 const term = useTermStore()
 const auth = useAuthStore()
 const versions = ref<VersionSummary[]>([])
@@ -38,6 +41,22 @@ const message = ref('')
 const releaseNote = ref('')
 const releaseConfirmed = ref(false)
 const onlyChanges = ref(true)
+const trialDialogOpen = ref(false)
+const trialSubmitting = ref(false)
+const trialRuleCatalog = ref<RuleCatalogItem[]>([])
+const trialRuleCode = ref('PREFER_ORIGINAL_SLOT')
+const trialRuleScopeType = ref('TERM')
+const trialRuleScopeCode = ref('')
+const trialRuleIntValue = ref(2)
+const trialRuleTextValue = ref('')
+const trialRuleSeverity = ref('SOFT')
+const trialRuleWeight = ref(1)
+const trialResult = ref<TrialSolveResult | null>(null)
+const trialImpact = ref<TrialImpactPreview | null>(null)
+const trialPreviewLoading = ref(false)
+const trialRule = computed(() => trialRuleCatalog.value.find(item => item.ruleCode === trialRuleCode.value))
+const trialRuleScopes = computed(() => trialRule.value?.scopes ?? [])
+const trialRuleUsesText = computed(() => trialRule.value?.valueType === 'TEXT')
 const visibleDiff = computed(() => onlyChanges.value ? diff.value.filter(item => item.changeType !== 'UNCHANGED') : diff.value)
 const changeCount = computed(() => diff.value.filter(item => item.changeType !== 'UNCHANGED').length)
 const selectedSummary = computed(() => versions.value.find(item => item.id === selectedVersion.value))
@@ -47,6 +66,7 @@ const canLock = computed(() => auth.isPlanner && selectedSummary.value != null &
 const canUnlock = computed(() => auth.isPlanner && selectedSummary.value != null && Boolean(selectedSummary.value.editLocked))
 const canArchive = computed(() => auth.isPlanner && selectedSummary.value != null && selectedSummary.value.status === 'PUBLISHED' && !selectedSummary.value.archivedAt)
 const canFork = computed(() => auth.isPlanner && selectedSummary.value != null && ['CANDIDATE', 'PUBLISHED', 'ARCHIVED'].includes(selectedSummary.value.status))
+const canTrialSolve = computed(() => canFork.value && !mutating.value && !trialSubmitting.value)
 const canPublish = computed(() => auth.isPlanner && selectedSummary.value != null && selectedSummary.value.status === 'CANDIDATE' && selectedSummary.value.publishable === true && !mutating.value)
 const releaseReady = computed(() => canPublish.value && releaseConfirmed.value && Boolean(releaseNote.value.trim()))
 const latestApplied = computed(() => history.value.find(item => item.state === 'APPLIED'))
@@ -141,6 +161,93 @@ function commandRequest(key: string): RequestInit {
 
 function newIdempotencyKey(action: string) {
   return `${action}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+async function openTrialSolve() {
+  if (!selectedVersion.value || !canTrialSolve.value) return
+  trialResult.value = null
+  trialImpact.value = null
+  try {
+    trialRuleCatalog.value = await http<RuleCatalogItem[]>('/api/schedule-rules/catalog')
+    if (!trialRuleCatalog.value.some(item => item.ruleCode === trialRuleCode.value)) {
+      trialRuleCode.value = trialRuleCatalog.value[0]?.ruleCode ?? ''
+    }
+    if (!trialRuleScopes.value.includes(trialRuleScopeType.value)) {
+      trialRuleScopeType.value = trialRuleScopes.value[0] ?? 'TERM'
+    }
+    trialDialogOpen.value = true
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : '规则目录加载失败'
+  }
+}
+
+function trialRulePayload() {
+  return {
+    termCode: term.selectedTermCode.value,
+    ruleCode: trialRuleCode.value,
+    scopeType: trialRuleScopeType.value,
+    scopeCode: trialRuleScopeType.value === 'TERM' ? null : trialRuleScopeCode.value || null,
+    intValue: trialRuleUsesText.value ? null : trialRuleIntValue.value,
+    textValue: trialRuleUsesText.value ? trialRuleTextValue.value : null,
+    severity: trialRuleSeverity.value,
+    weight: trialRuleWeight.value,
+  }
+}
+
+async function previewTrialSolve() {
+  const source = selectedVersion.value
+  if (!source || !trialRule.value || trialPreviewLoading.value) return
+  trialPreviewLoading.value = true
+  message.value = ''
+  try {
+    trialImpact.value = await http<TrialImpactPreview>(
+      `/api/schedule-versions/${source}/trial-solve/impact-preview`,
+      jsonRequest('POST', trialRulePayload()),
+    )
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : '影响预估失败'
+    trialImpact.value = null
+  } finally {
+    trialPreviewLoading.value = false
+  }
+}
+
+async function submitTrialSolve() {
+  const source = selectedVersion.value
+  const selectedRule = trialRule.value
+  if (!source || !selectedRule || !canTrialSolve.value) return
+  trialSubmitting.value = true
+  message.value = ''
+  try {
+    trialResult.value = await http<TrialSolveResult>(`/api/schedule-versions/${source}/trial-solve`, {
+      ...jsonRequest('POST', {
+        idempotencyKey: newIdempotencyKey('trial-solve'),
+        rule: {
+          termCode: term.selectedTermCode.value,
+          ruleCode: trialRuleCode.value,
+          scopeType: trialRuleScopeType.value,
+          scopeCode: trialRuleScopeType.value === 'TERM' ? null : trialRuleScopeCode.value || null,
+          intValue: trialRuleUsesText.value ? null : trialRuleIntValue.value,
+          textValue: trialRuleUsesText.value ? trialRuleTextValue.value : null,
+          severity: trialRuleSeverity.value,
+          weight: trialRuleWeight.value,
+        },
+      }),
+    })
+    trialDialogOpen.value = false
+    await loadVersions()
+    message.value = `试排已提交：新草稿 v${trialResult.value.versionId}，任务 #${trialResult.value.jobId} 正在排队`
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : '试排提交失败'
+  } finally {
+    trialSubmitting.value = false
+  }
+}
+
+function normalizeTrialScope() {
+  if (!trialRuleScopes.value.includes(trialRuleScopeType.value)) trialRuleScopeType.value = trialRuleScopes.value[0] ?? 'TERM'
+  if (trialRuleScopeType.value === 'TERM') trialRuleScopeCode.value = ''
+  trialImpact.value = null
 }
 
 function lockVersion() {
@@ -291,7 +398,8 @@ onMounted(() => void loadVersions())
         <el-button size="small" plain :disabled="!canLock || mutating" :loading="mutating" @click="lockVersion">锁定编辑</el-button>
         <el-button size="small" plain :disabled="!canUnlock || mutating" :loading="mutating" @click="unlockVersion">解锁</el-button>
         <el-button size="small" plain :disabled="!canArchive || mutating" :loading="mutating" @click="archiveVersion">归档</el-button>
-        <el-button size="small" type="primary" plain :disabled="!canFork || mutating" :loading="mutating" @click="forkVersion">复制为新草稿 (Fork)</el-button>
+        <el-button size="small" type="primary" plain :disabled="!canTrialSolve" :loading="trialSubmitting" data-testid="trial-solve-open" @click="openTrialSolve">试排新条件</el-button>
+        <el-button size="small" plain :disabled="!canFork || mutating" :loading="mutating" @click="forkVersion">复制为新草稿 (Fork)</el-button>
         <el-button size="small" plain data-testid="validation-export-xlsx" @click="downloadValidation('xlsx')">校验 Excel</el-button>
         <el-button size="small" plain data-testid="validation-export-pdf" @click="downloadValidation('pdf')">校验 PDF</el-button>
       </div>
@@ -366,6 +474,74 @@ onMounted(() => void loadVersions())
       <el-empty v-else description="没有检测到差异或尚未选择版本" />
     </div>
   </section>
+
+  <div v-if="trialDialogOpen" class="trial-modal" role="dialog" aria-modal="true" data-testid="trial-solve-dialog">
+    <div class="trial-dialog-panel">
+      <div class="trial-dialog-header">
+        <div>
+          <span class="eyebrow">TRIAL SOLVE / NEW DRAFT</span>
+          <h2>带新条件试排</h2>
+          <small>原版本 v{{ selectedVersion }} 保持不动；系统会复制一份草稿并排队求解。</small>
+        </div>
+        <button class="trial-close" type="button" aria-label="关闭试排窗口" @click="trialDialogOpen = false">×</button>
+      </div>
+      <div class="trial-form">
+        <label>
+          <span>规则类型</span>
+          <select v-model="trialRuleCode" class="styled-diff-select" @change="normalizeTrialScope">
+            <option v-for="item in trialRuleCatalog" :key="item.ruleCode" :value="item.ruleCode">{{ item.label }}</option>
+          </select>
+        </label>
+        <label>
+          <span>作用域</span>
+          <select v-model="trialRuleScopeType" class="styled-diff-select" @change="normalizeTrialScope">
+            <option v-for="scope in trialRuleScopes" :key="scope" :value="scope">{{ scope }}</option>
+          </select>
+        </label>
+        <label v-if="trialRuleScopeType !== 'TERM'">
+          <span>资源编码</span>
+          <input v-model="trialRuleScopeCode" class="trial-input" placeholder="输入教师/班级/课程编码" />
+        </label>
+        <label v-if="!trialRuleUsesText">
+          <span>整数参数</span>
+          <input v-model.number="trialRuleIntValue" class="trial-input" type="number" min="1" />
+        </label>
+        <label v-else>
+          <span>文本参数</span>
+          <input v-model="trialRuleTextValue" class="trial-input" placeholder="输入文本策略" />
+        </label>
+        <label>
+          <span>约束级别</span>
+          <select v-model="trialRuleSeverity" class="styled-diff-select">
+            <option value="HARD">HARD · 硬约束</option>
+            <option value="MEDIUM">MEDIUM · 中度优化</option>
+            <option value="SOFT">SOFT · 软约束</option>
+          </select>
+        </label>
+        <label>
+          <span>规则权重</span>
+          <input v-model.number="trialRuleWeight" class="trial-input" type="number" min="1" />
+        </label>
+      </div>
+      <div v-if="trialImpact" class="trial-impact" data-testid="trial-impact-preview">
+        <div class="trial-impact-summary">
+          <strong>{{ trialImpact.summary }}</strong>
+          <span>{{ trialImpact.affectedCount }} 个受影响课次 · {{ trialImpact.blockingCount }} 个硬约束命中</span>
+        </div>
+        <div v-if="trialImpact.violations.length" class="trial-impact-list">
+          <span v-for="item in trialImpact.violations.slice(0, 5)" :key="`${item.occurrenceKey}-${item.message}`">
+            {{ item.subjectName || '教学任务' }} · {{ item.occurrenceKey }} · {{ item.message }}
+          </span>
+          <small v-if="trialImpact.violations.length > 5">仅展示前 5 项，完整结果将在试排草稿的版本差异中查看。</small>
+        </div>
+      </div>
+      <div class="trial-dialog-footer">
+        <button class="quiet-button" type="button" :disabled="trialSubmitting || trialPreviewLoading" @click="trialDialogOpen = false">取消</button>
+        <button class="quiet-button" type="button" :disabled="trialPreviewLoading || !trialRuleCode" @click="previewTrialSolve">{{ trialPreviewLoading ? '计算中…' : '计算影响' }}</button>
+        <button class="primary-button" type="button" :disabled="trialSubmitting || !trialImpact || !trialRuleCode" @click="submitTrialSolve">{{ trialSubmitting ? '提交中…' : '创建草稿并试排' }}</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -433,4 +609,21 @@ onMounted(() => void loadVersions())
 .release-note-field textarea:focus { outline: 2px solid rgba(77, 138, 120, .25); border-color: #4d8a78; }
 .release-confirm { display: flex; gap: 6px; align-items: flex-start; margin: 8px 0 12px; color: #64786e; font-size: 11px; line-height: 1.45; }
 .release-confirm input { margin-top: 1px; }
+.trial-modal { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px; background: rgba(16, 34, 31, .35); }
+.trial-dialog-panel { width: min(560px, 100%); padding: 20px; background: #ffffff; border: 1px solid #dfeae3; border-radius: 10px; box-shadow: 0 18px 48px rgba(18, 48, 44, .2); }
+.trial-dialog-header { display: flex; justify-content: space-between; gap: 14px; }
+.trial-dialog-header h2 { margin: 3px 0 5px; color: #2d5544; font-size: 18px; }
+.trial-dialog-header small { color: #6d8075; font-size: 11px; line-height: 1.5; }
+.trial-close { border: 0; background: transparent; color: #64786e; font-size: 22px; line-height: 1; cursor: pointer; }
+.trial-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.trial-form label { display: grid; gap: 5px; color: #566474; font-size: 11px; }
+.trial-input { min-width: 0; border: 1px solid #d9dee3; border-radius: 6px; padding: 7px 9px; background: #f9fafb; color: #202a35; font: inherit; font-size: 12px; }
+.trial-input:focus { outline: 2px solid rgba(77, 138, 120, .25); border-color: #4d8a78; background: #ffffff; }
+.trial-dialog-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.trial-impact { margin-top: 16px; padding: 11px 12px; border: 1px solid #d9e8e0; border-left: 3px solid #4d8a78; border-radius: 7px; background: #f4faf7; }
+.trial-impact-summary { display: grid; gap: 3px; color: #2d5544; font-size: 12px; }
+.trial-impact-summary span { color: #6d8075; font-size: 11px; }
+.trial-impact-list { display: grid; gap: 4px; margin-top: 9px; color: #566474; font-size: 11px; line-height: 1.4; }
+.trial-impact-list small { color: #85998e; }
+@media (max-width: 560px) { .trial-form { grid-template-columns: 1fr; } .trial-dialog-panel { padding: 16px; } }
 </style>

@@ -3,6 +3,7 @@ package com.classschedule.api;
 import com.classschedule.schedule.ScheduleRepository;
 import com.classschedule.schedule.ScheduleVersionRepositoryModels;
 import com.classschedule.schedule.VersionMutationException;
+import com.classschedule.solver.SolveReadinessException;
 import jakarta.validation.Valid;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,9 +24,32 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/schedule-versions")
 public class ScheduleVersionCommandController {
     private final ScheduleRepository repository;
+    private final TrialSolveService trialSolves;
 
-    public ScheduleVersionCommandController(ScheduleRepository repository) {
+    public ScheduleVersionCommandController(
+            ScheduleRepository repository, TrialSolveService trialSolves) {
         this.repository = repository;
+        this.trialSolves = trialSolves;
+    }
+
+    /**
+     * 试排：条件写入学期规则后，fork 当前版本为草稿并带新条件求解。
+     * 原版本保持不动，试排结果以草稿版本呈现，可在版本差异中查看改动。
+     */
+    @PostMapping("/{versionId}/trial-solve")
+    public ResponseEntity<?> trialSolve(
+            @PathVariable long versionId,
+            @Valid @RequestBody TrialSolveRequest request,
+            Authentication authentication) {
+        try {
+            return ResponseEntity.ok(
+                    trialSolves.submit(versionId, request, authentication.getName()));
+        } catch (SolveReadinessException exception) {
+            return SolveReadinessController.blocked(exception);
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("code", "TRIAL_REJECTED", "message", exception.getMessage()));
+        }
     }
 
     @PostMapping("/{versionId}/fork")

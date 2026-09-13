@@ -160,6 +160,37 @@ describe('ScheduleVersionsView', () => {
     wrapper.unmount()
   })
 
+  it('submits a trial solve rule and refreshes the new draft', async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = []
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      calls.push({ url, init })
+      if (url.endsWith('/api/auth/csrf')) return response({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' })
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
+      if (url.endsWith('/api/schedule-rules/catalog')) return response([{ ruleCode: 'PREFER_ORIGINAL_SLOT', label: '贴近期望节次', valueType: 'INTEGER', scopes: ['TERM'] }])
+      if (url.includes('/impact-preview')) return response({ affectedCount: 2, blockingCount: 0, summary: '当前版本有 2 个课次会受到影响', violations: [{ occurrenceKey: '1-0', subjectName: '数学', message: '课次未落在期望节次 MON-1' }] })
+      if (url.includes('/trial-solve')) return response({ versionId: 9, jobId: 77, status: 'QUEUED', ruleCode: 'PREFER_ORIGINAL_SLOT' })
+      if (url.includes('/diff')) return response([])
+      if (url.endsWith('/adjustments/commands')) return response([])
+      return response({ items: [{ id: 2, status: 'CANDIDATE', score: '0hard/0medium/0soft', publishable: false, revision: 1 }], page: 0, size: 50, total: 1 })
+    }))
+    const wrapper = mountView()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    await vm.openTrialSolve()
+    expect(wrapper.find('[data-testid="trial-solve-dialog"]').exists()).toBe(true)
+    await vm.previewTrialSolve()
+    expect(wrapper.find('[data-testid="trial-impact-preview"]').text()).toContain('2 个课次')
+    await vm.submitTrialSolve()
+    const request = calls.find(call => call.url.endsWith('/api/schedule-versions/2/trial-solve'))
+    expect(request).toBeTruthy()
+    expect((request?.init?.headers as Headers).get('X-XSRF-TOKEN')).toBe('csrf-token')
+    const payload = JSON.parse(String(request?.init?.body))
+    expect(payload.rule).toMatchObject({ termCode: '2026-FALL', ruleCode: 'PREFER_ORIGINAL_SLOT', scopeType: 'TERM', intValue: 2, severity: 'SOFT', weight: 1 })
+    expect(vm.message).toContain('新草稿 v9')
+    wrapper.unmount()
+  })
+
   it('keeps reviewer view read-only while showing the release checklist', async () => {
     const { calls } = createFetchMock([{ id: 2, status: 'CANDIDATE', publishable: true, score: '0hard/0soft', revision: 4 }])
     const wrapper = mountView(['REVIEWER'])

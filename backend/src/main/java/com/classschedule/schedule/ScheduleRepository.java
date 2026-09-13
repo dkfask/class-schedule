@@ -149,6 +149,13 @@ public class ScheduleRepository {
         return findVersion(versionId);
     }
 
+    public String termCodeForVersion(long versionId) {
+        return jdbc.queryForObject(
+                "SELECT t.code FROM schedule_version v JOIN schedule_scenario s ON s.id=v.scenario_id JOIN academic_term t ON t.id=s.term_id WHERE v.id=?",
+                String.class,
+                versionId);
+    }
+
     public boolean canAccessVersion(long versionId, String actor) {
         if (actor == null || actor.isBlank()) return false;
         Integer count =

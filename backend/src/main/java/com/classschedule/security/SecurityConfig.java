@@ -52,7 +52,10 @@ public class SecurityConfig {
                                         .permitAll()
                                         .requestMatchers("/api/auth/**")
                                         .authenticated()
-                                        .requestMatchers("/api/schedule-versions/*/publish")
+                                        .requestMatchers(
+                                                "/api/schedule-versions/*/trial-solve",
+                                                "/api/schedule-versions/*/trial-solve/impact-preview",
+                                                "/api/schedule-versions/*/publish")
                                                 .hasRole("PLANNER")
                                         .requestMatchers("/api/audit/**")
                                                 .hasAnyAuthority("ROLE_PLANNER", "AUDIT_READ")

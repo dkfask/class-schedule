@@ -29,13 +29,17 @@ test.describe('版本与发布管理（TC-07）', () => {
   test('TC-07-03 fork：复制已发布版本为新草稿', async ({ page }) => {
     const publishedRow = page.locator('.version-row', { hasText: 'PUBLISHED' }).first();
     test.skip((await publishedRow.count()) === 0, '本地库无已发布版本');
+    const parentLabel = await publishedRow.locator('strong').first().innerText(); // 形如 "版本 v83 · r2"
     await publishedRow.click();
     await page.getByRole('button', { name: '复制为新草稿' }).click();
-    const draftsBefore = await page.locator('.version-row', { hasText: 'DRAFT' }).count();
     await page.locator('.el-message-box input').fill(`e2e-fork-${Date.now()}`);
     await page.getByRole('button', { name: '创建草稿' }).click();
     await expect(page.locator('.el-message-box')).toBeHidden({ timeout: 15_000 });
-    await expect(page.locator('.version-row', { hasText: 'DRAFT' })).toHaveCount(draftsBefore + 1, { timeout: 15_000 });
+    // 列表按创建时间倒序分页（每页 50 条），新草稿应出现在第一行；不能用 DRAFT 计数断言，
+    // 因为新增一条会把最旧的版本挤出第一页。
+    const parentId = parentLabel.match(/版本 v(\d+)/)?.[1];
+    await expect(page.locator('.version-row').first()).toContainText(`父版本 v${parentId}`, { timeout: 15_000 });
+    await expect(page.locator('.version-row').first()).toContainText('DRAFT');
   });
 
   test('TC-07-04 草稿版本锁定与解锁', async ({ page }) => {

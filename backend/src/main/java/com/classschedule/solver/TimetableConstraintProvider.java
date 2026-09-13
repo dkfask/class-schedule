@@ -34,8 +34,36 @@ public class TimetableConstraintProvider implements ConstraintProvider {
             typedGap(factory, "SOFT"),
             typedPreferred(factory, "HARD"),
             typedPreferred(factory, "MEDIUM"),
-            typedPreferred(factory, "SOFT")
+            typedPreferred(factory, "SOFT"),
+            preferOriginalSlot(factory, "HARD"),
+            preferOriginalSlot(factory, "MEDIUM"),
+            preferOriginalSlot(factory, "SOFT")
         };
+    }
+
+    /**
+     * PREFER_ORIGINAL_SLOT：课次未落在其期望节次（导入的真实课表位置）则按层计分。
+     * 权重取规则实例的 weight；不配置该规则时不产生任何罚分。
+     */
+    Constraint preferOriginalSlot(ConstraintFactory factory, String layer) {
+        return factory.forEach(TypedScheduleRule.class)
+                .filter(
+                        rule ->
+                                matchesLayer(rule, layer)
+                                        && "PREFER_ORIGINAL_SLOT".equals(rule.ruleCode()))
+                .join(LessonOccurrence.class)
+                .filter(
+                        (rule, occurrence) -> {
+                            String preferred =
+                                    occurrence.preferredPeriodCodeAt(occurrence.getActivityIndex());
+                            return occurrence.getTimeslot() != null
+                                    && preferred != null
+                                    && !preferred.equals(occurrence.getTimeslot().getId());
+                        })
+                .penalize(
+                        layerScore(layer),
+                        (rule, occurrence) -> Math.max(1, rule.weight()))
+                .asConstraint("typed-prefer-original-slot-" + layer.toLowerCase());
     }
 
     Constraint teacherConflict(ConstraintFactory factory) {

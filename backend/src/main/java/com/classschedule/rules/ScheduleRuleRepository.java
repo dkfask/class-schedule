@@ -79,11 +79,21 @@ public class ScheduleRuleRepository {
                         "valueType",
                         "TEXT",
                         "scopes",
-                        List.of("TEACHER")));
+                        List.of("TEACHER")),
+                Map.of(
+                        "ruleCode",
+                        "PREFER_ORIGINAL_SLOT",
+                        "label",
+                        "贴近期望节次（原课表）",
+                        "valueType",
+                        "INTEGER",
+                        "scopes",
+                        List.of("TERM")));
     }
 
     @Transactional
     public void upsert(ScheduleRuleRequest request) {
+        validateRequest(request);
         String scopeType = request.scopeType().trim().toUpperCase();
         String ruleCode = request.ruleCode().trim().toUpperCase();
         if (!List.of("TERM", "TEACHER", "STUDENT_GROUP", "SUBJECT", "TEACHING_REQUIREMENT")
@@ -95,7 +105,8 @@ public class ScheduleRuleRepository {
                         "SUBJECT_DAILY_MAX", List.of("TERM", "SUBJECT"),
                         "SUBJECT_MIN_SPREAD_DAYS", List.of("TERM", "SUBJECT"),
                         "TEACHER_GAP_POLICY", List.of("TERM", "TEACHER"),
-                        "TEACHER_PREFERRED_PERIOD", List.of("TEACHER"));
+                        "TEACHER_PREFERRED_PERIOD", List.of("TEACHER"),
+                        "PREFER_ORIGINAL_SLOT", List.of("TERM"));
         if (!supportedScopes.containsKey(ruleCode)) throw new IllegalArgumentException("不支持的规则编码");
         if (!supportedScopes.get(ruleCode).contains(scopeType))
             throw new IllegalArgumentException("规则编码与作用域不匹配");
@@ -150,6 +161,68 @@ public class ScheduleRuleRepository {
                 blankToNull(request.textValue()),
                 severity,
                 request.normalizedWeight());
+    }
+
+    private void validateRequest(ScheduleRuleRequest request) {
+        if (request == null || request.termCode() == null || request.termCode().isBlank())
+            throw new IllegalArgumentException("学期不能为空");
+        if (request.ruleCode() == null || request.ruleCode().isBlank())
+            throw new IllegalArgumentException("规则编码不能为空");
+        if (request.scopeType() == null || request.scopeType().isBlank())
+            throw new IllegalArgumentException("规则作用域不能为空");
+        if (request.normalizedWeight() <= 0) throw new IllegalArgumentException("规则权重必须为正整数");
+    }
+
+    public void validateForPreview(ScheduleRuleRequest request) {
+        validateRequest(request);
+        String scopeType = request.scopeType().trim().toUpperCase();
+        String ruleCode = request.ruleCode().trim().toUpperCase();
+        if (!List.of("TERM", "TEACHER", "STUDENT_GROUP", "SUBJECT", "TEACHING_REQUIREMENT")
+                .contains(scopeType)) throw new IllegalArgumentException("不支持的规则作用域");
+        Map<String, List<String>> supportedScopes =
+                Map.of(
+                        "TEACHER_DAILY_MAX", List.of("TERM", "TEACHER"),
+                        "STUDENT_GROUP_DAILY_MAX", List.of("TERM", "STUDENT_GROUP"),
+                        "SUBJECT_DAILY_MAX", List.of("TERM", "SUBJECT"),
+                        "SUBJECT_MIN_SPREAD_DAYS", List.of("TERM", "SUBJECT"),
+                        "TEACHER_GAP_POLICY", List.of("TERM", "TEACHER"),
+                        "TEACHER_PREFERRED_PERIOD", List.of("TEACHER"),
+                        "PREFER_ORIGINAL_SLOT", List.of("TERM"));
+        if (!supportedScopes.containsKey(ruleCode)) throw new IllegalArgumentException("不支持的规则编码");
+        if (!supportedScopes.get(ruleCode).contains(scopeType))
+            throw new IllegalArgumentException("规则编码与作用域不匹配");
+        if ("TERM".equals(scopeType)
+                && request.scopeCode() != null
+                && !request.scopeCode().isBlank())
+            throw new IllegalArgumentException("TERM 作用域不能填写资源编码");
+        if (!"TERM".equals(scopeType)
+                && (request.scopeCode() == null || request.scopeCode().isBlank()))
+            throw new IllegalArgumentException("资源作用域必须填写资源编码");
+        Long termId =
+                jdbc.query(
+                                "SELECT id FROM academic_term WHERE code=? AND status <> 'ARCHIVED'",
+                                (rs, row) -> rs.getLong("id"),
+                                request.termCode().trim())
+                        .stream()
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "学期不存在或已归档: " + request.termCode()));
+        validateScopeResource(scopeType, request.scopeCode(), termId);
+        if (List.of(
+                                "TEACHER_DAILY_MAX",
+                                "STUDENT_GROUP_DAILY_MAX",
+                                "SUBJECT_DAILY_MAX",
+                                "SUBJECT_MIN_SPREAD_DAYS")
+                        .contains(ruleCode)
+                && request.normalizedIntValue() <= 0)
+            throw new IllegalArgumentException("该规则需要正整数参数");
+        if (List.of("TEACHER_GAP_POLICY", "TEACHER_PREFERRED_PERIOD").contains(ruleCode)
+                && (request.textValue() == null || request.textValue().isBlank()))
+            throw new IllegalArgumentException("该规则需要文本参数");
+        if (!List.of("HARD", "MEDIUM", "SOFT").contains(request.normalizedSeverity()))
+            throw new IllegalArgumentException("不支持的规则级别");
     }
 
     private void validateScopeResource(String scopeType, String scopeCode, long termId) {

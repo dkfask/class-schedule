@@ -25,6 +25,7 @@ public class LessonOccurrence {
     private String activityGroupCode;
     private String activityType;
     private String pinnedPeriodCode;
+    private String preferredPeriodCodes;
     private int activityIndex;
     private int activityMemberIndex = -1;
     private Set<String> requiredFeatures = new LinkedHashSet<>();
@@ -83,6 +84,7 @@ public class LessonOccurrence {
         copy.activityGroupCode = activityGroupCode;
         copy.activityType = activityType;
         copy.pinnedPeriodCode = pinnedPeriodCode;
+        copy.preferredPeriodCodes = preferredPeriodCodes;
         copy.activityIndex = activityIndex;
         copy.activityMemberIndex = activityMemberIndex;
         copy.requiredFeatures = new LinkedHashSet<>(requiredFeatures);
@@ -224,6 +226,23 @@ public class LessonOccurrence {
     public void setPinnedPeriodCode(String pinnedPeriodCode) {
         this.pinnedPeriodCode = pinnedPeriodCode;
         refreshTimeslotRange();
+    }
+
+    public String getPreferredPeriodCodes() {
+        return preferredPeriodCodes;
+    }
+
+    public void setPreferredPeriodCodes(String preferredPeriodCodes) {
+        this.preferredPeriodCodes = preferredPeriodCodes;
+    }
+
+    /** 期望节次按每周课次序号取位；越界或未填返回 null。 */
+    public String preferredPeriodCodeAt(int index) {
+        if (preferredPeriodCodes == null || preferredPeriodCodes.isBlank()) return null;
+        String[] codes = preferredPeriodCodes.split(";");
+        if (index < 0 || index >= codes.length) return null;
+        String code = codes[index].trim();
+        return code.isEmpty() ? null : code;
     }
 
     public int getActivityIndex() {

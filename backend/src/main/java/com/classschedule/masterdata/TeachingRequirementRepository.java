@@ -18,7 +18,7 @@ public class TeachingRequirementRepository {
 
     public List<TeachingRequirementItem> list(String termCode, boolean active) {
         return jdbc.query(
-                "SELECT r.id,r.code,term.code AS term_code,g.code AS group_code,s.code AS subject_code,t.code AS teacher_code,r.weekly_periods,r.duration_periods,r.student_count,COALESCE((SELECT string_agg(feature_code, ',' ORDER BY feature_code) FROM teaching_requirement_feature rf WHERE rf.teaching_requirement_id=r.id),'') AS required_features,r.pinned_period_code,r.room_assignment_mode,r.active FROM teaching_requirement r JOIN academic_term term ON term.id=r.term_id JOIN student_group g ON g.id=r.student_group_id JOIN subject s ON s.id=r.subject_id JOIN teacher t ON t.id=r.teacher_id WHERE term.code=? AND r.active=? ORDER BY r.code",
+                "SELECT r.id,r.code,term.code AS term_code,g.code AS group_code,s.code AS subject_code,t.code AS teacher_code,r.weekly_periods,r.duration_periods,r.student_count,COALESCE((SELECT string_agg(feature_code, ',' ORDER BY feature_code) FROM teaching_requirement_feature rf WHERE rf.teaching_requirement_id=r.id),'') AS required_features,r.pinned_period_code,r.room_assignment_mode,r.preferred_period_codes,r.active FROM teaching_requirement r JOIN academic_term term ON term.id=r.term_id JOIN student_group g ON g.id=r.student_group_id JOIN subject s ON s.id=r.subject_id JOIN teacher t ON t.id=r.teacher_id WHERE term.code=? AND r.active=? ORDER BY r.code",
                 (rs, row) -> item(rs),
                 terms.resolve(termCode),
                 active);
@@ -102,7 +102,7 @@ public class TeachingRequirementRepository {
     public TeachingRequirementItem get(long id) {
         try {
             return jdbc.queryForObject(
-                    "SELECT r.id,r.code,term.code AS term_code,g.code AS group_code,s.code AS subject_code,t.code AS teacher_code,r.weekly_periods,r.duration_periods,r.student_count,COALESCE((SELECT string_agg(feature_code, ',' ORDER BY feature_code) FROM teaching_requirement_feature rf WHERE rf.teaching_requirement_id=r.id),'') AS required_features,r.pinned_period_code,r.room_assignment_mode,r.active FROM teaching_requirement r JOIN academic_term term ON term.id=r.term_id JOIN student_group g ON g.id=r.student_group_id JOIN subject s ON s.id=r.subject_id JOIN teacher t ON t.id=r.teacher_id WHERE r.id=?",
+                    "SELECT r.id,r.code,term.code AS term_code,g.code AS group_code,s.code AS subject_code,t.code AS teacher_code,r.weekly_periods,r.duration_periods,r.student_count,COALESCE((SELECT string_agg(feature_code, ',' ORDER BY feature_code) FROM teaching_requirement_feature rf WHERE rf.teaching_requirement_id=r.id),'') AS required_features,r.pinned_period_code,r.room_assignment_mode,r.preferred_period_codes,r.active FROM teaching_requirement r JOIN academic_term term ON term.id=r.term_id JOIN student_group g ON g.id=r.student_group_id JOIN subject s ON s.id=r.subject_id JOIN teacher t ON t.id=r.teacher_id WHERE r.id=?",
                     (rs, row) -> item(rs),
                     id);
         } catch (EmptyResultDataAccessException e) {
@@ -124,6 +124,7 @@ public class TeachingRequirementRepository {
                 rs.getString("required_features"),
                 rs.getString("pinned_period_code"),
                 rs.getString("room_assignment_mode"),
+                rs.getString("preferred_period_codes"),
                 rs.getBoolean("active"));
     }
 
