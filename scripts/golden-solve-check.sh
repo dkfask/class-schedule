@@ -33,7 +33,7 @@ run() {
         echo "$DS: $ST t=${EL}s $(echo "$D" | python3 -c "import json,sys;d=json.load(sys.stdin);print('score',d.get('score'),'version',d.get('versionId'))")"
         break;;
     esac
-    if python3 -c "import sys;sys.exit(0 if $EL > 240 else 1)"; then echo "$DS: TIMEOUT 240s"; break; fi
+    if python3 -c "import sys;sys.exit(0 if $EL > 420 else 1)"; then echo "$DS: TIMEOUT 420s"; break; fi
   done
 }
 

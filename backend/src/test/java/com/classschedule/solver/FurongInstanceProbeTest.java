@@ -91,9 +91,9 @@ class FurongInstanceProbeTest {
         Timetable input = new Timetable(timeslots, rooms, occurrences, List.of(), List.of());
         input.initializeGreedyAssignments();
         Solver<Timetable> solver =
-                new SolverConfiguration(Duration.ofMillis(terminationMs)).solverFactory().buildSolver();
+                new SolverConfiguration(Duration.ofMillis(terminationMs), "NONE").solverFactory().buildSolver();
         if (seed != null) {
-            var config = new SolverConfiguration(Duration.ofMillis(terminationMs)).solverConfig();
+            var config = new SolverConfiguration(Duration.ofMillis(terminationMs), "NONE").solverConfig();
             config.setRandomSeed(seed);
             solver =
                     ai.timefold.solver.core.api.solver.SolverFactory.<Timetable>create(config)
@@ -174,18 +174,62 @@ class FurongInstanceProbeTest {
 
         for (Long seed : new Long[] {0L, null}) {
             Timetable probe = new Timetable(timeslots, rooms, occurrences, List.of(), List.of());
-            probe.initializeGreedyAssignments();
-            var config = new SolverConfiguration(Duration.ofSeconds(30)).solverConfig();
+            boolean greedy = Boolean.parseBoolean(System.getProperty("furong.greedy", "true"));
+            if (greedy) probe.initializeGreedyAssignments();
+            long budgetMs = Long.getLong("furong.budget.ms", 30_000);
+            var config = new SolverConfiguration(Duration.ofMillis(budgetMs), "NONE").solverConfig();
+            applyAcceptorExperiment(config);
             if (seed != null) config.setRandomSeed(seed);
             Solver<Timetable> solver =
                     ai.timefold.solver.core.api.solver.SolverFactory.<Timetable>create(config).buildSolver();
             long started = System.nanoTime();
             Timetable solved = solver.solve(probe);
             long elapsed = (System.nanoTime() - started) / 1_000_000;
+            var repairer = new TimetableConflictRepairer(
+                    new SolverConfiguration(Duration.ofSeconds(1), "NONE").solverFactory());
+            var solverScore = solved.getScore();
+            long repairStarted = System.nanoTime();
+            Timetable repaired = repairer.repair(solved, 500, 120_000);
+            long repairMs = (System.nanoTime() - repairStarted) / 1_000_000;
+            if (repaired.getScore().hardScore() < 0 || solved.getScore().hardScore() < 0) {
+                System.out.printf(
+                        "repair-detail,seed=%s,before=%s,after=%s%n",
+                        seed == null ? "-" : seed, solved.getScore(), repaired.getScore());
+            }
             System.out.printf(
-                    "pipeline-ordering,seed=%s,elapsedMs=%d,score=%s,violations=%d%n",
-                    seed == null ? "-" : seed, elapsed, solved.getScore(), countViolations(solved).total());
+                    "pipeline-ordering,greedy=%s,seed=%s,elapsedMs=%d,solverScore=%s,repairMs=%d,repairedScore=%s,repairedViolations=%d%n",
+                    greedy,
+                    seed == null ? "-" : seed,
+                    elapsed,
+                    solverScore,
+                    repairMs,
+                    repaired.getScore(),
+                    countViolations(repaired).total());
         }
+    }
+
+    /**
+     * Offline experiment hook: -Dfurong.acceptor=tabu switches the local search acceptor
+     * to entity tabu (with the given -Dfurong.tabu.size, default 50) so worsening moves
+     * can escape the full-grid class-swap plateau that late annealing cannot cross.
+     */
+    static void applyAcceptorExperiment(ai.timefold.solver.core.config.solver.SolverConfig config) {
+        String acceptor = System.getProperty("furong.acceptor", "");
+        if (!"tabu".equals(acceptor)) return;
+        int tabuSize = Integer.getInteger("furong.tabu.size", 50);
+        ai.timefold.solver.core.config.phase.PhaseConfig ch =
+                new ai.timefold.solver.core.config.constructionheuristic.ConstructionHeuristicPhaseConfig();
+        ai.timefold.solver.core.config.localsearch.LocalSearchPhaseConfig ls =
+                new ai.timefold.solver.core.config.localsearch.LocalSearchPhaseConfig();
+        ls.setAcceptorConfig(
+                new ai.timefold.solver.core.config.localsearch.decider.acceptor.LocalSearchAcceptorConfig()
+                        .withAcceptorTypeList(java.util.List.of(
+                                ai.timefold.solver.core.config.localsearch.decider.acceptor.AcceptorType.ENTITY_TABU))
+                        .withEntityTabuSize(tabuSize));
+        ls.setTerminationConfig(
+                new ai.timefold.solver.core.config.solver.termination.TerminationConfig()
+                        .withSpentLimit(config.getTerminationConfig().getSpentLimit()));
+        config.setPhaseConfigList(java.util.List.of(ch, ls));
     }
 
     /** Prints the best score over time to show whether local search moves at all. */
@@ -234,7 +278,7 @@ class FurongInstanceProbeTest {
         input.initializeGreedyAssignments();
         System.out.println("greedy-init score=" + scoreOf(input) + " violations=" + countViolations(input).total());
 
-        var config = new SolverConfiguration(Duration.ofSeconds(20)).solverConfig();
+        var config = new SolverConfiguration(Duration.ofSeconds(20), "NONE").solverConfig();
         config.setRandomSeed(0L);
         Solver<Timetable> solver =
                 ai.timefold.solver.core.api.solver.SolverFactory.<Timetable>create(config).buildSolver();
@@ -255,7 +299,7 @@ class FurongInstanceProbeTest {
     private String scoreOf(Timetable timetable) {
         var scoreManager =
                 ai.timefold.solver.core.api.score.ScoreManager.<Timetable, ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore>create(
-                        new SolverConfiguration(Duration.ofSeconds(1)).solverFactory());
+                        new SolverConfiguration(Duration.ofSeconds(1), "NONE").solverFactory());
         return String.valueOf(scoreManager.updateScore(timetable));
     }
 
@@ -305,12 +349,12 @@ class FurongInstanceProbeTest {
             }
         }
 
-        var solverFactory = new SolverConfiguration(Duration.ofSeconds(30)).solverFactory();
+        var solverFactory = new SolverConfiguration(Duration.ofSeconds(30), "NONE").solverFactory();
         var scoreManager =
                 ai.timefold.solver.core.api.score.ScoreManager
                         .<Timetable, ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore>create(
                                 solverFactory);
-        var config = new SolverConfiguration(Duration.ofSeconds(30)).solverConfig();
+        var config = new SolverConfiguration(Duration.ofSeconds(30), "NONE").solverConfig();
         config.setRandomSeed(0L);
         Solver<Timetable> solver =
                 ai.timefold.solver.core.api.solver.SolverFactory.<Timetable>create(config).buildSolver();
@@ -430,7 +474,7 @@ class FurongInstanceProbeTest {
             for (LessonOccurrence occurrence : occurrences) entities.add(occurrence.copy());
             Timetable input = new Timetable(timeslots, rooms, entities, List.of(), List.of());
             if ("greedy-init".equals(mode)) input.initializeGreedyAssignments();
-            var config = new SolverConfiguration(Duration.ofMillis(terminationMs)).solverConfig();
+            var config = new SolverConfiguration(Duration.ofMillis(terminationMs), "NONE").solverConfig();
             config.setRandomSeed(0L);
             Solver<Timetable> solver =
                     ai.timefold.solver.core.api.solver.SolverFactory.<Timetable>create(config).buildSolver();

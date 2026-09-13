@@ -24,7 +24,7 @@ class SolverBenchmarkTest {
         assertThat(terminationMillis).isPositive();
         Timetable input = representativeTimetable();
         Solver<Timetable> solver =
-                new SolverConfiguration(Duration.ofMillis(terminationMillis))
+                new SolverConfiguration(Duration.ofMillis(terminationMillis), "NONE")
                         .solverFactory()
                         .buildSolver();
 

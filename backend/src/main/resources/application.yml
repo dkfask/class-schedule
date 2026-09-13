@@ -35,6 +35,8 @@ server:
 app:
   solver:
     termination-spent: ${SOLVER_TERMINATION_SPENT:30s}
+    # 多线程移动(AUTO)是 Timefold 企业版权凭特性，社区版保持 NONE
+    move-thread-count: ${SOLVER_MOVE_THREAD_COUNT:NONE}
   auth:
     bootstrap:
       username: ${APP_AUTH_BOOTSTRAP_USERNAME:}

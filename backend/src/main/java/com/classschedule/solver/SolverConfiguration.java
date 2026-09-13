@@ -10,10 +10,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SolverConfiguration {
     private final java.time.Duration terminationSpent;
+    private final String moveThreadCount;
 
     public SolverConfiguration(
-            @Value("${app.solver.termination-spent:3s}") java.time.Duration terminationSpent) {
+            @Value("${app.solver.termination-spent:3s}") java.time.Duration terminationSpent,
+            @Value("${app.solver.move-thread-count:NONE}") String moveThreadCount) {
         this.terminationSpent = terminationSpent;
+        this.moveThreadCount = moveThreadCount;
     }
 
     @Bean
@@ -26,7 +29,8 @@ public class SolverConfiguration {
                 .withSolutionClass(Timetable.class)
                 .withEntityClasses(LessonOccurrence.class)
                 .withConstraintProviderClass(TimetableConstraintProvider.class)
-                .withTerminationSpentLimit(terminationSpent);
+                .withTerminationSpentLimit(terminationSpent)
+                .withMoveThreadCount(moveThreadCount);
     }
 
     @Bean

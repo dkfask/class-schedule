@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 class SolverConfigurationTest {
     @Test
     void terminationSpentLimitIsProvidedByConfiguration() {
-        SolverConfiguration configuration = new SolverConfiguration(Duration.ofMillis(750));
+        SolverConfiguration configuration = new SolverConfiguration(Duration.ofMillis(750), "NONE");
 
         assertThat(configuration.terminationSpent()).isEqualTo(Duration.ofMillis(750));
         assertThat(configuration.solverConfig().getTerminationConfig().getSpentLimit())

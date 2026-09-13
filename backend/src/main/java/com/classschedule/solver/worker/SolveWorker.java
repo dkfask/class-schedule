@@ -4,6 +4,7 @@ import ai.timefold.solver.core.api.solver.SolverFactory;
 import com.classschedule.solver.PlanningProblemRepository;
 import com.classschedule.solver.SolverDataNotReadyException;
 import com.classschedule.solver.Timetable;
+import com.classschedule.solver.TimetableConflictRepairer;
 import jakarta.annotation.PreDestroy;
 import java.time.Duration;
 import java.util.UUID;
@@ -21,6 +22,8 @@ public class SolveWorker {
     private final SolveJobRepository jobs;
     private final PlanningProblemRepository problems;
     private final SolverFactory<Timetable> solverFactory;
+    private final TimetableConflictRepairer repairer;
+    private final long repairBudgetMs;
     private final String workerId = "worker-" + UUID.randomUUID();
     private final ScheduledExecutorService heartbeatExecutor =
             Executors.newSingleThreadScheduledExecutor(
@@ -33,10 +36,15 @@ public class SolveWorker {
     public SolveWorker(
             SolveJobRepository jobs,
             PlanningProblemRepository problems,
-            SolverFactory<Timetable> solverFactory) {
+            SolverFactory<Timetable> solverFactory,
+            TimetableConflictRepairer repairer,
+            @org.springframework.beans.factory.annotation.Value("${solver.worker.repair-budget-ms:300000}")
+                    long repairBudgetMs) {
         this.jobs = jobs;
         this.problems = problems;
         this.solverFactory = solverFactory;
+        this.repairer = repairer;
+        this.repairBudgetMs = repairBudgetMs;
     }
 
     @Scheduled(fixedDelayString = "${solver.worker.poll-ms:500}")
@@ -64,9 +72,12 @@ public class SolveWorker {
                             TimeUnit.SECONDS);
             try {
                 Timetable solved =
-                        solverFactory
-                                .buildSolver()
-                                .solve(problems.loadForVersion(details.versionId()).toTimetable());
+                        repairer.repair(
+                                solverFactory
+                                        .buildSolver()
+                                        .solve(problems.loadForVersion(details.versionId()).toTimetable()),
+                                500,
+                                repairBudgetMs);
                 if (!jobs.complete(
                         jobId, details.versionId(), String.valueOf(solved.getScore()), solved)) {
                     jobs.fail(jobId, details.versionId(), "STALE_JOB", "任务状态已改变，忽略迟到结果");
