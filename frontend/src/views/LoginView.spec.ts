@@ -57,6 +57,25 @@ describe('LoginView and auth store', () => {
     wrapper.unmount()
   })
 
+  it('sends a business owner to the term overview instead of the published timetable', async () => {
+    setActivePinia(createPinia())
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 4, username: 'owner', displayName: '教务主任', enabled: true, roles: ['BUSINESS_OWNER'] }) }))
+    const router = createLoginRouter()
+    await router.push('/login')
+    await router.isReady()
+    const wrapper = mount(LoginView, { global: { plugins: [createPinia(), router] } })
+    const vm = wrapper.vm as any
+    vm.username = 'owner'
+    vm.password = 'secret'
+    await vm.submit()
+    await flushPromises()
+    expect(useAuthStore().isBusinessOwner).toBe(true)
+    expect(router.currentRoute.value.path).toBe('/overview')
+    wrapper.unmount()
+  })
+
   it('shows login failures without authenticating', async () => {
     setActivePinia(createPinia())
     vi.stubGlobal('fetch', vi.fn()

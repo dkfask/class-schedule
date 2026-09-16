@@ -81,6 +81,7 @@ function createFetchMock(previewResponses: unknown[] = []) {
 
 function mountWorkspace() {
   return mount(WorkspaceView, { global: { provide: { [routerKey]: { push: vi.fn() } }, stubs: {
+    RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
     'el-button': { template: '<button><slot /></button>' }, 'el-select': { template: '<select><slot /></select>' }, 'el-option': { template: '<option><slot /></option>' }, 'el-drawer': { template: '<div><slot /></div>' }, 'el-dialog': { template: '<div><slot /><slot name="footer" /></div>' }, 'el-form': { template: '<form><slot /></form>' }, 'el-form-item': { template: '<label><slot /></label>' }, 'el-input': { template: '<textarea />' }, 'el-tag': { template: '<span><slot /></span>' },
   } } })
 }
@@ -101,6 +102,9 @@ describe('WorkspaceView API workflow', () => {
     await vm.loadVersion(42); vm.openAdjustment(assignment); await vm.previewAdjustment()
     const previewCall = calls.find(call => call.url.includes('/adjustments/preview'))
     expect(JSON.parse(String(previewCall?.init?.body))).toEqual({ occurrenceId: 1, timeslotCode: 'MON-1', roomCode: 'A101' }); expect(vm.preview.allowed).toBe(false)
+    expect(wrapper.find('[data-testid="adjustment-drawer"]').text()).toContain('教师在这个节次已有课')
+    expect(wrapper.find('[data-testid="adjustment-drawer"]').text()).toContain('换一个空闲节次，或与另一节课对调。')
+    expect(wrapper.find('[data-testid="adjustment-drawer"]').text()).not.toContain('TEACHER_CONFLICT')
     const requestCount = calls.length; vm.adjustmentForm.reason = '冲突确认测试'; await vm.confirmAdjustment(); expect(calls).toHaveLength(requestCount); wrapper.unmount()
   })
 
@@ -121,6 +125,18 @@ describe('WorkspaceView API workflow', () => {
     expect(JSON.parse(String(publishCall?.init?.body))).toEqual({ releaseNote: '2026 fall release' }); expect(vm.jobStatus).toBe('PUBLISHED'); wrapper.unmount()
   })
 
+  it('blocks workspace publish until the business owner has approved', async () => {
+    createFetchMock(); const wrapper = mountWorkspace(); await flushPromises(); const vm = wrapper.vm as any
+    await vm.loadVersion(42)
+    vm.ownerApprovalRequired = true
+    vm.ownerApprovalStatus = 'PENDING'
+    expect(vm.backendPublishable).toBe(true)
+    expect(vm.publishable).toBe(false)
+    vm.ownerApprovalStatus = 'APPROVED'
+    expect(vm.publishable).toBe(true)
+    wrapper.unmount()
+  })
+
   it('clears stale schedule data before submitting a new solve', async () => {
     const { calls } = createFetchMock(); const wrapper = mountWorkspace(); await flushPromises(); const vm = wrapper.vm as any
     await vm.loadReadiness(); await vm.loadVersion(42); expect(vm.occurrences).toHaveLength(1); await vm.startSolve(); expect(vm.solveDialogOpen).toBe(true); expect(vm.occurrences).toHaveLength(1); expect(calls.filter(call => call.url.endsWith('/api/solve-jobs') && call.init?.method === 'POST')).toHaveLength(0); await vm.confirmResolve(); expect(vm.occurrences).toEqual([]); expect(vm.filteredOccurrences).toEqual([]); expect(vm.options.timeslots).toEqual([]); expect(calls.some(call => call.url.endsWith('/api/solve-jobs'))).toBe(true); wrapper.unmount()
@@ -130,11 +146,40 @@ describe('WorkspaceView API workflow', () => {
     const wrapper = mountWorkspace(); await flushPromises(); const vm = wrapper.vm as any
     vm.applySolveDetails({ jobId: 21, versionId: 44, jobStatus: 'FAILED', versionStatus: 'FAILED', progress: 62, score: null, errorCode: 'DEADLINE_EXCEEDED', errorMessage: '求解任务超过截止时间', attempt: 2, startedAt: '2026-09-09T09:00:00+08:00', heartbeatAt: '2026-09-09T09:14:00+08:00', finishedAt: '2026-09-09T09:15:00+08:00', deadlineAt: '2026-09-09T09:15:00+08:00' })
     await flushPromises()
-    expect(vm.solveStateInfo.title).toBe('求解失败')
+    expect(vm.solveStateInfo.title).toBe('排课失败')
     expect(vm.solveStateInfo.category).toBe('执行超时')
     expect(vm.solveStateInfo.retryable).toBe(true)
     expect(wrapper.find('[data-testid="solve-status"]').text()).toContain('缩小求解范围或调整规则后重新求解')
-    expect(wrapper.find('[data-testid="solve-status"]').text()).toContain('失败码 DEADLINE_EXCEEDED')
+    expect(wrapper.find('[data-testid="solve-status"]').text()).toContain('技术编号 DEADLINE_EXCEEDED')
+    wrapper.unmount()
+  })
+
+  it('explains unassigned lessons and the next action after a completed solve', async () => {
+    const wrapper = mountWorkspace()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    vm.applySolveDetails({
+      jobId: 9,
+      versionId: 42,
+      jobStatus: 'COMPLETED',
+      versionStatus: 'CANDIDATE',
+      progress: 100,
+      score: '0hard/0soft',
+      hardScore: 0,
+      mediumScore: 0,
+      softScore: 0,
+      scoreValid: true,
+      attempt: 1,
+    })
+    vm.occurrences = [
+      assignment,
+      { ...assignment, occurrenceId: 2, timeslotCode: undefined, timeslotLabel: undefined, weekday: undefined, period: undefined, roomCode: undefined, roomName: undefined },
+    ]
+    await flushPromises()
+    expect(vm.solveStateInfo.title).toBe('还有课次没有排上')
+    expect(wrapper.find('[data-testid="solve-status"]').text()).toContain('先点开左侧未排课次，补上时间和教室。')
+    expect(wrapper.text()).toContain('为什么没排上')
+    expect(wrapper.text()).toContain('还没有安排时间和教室')
     wrapper.unmount()
   })
 
@@ -201,7 +246,7 @@ describe('WorkspaceView API workflow', () => {
       { ...assignment, occurrenceId: 2, teacherName: '李老师', teacherCode: 'T002', timeslotCode: undefined, roomCode: 'A101' },
     ]
     await flushPromises()
-    expect(vm.pendingGroups.map((group: any) => group.label)).toEqual(['未分配节次与教室', '未分配节次'])
+    expect(vm.pendingGroups.map((group: any) => group.label)).toEqual(['还没有安排时间和教室', '还没有安排时间'])
     vm.pendingGroupBy = 'teacher'; await flushPromises()
     expect(vm.pendingGroups.map((group: any) => group.label)).toEqual(['张老师', '李老师'])
     wrapper.unmount()

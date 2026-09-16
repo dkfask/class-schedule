@@ -123,6 +123,24 @@ public class Timetable {
         for (LessonOccurrence occurrence : ordered) {
             Timeslot selectedTimeslot = null;
             Room selectedRoom = null;
+            if (occurrence.getTimeslot() != null) {
+                // 固定节次与期望节次暖启动：保留已排节次，只贪心补一间不冲突的教室。
+                selectedTimeslot = occurrence.getTimeslot();
+                for (Room room : occurrence.getRoomRange()) {
+                    if (validResourcePlacement(occurrence, selectedTimeslot, room)
+                            && doesNotConflict(occurrence, selectedTimeslot, room, assigned)) {
+                        selectedRoom = room;
+                        break;
+                    }
+                }
+                if (selectedRoom == null) {
+                    selectedRoom =
+                            occurrence.getRoomRange().stream().findFirst().orElse(null);
+                }
+                occurrence.setRoom(selectedRoom);
+                assigned.add(occurrence);
+                continue;
+            }
             for (Timeslot timeslot : occurrence.getTimeslotRange()) {
                 for (Room room : occurrence.getRoomRange()) {
                     if (validResourcePlacement(occurrence, timeslot, room)

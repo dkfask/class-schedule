@@ -58,7 +58,7 @@ public class WorkbookImportService {
                     sheet.createRow(1)
                             .createCell(0)
                             .setCellValue(
-                                    "MASTER_DATA v1；必填 Sheet：教师、班级、课程、教学需求；班级可填写绑定教室编码，教学需求可选择 HOME 或 FLEXIBLE 教室分配模式；教室、资源可用性、特征目录、教室特征、教学需求特征和活动组可省略或留空；学期和节次只校验引用，不在本模板写入；缺少的行不会删除已有数据。");
+                                    "MASTER_DATA v1；必填 Sheet：教师、班级、课程、教学需求；班级可填写绑定教室编码，教学需求可选择 HOME 或 FLEXIBLE 教室分配模式，并可填写分号分隔的期望节次编码以贴近原课表；教室、资源可用性、特征目录、教室特征、教学需求特征和活动组可省略或留空；学期和节次只校验引用，不在本模板写入；缺少的行不会删除已有数据。");
                 }
             }
             workbook.write(output);
@@ -417,6 +417,7 @@ public class WorkbookImportService {
                                         "INVALID_ROOM_ASSIGNMENT_MODE",
                                         "教室分配模式必须为 HOME 或 FLEXIBLE"));
                     }
+                    String preferredPeriodCodes = normalizePreferredPeriodCodes(text(row, 11));
                     Boolean active = booleanValue(row, 9, sheet, rowIndex, issues);
                     if (active != null)
                         activeCodes
@@ -1188,15 +1189,16 @@ public class WorkbookImportService {
                         nullable(text(row, 8)),
                         booleanValue(text(row, 9)),
                         normalizeRoomAssignmentMode(text(row, 10)),
+                        normalizePreferredPeriodCodes(text(row, 11)),
                         code
                     };
                     int updated =
                             jdbc.update(
-                                    "UPDATE teaching_requirement SET term_id=(SELECT id FROM academic_term WHERE code=?), student_group_id=(SELECT id FROM student_group WHERE code=?), subject_id=(SELECT id FROM subject WHERE code=?), teacher_id=(SELECT id FROM teacher WHERE code=?), weekly_periods=?, duration_periods=?, student_count=?, pinned_period_code=?, active=?, room_assignment_mode=? WHERE code=?",
+                                    "UPDATE teaching_requirement SET term_id=(SELECT id FROM academic_term WHERE code=?), student_group_id=(SELECT id FROM student_group WHERE code=?), subject_id=(SELECT id FROM subject WHERE code=?), teacher_id=(SELECT id FROM teacher WHERE code=?), weekly_periods=?, duration_periods=?, student_count=?, pinned_period_code=?, active=?, room_assignment_mode=?, preferred_period_codes=? WHERE code=?",
                                     args);
                     if (updated == 0) {
                         jdbc.update(
-                                "INSERT INTO teaching_requirement(code,term_id,student_group_id,subject_id,teacher_id,weekly_periods,duration_periods,student_count,pinned_period_code,active,room_assignment_mode) VALUES(?,(SELECT id FROM academic_term WHERE code=?),(SELECT id FROM student_group WHERE code=?),(SELECT id FROM subject WHERE code=?),(SELECT id FROM teacher WHERE code=?),?,?,?,?,?,?)",
+                                "INSERT INTO teaching_requirement(code,term_id,student_group_id,subject_id,teacher_id,weekly_periods,duration_periods,student_count,pinned_period_code,active,room_assignment_mode,preferred_period_codes) VALUES(?,(SELECT id FROM academic_term WHERE code=?),(SELECT id FROM student_group WHERE code=?),(SELECT id FROM subject WHERE code=?),(SELECT id FROM teacher WHERE code=?),?,?,?,?,?,?,?)",
                                 code,
                                 text(row, 1),
                                 text(row, 2),
@@ -1207,7 +1209,8 @@ public class WorkbookImportService {
                                 Integer.parseInt(text(row, 7)),
                                 nullable(text(row, 8)),
                                 booleanValue(text(row, 9)),
-                                normalizeRoomAssignmentMode(text(row, 10)));
+                                normalizeRoomAssignmentMode(text(row, 10)),
+                                normalizePreferredPeriodCodes(text(row, 11)));
                         stat.created++;
                     } else stat.updated++;
                 });
@@ -1730,6 +1733,19 @@ public class WorkbookImportService {
         return valid;
     }
 
+    /** 期望节次编码：分号/逗号分隔的节次编码列表，与每周课次按顺序一一对应。 */
+    private String normalizePreferredPeriodCodes(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String joined =
+                java.util.Arrays.stream(raw.split("[;,；，]"))
+                        .map(String::trim)
+                        .filter(item -> !item.isEmpty())
+                        .map(item -> item.toUpperCase())
+                        .distinct()
+                        .collect(java.util.stream.Collectors.joining(";"));
+        return joined.isEmpty() ? null : joined;
+    }
+
     private int acceptedHeaderSize(Sheet sheet, Row header, List<String> headers) {
         int legacySize =
                 switch (sheet.getSheetName()) {
@@ -1737,6 +1753,11 @@ public class WorkbookImportService {
                     case "教学需求" -> 10;
                     default -> -1;
                 };
+        if ("教学需求".equals(sheet.getSheetName()) && header.getLastCellNum() == 11) {
+            for (int column = 0; column < 11; column++)
+                if (!headers.get(column).equals(text(header, column))) return headers.size();
+            return 11;
+        }
         if (legacySize < 0 || header.getLastCellNum() != legacySize) return headers.size();
         for (int column = 0; column < legacySize; column++)
             if (!headers.get(column).equals(text(header, column))) return headers.size();

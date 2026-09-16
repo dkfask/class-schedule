@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { http, jsonRequest } from '../api/http'
+import EmptyState from '../components/EmptyState.vue'
 import { useTermStore } from '../stores/term'
+import { detectRuleOverlaps, scopeLabel, type ConfiguredRule } from '../utils/ruleOverlap'
 
 type AvailabilityItem = { resourceType: string; resourceCode: string; periodCode: string; available: boolean }
 type FeatureItem = { code: string; name: string; active: boolean }
@@ -19,6 +21,7 @@ const RULE_EXPLANATIONS: Record<string, RuleExplanation> = {
   SUBJECT_MIN_SPREAD_DAYS: { summary: '尽量把同一课程分散到指定数量的工作日。', impact: '有助于形成均衡教学节奏，通常作为优化目标参与评分。', scope: '学期或指定课程' },
   TEACHER_GAP_POLICY: { summary: '控制教师课表中的空档策略。', impact: '可减少无意义的等待时段，提升教师日程连续性。', scope: '学期或指定教师' },
   TEACHER_PREFERRED_PERIOD: { summary: '记录教师偏好的节次，供求解器进行软约束优化。', impact: '偏好未满足不会阻止发布，但会影响方案质量评分。', scope: '指定教师' },
+  PREFER_ORIGINAL_SLOT: { summary: '尽量把课次排在教学需求填写的期望节次（通常来自学校原课表）。', impact: '未命中期望节次会按规则级别和权重扣分；未配置该规则时不产生罚分，也不会阻止发布。', scope: '当前学期' },
 }
 
 const term = useTermStore()
@@ -57,6 +60,24 @@ const selectedRule = computed(() => ruleCatalog.value.find(item => item.ruleCode
 const ruleScopes = computed(() => selectedRule.value?.scopes ?? [])
 const ruleUsesText = computed(() => selectedRule.value?.valueType === 'TEXT')
 const selectedRuleExplanation = computed(() => RULE_EXPLANATIONS[ruleCode.value] ?? { summary: '该规则由当前后端规则目录提供。', impact: '请结合规则级别和权重确认它对发布的影响。', scope: '由规则目录决定' })
+const catalogLabels = computed(() => Object.fromEntries(ruleCatalog.value.map(item => [item.ruleCode, item.label])))
+const overlapHints = computed(() => detectRuleOverlaps(rules.value, catalogLabels.value))
+const overlappingRuleIds = computed(() => new Set(overlapHints.value.flatMap(item => item.ruleIds)))
+const pendingOverlapHint = computed(() => {
+  if (!ruleCode.value) return null
+  const draft: ConfiguredRule = {
+    id: -1,
+    rule_code: ruleCode.value,
+    scope_type: ruleScopeType.value,
+    scope_code: ruleScopeType.value === 'TERM' ? null : ruleScopeCode.value || null,
+    int_value: ruleUsesText.value ? null : ruleIntValue.value,
+    text_value: ruleUsesText.value ? ruleTextValue.value : null,
+    severity: ruleSeverity.value,
+    weight: ruleWeight.value,
+  }
+  const others = rules.value.filter(item => !(item.rule_code === draft.rule_code && item.scope_type === draft.scope_type && (item.scope_code ?? '') === (draft.scope_code ?? '')))
+  return detectRuleOverlaps([...others, draft], catalogLabels.value).find(item => item.ruleIds.includes(-1)) ?? null
+})
 let loadSequence = 0
 
 function normalizeRuleScope() {
@@ -213,12 +234,12 @@ onMounted(() => void loadAll())
 <template>
   <header class="topbar">
     <div>
-      <p class="eyebrow">RULE FACTS / PLAN</p>
-      <h1>规则中心与质量约束</h1>
+      <p class="eyebrow">学期准备</p>
+      <h1>规则检查</h1>
     </div>
     <div class="top-actions">
-      <span class="sync-state">● 可写配置</span>
-      <div class="avatar">{{ activityGroups.length }}</div>
+      <span class="sync-state">● {{ overlapHints.length ? `${overlapHints.length} 条规则需要核对` : '当前学期生效规则' }}</span>
+      <div class="avatar">教</div>
     </div>
   </header>
 
@@ -346,8 +367,8 @@ onMounted(() => void loadAll())
     <article class="panel rule-card canvas-card">
       <div class="panel-heading">
         <div>
-          <span class="eyebrow">TYPED RULES</span>
-          <h2>求解器软/硬质量规则</h2>
+          <span class="eyebrow">课表质量</span>
+          <h2>课表质量规则</h2>
         </div>
       </div>
       <div class="rule-form">
@@ -358,9 +379,9 @@ onMounted(() => void loadAll())
           </select>
         </label>
         <label>
-          <span>生效作用域</span>
+          <span>生效范围</span>
           <select v-model="ruleScopeType" class="styled-select" @change="normalizeRuleScope">
-            <option v-for="scope in ruleScopes" :key="scope" :value="scope">{{ scope }}</option>
+            <option v-for="scope in ruleScopes" :key="scope" :value="scope">{{ scopeLabel(scope) }}</option>
           </select>
         </label>
         <label v-if="ruleScopeType !== 'TERM'">
@@ -376,11 +397,11 @@ onMounted(() => void loadAll())
           <input v-model="ruleTextValue" class="styled-input" placeholder="如 NO_SINGLE_GAP 或 MON-1,TUE-2" />
         </label>
         <label>
-          <span>约束级别 (Severity)</span>
+          <span>约束级别</span>
           <select v-model="ruleSeverity" class="styled-select">
-            <option value="HARD">HARD · 绝对硬约束 (违背则不可发布)</option>
-            <option value="MEDIUM">MEDIUM · 中度优化 (计入惩罚分)</option>
-            <option value="SOFT">SOFT · 偏好软约束 (尽量满足)</option>
+            <option value="HARD">必须满足（会挡住发布）</option>
+            <option value="MEDIUM">尽量安排</option>
+            <option value="SOFT">偏好，不挡住发布</option>
           </select>
         </label>
         <label>
@@ -394,7 +415,12 @@ onMounted(() => void loadAll())
           </div>
           <p>{{ selectedRuleExplanation.summary }}</p>
           <small>{{ selectedRuleExplanation.impact }}</small>
-          <div class="explanation-meta"><span>作用域：{{ selectedRuleExplanation.scope }}</span><span>参数类型：{{ selectedRule.valueType === 'INTEGER' ? '整数阈值' : '文本策略' }}</span></div>
+          <div class="explanation-meta"><span>作用范围：{{ selectedRuleExplanation.scope }}</span><span>参数类型：{{ selectedRule.valueType === 'INTEGER' ? '整数阈值' : '文本策略' }}</span></div>
+        </div>
+        <div v-if="pendingOverlapHint" class="rule-overlap-preview" :class="`overlap-${pendingOverlapHint.kind}`" data-testid="rule-overlap-preview">
+          <strong>{{ pendingOverlapHint.title }}</strong>
+          <small>{{ pendingOverlapHint.detail }}</small>
+          <span>{{ pendingOverlapHint.nextStep }}</span>
         </div>
         <button class="rule-btn" :disabled="saving || !ruleCode" @click="saveRule">保存质量规则</button>
       </div>
@@ -406,13 +432,18 @@ onMounted(() => void loadAll())
     <div class="panel-heading">
       <div>
         <span class="eyebrow">CONFIGURED FACTS</span>
-        <h2>当前学期已生效的规则事实</h2>
+        <h2>当前学期已生效的规则</h2>
       </div>
-      <el-button plain size="small" :loading="loadingList" @click="loadAll">刷新规则库</el-button>
+      <el-button plain size="small" :loading="loadingList" @click="loadAll">刷新</el-button>
     </div>
     <div class="facts-grid">
       <div class="fact-column">
         <h3>可用性限制 · {{ availability.length }}</h3>
+        <EmptyState
+          v-if="!availability.length"
+          title="还没有锁定时段"
+          description="默认教师、教室和班级都可以排课。需要避开某节课时，在上方保存锁定。"
+        />
         <div v-for="(item, index) in availability" :key="`a-${index}`" class="rule-list-row">
           <span>{{ item.resourceType }} · {{ item.resourceCode }}</span>
           <small>{{ item.periodCode }} · {{ item.available ? '可用' : '锁定不可用' }} <button class="del-btn" @click="deleteAvailability(item)">删除</button></small>
@@ -420,6 +451,13 @@ onMounted(() => void loadAll())
       </div>
       <div class="fact-column">
         <h3>特征目录与场地 · {{ features.length }}</h3>
+        <EmptyState
+          v-if="!features.length && !roomFeatures.length"
+          title="还没有教室特征"
+          description="实验室、多媒体教室等特殊场地，可以先在基础数据里核对教室，再在这里绑定特征。"
+          action-label="核对教室"
+          to="/master-data"
+        />
         <div v-for="item in features" :key="item.code" class="rule-list-row">
           <span>{{ item.code }}</span>
           <small>{{ item.name }}</small>
@@ -431,6 +469,13 @@ onMounted(() => void loadAll())
       </div>
       <div class="fact-column">
         <h3>教学需求场地绑定 · {{ requirementFeatures.length }}</h3>
+        <EmptyState
+          v-if="!requirementFeatures.length"
+          title="还没有课程场地要求"
+          description="需要固定实验室或专用教室的课程，可以先核对教学计划，再在这里绑定特征。"
+          action-label="核对教学计划"
+          to="/teaching-plan"
+        />
         <div v-for="item in requirementFeatures" :key="`${item.requirementCode}-${item.featureCode}`" class="rule-list-row">
           <span>{{ item.requirementCode }}</span>
           <small>{{ item.featureCode }} <button class="del-btn" @click="deleteRequirementFeature(item)">删除</button></small>
@@ -438,16 +483,34 @@ onMounted(() => void loadAll())
       </div>
       <div class="fact-column">
         <h3>活动组与合班 · {{ activityGroups.length }}</h3>
+        <EmptyState
+          v-if="!activityGroups.length"
+          title="还没有合班或连堂"
+          description="合班、同步课和连堂会约束多个班级同时上课。没有这类安排时可以跳过。"
+        />
         <div v-for="item in activityGroups" :key="item.code" class="rule-list-row">
           <span>{{ item.code }} · {{ item.activityType }}</span>
           <small>{{ item.requirementCodes.join(', ') }} <button class="del-btn" @click="deleteActivityGroup(item)">删除</button></small>
         </div>
       </div>
-      <div class="fact-column">
-        <h3>高级质量规则 · {{ rules.length }}</h3>
-        <div v-for="item in rules" :key="item.id" class="rule-list-row">
-          <span>{{ ruleLabel(item.rule_code) }} · {{ item.scope_type }}{{ item.scope_code ? `:${item.scope_code}` : '' }}</span>
-          <small><span class="severity-pill" :class="item.severity.toLowerCase()">{{ severityLabel(item.severity) }}</span> · {{ item.int_value ?? item.text_value }} · w{{ item.weight }} · 当前生效 · 规则中心 <button class="del-btn" @click="deleteRule(item.id)">删除</button></small>
+      <div class="fact-column" id="quality-rules">
+        <h3>课表质量规则 · {{ rules.length }}</h3>
+        <div v-if="overlapHints.length" class="rule-overlap-list" data-testid="rule-overlap-hints">
+          <article v-for="hint in overlapHints" :key="hint.id" class="rule-overlap-card" :class="`overlap-${hint.kind}`">
+            <strong>{{ hint.title }}</strong>
+            <small>{{ hint.detail }}</small>
+            <span>{{ hint.nextStep }}</span>
+            <a class="overlap-action" :href="hint.actionPath">{{ hint.actionLabel }}</a>
+          </article>
+        </div>
+        <EmptyState
+          v-if="!rules.length"
+          title="还没有额外质量规则"
+          description="教师每天最多几节、尽量贴近原课表等偏好，可以在上方保存。不配置时仍可按默认硬约束排课。"
+        />
+        <div v-for="item in rules" :key="item.id" class="rule-list-row" :class="{ 'rule-overlap-row': overlappingRuleIds.has(item.id) }">
+          <span>{{ ruleLabel(item.rule_code) }} · {{ scopeLabel(item.scope_type, item.scope_code) }}</span>
+          <small><span class="severity-pill" :class="item.severity.toLowerCase()">{{ severityLabel(item.severity) }}</span> · {{ item.int_value ?? item.text_value }} · 权重 {{ item.weight }} · 当前生效 <button class="del-btn" @click="deleteRule(item.id)">删除</button></small>
         </div>
       </div>
     </div>
@@ -514,6 +577,10 @@ onMounted(() => void loadAll())
   border-radius: 8px;
   border: 1px solid #EEF1F3;
 }
+.fact-column :deep(.empty-state-card) {
+  margin: 8px 0 0;
+  padding: 16px 10px;
+}
 .rule-explanation {
   grid-column: 1 / -1;
   padding: 11px 13px;
@@ -560,6 +627,27 @@ onMounted(() => void loadAll())
 .severity-pill.hard { background: #fee2e2; color: #b91c1c; }
 .severity-pill.medium { background: #fef3c7; color: #92400e; }
 .severity-pill.soft { background: #dbeafe; color: #1d4ed8; }
+.rule-overlap-list { display: grid; gap: 8px; margin: 8px 0 12px; }
+.rule-overlap-card, .rule-overlap-preview {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #eed8af;
+  border-left: 3px solid #d19a3b;
+  border-radius: 7px;
+  background: #fff8ec;
+}
+.rule-overlap-preview { grid-column: 1 / -1; }
+.overlap-conflict { border-color: #f3c1c1; border-left-color: #c24141; background: #fff5f5; }
+.rule-overlap-card strong, .rule-overlap-preview strong { color: #7a5728; font-size: 12px; }
+.overlap-conflict strong { color: #9b2c2c; }
+.rule-overlap-card small, .rule-overlap-preview small, .rule-overlap-card span, .rule-overlap-preview span {
+  color: #6d8075;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.overlap-action { color: #2d6a56; font-size: 11px; font-weight: 650; text-decoration: none; }
+.rule-overlap-row { border-color: #eed8af; background: #fffdf8; }
 .inline-message {
   margin: 0 0 16px;
   padding: 10px 14px;

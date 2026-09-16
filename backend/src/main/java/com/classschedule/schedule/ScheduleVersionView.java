@@ -22,7 +22,8 @@ public record ScheduleVersionView(
         String inputSnapshotHash,
         String ruleSnapshotHash,
         OffsetDateTime inputSnapshotAt,
-        boolean legacyIdentityUnverified) {
+        boolean legacyIdentityUnverified,
+        OwnerApproval ownerApproval) {
     @JsonProperty("hardScore")
     public Integer hardScore() {
         return ScheduleScoreView.parse(score).hardScore();
@@ -65,7 +66,8 @@ public record ScheduleVersionView(
                 null,
                 null,
                 null,
-                false);
+                false,
+                OwnerApproval.none());
     }
 
     public ScheduleVersionView(
@@ -100,7 +102,8 @@ public record ScheduleVersionView(
                 inputSnapshotHash,
                 ruleSnapshotHash,
                 inputSnapshotAt,
-                false);
+                false,
+                OwnerApproval.none());
     }
 
     public static ScheduleVersionView from(long id, String status, Timetable timetable) {
@@ -138,7 +141,8 @@ public record ScheduleVersionView(
                 null,
                 null,
                 null,
-                false);
+                false,
+                OwnerApproval.none());
     }
 
     private static ScheduleAssignmentView toAssignment(LessonOccurrence occurrence) {

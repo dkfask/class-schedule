@@ -84,7 +84,7 @@ public class ScheduleSnapshotHashService {
                                         "period_code",
                                         "available"),
                                 rows(
-                                        "SELECT r.code, r.student_group_id, r.subject_id, r.teacher_id, r.weekly_periods, r.duration_periods, r.student_count, r.pinned_period_code, r.room_assignment_mode, r.active FROM teaching_requirement r WHERE r.term_id=? ORDER BY r.code",
+                                        "SELECT r.code, r.student_group_id, r.subject_id, r.teacher_id, r.weekly_periods, r.duration_periods, r.student_count, r.pinned_period_code, r.preferred_period_codes, r.room_assignment_mode, r.active FROM teaching_requirement r WHERE r.term_id=? ORDER BY r.code",
                                         termId,
                                         "code",
                                         "student_group_id",
@@ -94,6 +94,7 @@ public class ScheduleSnapshotHashService {
                                         "duration_periods",
                                         "student_count",
                                         "pinned_period_code",
+                                        "preferred_period_codes",
                                         "room_assignment_mode",
                                         "active"),
                                 rows(

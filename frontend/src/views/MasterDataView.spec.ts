@@ -18,6 +18,7 @@ function mountMasterData() {
         'el-table-column': { template: '<div />' },
         'el-pagination': { template: '<div />' },
         'el-empty': { template: '<div />' },
+        RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
         'el-dialog': { template: '<div><slot /></div>' },
         'el-form': { template: '<form><slot /></form>' },
         'el-form-item': { template: '<label><slot /></label>' },
@@ -57,6 +58,15 @@ describe('MasterDataView pagination and errors', () => {
     const vm = wrapper.vm as any
     expect(vm.errorMessage).toBe('服务不可用')
     expect(vm.items).toEqual([])
+    wrapper.unmount()
+  })
+
+  it('guides an empty teacher list to term import', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => response({ items: [], page: 0, size: 20, total: 0 })))
+    const wrapper = mountMasterData()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="empty-state"]').text()).toContain('还没有教师')
+    expect(wrapper.get('[data-testid="empty-state"] a').attributes('href')).toBe('/import')
     wrapper.unmount()
   })
 })

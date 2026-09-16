@@ -155,13 +155,13 @@ onMounted(async () => {
         <div v-if="plan.targetExists" class="impact-warning"><strong>目标学期已存在</strong><span>为避免覆盖既有数据，本次复制被阻止。</span></div>
         <div v-if="plan.missingMappings.length" class="impact-warning"><strong>需要先处理资源映射</strong><ul><li v-for="item in plan.missingMappings" :key="item">{{ item }}</li></ul></div>
         <div v-if="plan.needsConfirmation.length" class="notice-box"><strong>复制后的必做事项</strong><span v-for="item in plan.needsConfirmation" :key="item">{{ item }}</span></div>
-        <div v-if="plan.canCopy" class="confirm-box"><label><input v-model="confirmed" type="checkbox" /> 我已确认复制范围，并接受新学期需重新执行数据健康检查和发布门禁</label><button class="primary-button" :disabled="copying || !confirmed" @click="copyTerm">{{ copying ? '正在复制…' : '确认创建新学期' }}</button></div>
+        <div v-if="plan.canCopy" class="confirm-box"><label><input v-model="confirmed" type="checkbox" /> 我已确认复制范围，并接受新学期需重新执行数据健康检查和发布前检查</label><button class="primary-button" :disabled="copying || !confirmed" @click="copyTerm">{{ copying ? '正在复制…' : '确认创建新学期' }}</button></div>
         <div v-else class="blocked-note">补齐资源映射并确保目标编码未被使用后，才可以创建新学期。</div>
       </div>
       <div v-else-if="!loading" class="empty">填写目标学期并生成预览，系统会先检查影响范围。</div>
     </section>
 
-    <section v-if="result" class="result-strip"><strong>已创建 {{ result.targetTermCode }}</strong><span>复制 {{ Object.values(result.copied).reduce((sum, value) => sum + value, 0) }} 项配置</span><span v-if="result.needsRecheck">请转到学期总览完成数据健康检查和发布门禁复核。</span></section>
+    <section v-if="result" class="result-strip"><strong>已创建 {{ result.targetTermCode }}</strong><span>复制 {{ Object.values(result.copied).reduce((sum, value) => sum + value, 0) }} 项配置</span><span v-if="result.needsRecheck">请转到学期总览完成数据健康检查和发布前检查复核。</span></section>
   </section>
 </template>
 

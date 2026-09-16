@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { http, jsonRequest } from '../api/http'
+import EmptyState from '../components/EmptyState.vue'
 import { useTermStore } from '../stores/term'
 
 interface Problem {
@@ -134,7 +135,13 @@ onMounted(() => { applyContext(); void load() })
 
     <div class="problem-toolbar"><div><strong>待跟进问题</strong><span>{{ problems.length }} 条</span></div><div class="problem-filters"><select v-model="filterStatus" @change="load"><option value="">全部状态</option><option value="OPEN">待处理</option><option value="IN_PROGRESS">处理中</option><option value="RESOLVED">已解决</option><option value="CLOSED">已关闭</option></select><select v-model="filterCategory" @change="load"><option value="">全部分类</option><option value="DATA">数据问题</option><option value="RULE">规则不支持</option><option value="PRODUCT">产品缺陷</option><option value="OPERATION">操作问题</option><option value="TO_CONFIRM">待确认</option></select></div></div>
     <div v-if="loading" class="problem-empty">正在加载问题…</div>
-    <div v-else-if="!problems.length" class="problem-empty">当前学期还没有问题记录</div>
+    <EmptyState
+      v-else-if="!problems.length"
+      title="还没有问题记录"
+      description="导入失败、课次冲突或发布疑问，都可以在上方登记，方便排课员和支持人员跟进。"
+      action-label="查看检查清单"
+      to="/versions"
+    />
     <div v-else class="problem-list"><article v-for="item in problems" :key="item.id" class="problem-card" :class="`priority-${item.priority.toLowerCase()}`"><div class="problem-card-header"><div><span class="problem-id">#{{ item.id }}</span><strong>{{ item.title }}</strong></div><div class="problem-tags"><span class="problem-tag">{{ categoryLabels[item.category] ?? item.category }}</span><span class="problem-tag priority-tag">{{ priorityLabels[item.priority] ?? item.priority }}</span></div></div><p>{{ item.description }}</p><small class="problem-context">{{ contextSummary(item) }} · {{ item.reporter || '未知提交人' }} · {{ formatDate(item.createdAt) }}</small><div v-if="item.evidence" class="problem-evidence">证据：{{ item.evidence }}</div><div class="problem-card-footer"><label><span>处理状态</span><select :value="item.status" @change="updateProblem(item, ($event.target as HTMLSelectElement).value)"><option value="OPEN">待处理</option><option value="IN_PROGRESS">处理中</option><option value="RESOLVED">已解决</option><option value="CLOSED">已关闭</option></select></label><label class="resolution-field"><span>处理结论</span><input v-model="item.resolution" placeholder="补充处理结论" @keyup.enter="updateProblem(item)" /></label><button class="quiet-button" @click="updateProblem(item)">保存</button></div></article></div>
   </section>
 </template>

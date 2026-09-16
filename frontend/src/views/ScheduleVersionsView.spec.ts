@@ -23,6 +23,7 @@ function createFetchMock(initialVersions: unknown[]) {
     }
     if (url.includes('/diff')) return response([])
     if (url.includes('/publish')) return response({ status: 'PUBLISHED', versionId: 2 })
+    if (url.includes('/owner-approval')) return response({ status: 'APPROVED', versionId: 2 })
     if (url.endsWith('/adjustments/commands')) {
       return response([{ groupId: '11111111-1111-1111-1111-111111111111', commandType: 'ADJUST', state: 'APPLIED', reason: '调课', resultRevision: 1 }])
     }
@@ -41,7 +42,7 @@ function mountView(roles = ['PLANNER']) {
   const auth = useAuthStore(pinia)
   auth.user = { id: 1, username: 'test-user', email: null, emailVerified: true, displayName: '测试用户', enabled: true, roles }
   auth.initialized = true
-  return mount(ScheduleVersionsView, { global: { plugins: [pinia], directives: { loading: () => undefined }, stubs: { 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
+  return mount(ScheduleVersionsView, { global: { plugins: [pinia], directives: { loading: () => undefined }, stubs: { 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' }, RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' } } } })
 }
 
 describe('ScheduleVersionsView', () => {
@@ -60,7 +61,7 @@ describe('ScheduleVersionsView', () => {
     expect(calls.some(url => url.includes('/api/schedule-versions/2/diff?againstVersionId=1'))).toBe(true)
     expect(wrapper.text()).toContain('MOVED')
     expect(wrapper.text()).toContain('1-0')
-    expect(wrapper.text()).toContain('H0 / M0 / S0')
+    expect(wrapper.text()).toContain('没有硬冲突 · 偏好基本满足')
     wrapper.unmount()
   })
 
@@ -148,6 +149,10 @@ describe('ScheduleVersionsView', () => {
     await flushPromises()
     const vm = wrapper.vm as any
     expect(wrapper.find('[data-testid="release-checklist"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="release-blocking"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="release-warnings"]').text()).toContain('尚未填写版本说明')
+    expect(wrapper.find('[data-testid="release-passed"]').text()).toContain('课次已排齐')
+    expect(wrapper.find('[data-testid="release-checklist"]').text()).toContain('可以发布')
     expect(vm.canPublish).toBe(true)
     vm.releaseNote = '秋季学期正式课表，已完成业务确认'
     vm.releaseConfirmed = true
@@ -157,6 +162,58 @@ describe('ScheduleVersionsView', () => {
     expect((publishCall?.init?.headers as Headers).get('If-Match')).toBe('4')
     expect(JSON.parse(String(publishCall?.init?.body))).toEqual({ releaseNote: '秋季学期正式课表，已完成业务确认' })
     expect(vm.message).toBe('版本 v2 已发布')
+    wrapper.unmount()
+  })
+
+  it('guides an empty version list back to automatic scheduling', async () => {
+    createFetchMock([])
+    const wrapper = mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="empty-state"]').text()).toContain('还没有排课版本')
+    expect(wrapper.get('[data-testid="empty-state"] a').attributes('href')).toBe('/workspace')
+    wrapper.unmount()
+  })
+
+  it('groups hard conflicts as blocking items with a path back to scheduling', async () => {
+    createFetchMock([{ id: 2, status: 'CANDIDATE', publishable: false, score: '-2hard/0medium/-4soft', revision: 1 }])
+    const wrapper = mountView()
+    await flushPromises()
+    expect(wrapper.find('[data-testid="release-blocking"]').text()).toContain('仍有硬冲突')
+    expect(wrapper.find('[data-testid="release-blocking"]').text()).toContain('查看冲突课次')
+    expect(wrapper.find('[data-testid="release-warnings"]').text()).toContain('仍有偏好未完全满足')
+    expect(wrapper.text()).toContain('暂不能发布')
+    expect((wrapper.vm as any).canPublish).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('submits a trial solve rule and refreshes the new draft', async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = []
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      calls.push({ url, init })
+      if (url.endsWith('/api/auth/csrf')) return response({ headerName: 'X-XSRF-TOKEN', token: 'csrf-token' })
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
+      if (url.endsWith('/api/schedule-rules/catalog')) return response([{ ruleCode: 'PREFER_ORIGINAL_SLOT', label: '贴近期望节次', valueType: 'INTEGER', scopes: ['TERM'] }])
+      if (url.includes('/impact-preview')) return response({ affectedCount: 2, blockingCount: 0, summary: '当前版本有 2 个课次会受到影响', violations: [{ occurrenceKey: '1-0', subjectName: '数学', message: '课次未落在期望节次 MON-1' }] })
+      if (url.includes('/trial-solve')) return response({ versionId: 9, jobId: 77, status: 'QUEUED', ruleCode: 'PREFER_ORIGINAL_SLOT' })
+      if (url.includes('/diff')) return response([])
+      if (url.endsWith('/adjustments/commands')) return response([])
+      return response({ items: [{ id: 2, status: 'CANDIDATE', score: '0hard/0medium/0soft', publishable: false, revision: 1 }], page: 0, size: 50, total: 1 })
+    }))
+    const wrapper = mountView()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    await vm.openTrialSolve()
+    expect(wrapper.find('[data-testid="trial-solve-dialog"]').exists()).toBe(true)
+    await vm.previewTrialSolve()
+    expect(wrapper.find('[data-testid="trial-impact-preview"]').text()).toContain('2 个课次')
+    await vm.submitTrialSolve()
+    const request = calls.find(call => call.url.endsWith('/api/schedule-versions/2/trial-solve'))
+    expect(request).toBeTruthy()
+    expect((request?.init?.headers as Headers).get('X-XSRF-TOKEN')).toBe('csrf-token')
+    const payload = JSON.parse(String(request?.init?.body))
+    expect(payload.rule).toMatchObject({ termCode: '2026-FALL', ruleCode: 'PREFER_ORIGINAL_SLOT', scopeType: 'TERM', intValue: 2, severity: 'SOFT', weight: 1 })
+    expect(vm.message).toContain('新草稿 v9')
     wrapper.unmount()
   })
 
@@ -170,6 +227,53 @@ describe('ScheduleVersionsView', () => {
     expect(vm.canFork).toBe(false)
     expect(wrapper.text()).toContain('只读审核视图')
     expect(calls.some(call => call.url.includes('/publish'))).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('lets a business owner approve a candidate without publishing it', async () => {
+    const { calls } = createFetchMock([{
+      id: 2,
+      status: 'CANDIDATE',
+      publishable: true,
+      score: '0hard/0soft',
+      revision: 4,
+      ownerApproval: { status: 'PENDING', required: true },
+    }])
+    const wrapper = mountView(['BUSINESS_OWNER'])
+    await flushPromises()
+    const vm = wrapper.vm as any
+    expect(vm.ownerReview).toBe(true)
+    expect(vm.canPublish).toBe(false)
+    expect(vm.canDecideApproval).toBe(true)
+    expect(wrapper.text()).toContain('确认是否面向全校')
+    expect(wrapper.text()).toContain('审阅清单')
+    expect(wrapper.text()).toContain('待您批准')
+    expect(wrapper.find('[data-testid="owner-approval-actions"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('发布当前版本')
+    expect(wrapper.find('a[href="/workspace"]').exists()).toBe(false)
+    await vm.decideApproval('APPROVED')
+    const approvalCall = calls.find(call => call.url.endsWith('/api/schedule-versions/2/owner-approval'))
+    expect(approvalCall).toBeTruthy()
+    expect((approvalCall?.init?.headers as Headers).get('If-Match')).toBe('4')
+    expect(JSON.parse(String(approvalCall?.init?.body))).toEqual({ decision: 'APPROVED', comment: null })
+    expect(vm.message).toContain('已批准')
+    wrapper.unmount()
+  })
+
+  it('keeps planner publish disabled until the owner has approved', async () => {
+    createFetchMock([{
+      id: 2,
+      status: 'CANDIDATE',
+      publishable: true,
+      score: '0hard/0soft',
+      revision: 4,
+      ownerApproval: { status: 'PENDING', required: true },
+    }])
+    const wrapper = mountView()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    expect(vm.canPublish).toBe(false)
+    expect(wrapper.text()).toContain('待业务负责人批准')
     wrapper.unmount()
   })
 })

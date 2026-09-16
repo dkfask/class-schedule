@@ -448,6 +448,55 @@ class TimetableConstraintProviderTest {
     }
 
     @Test
+    void preferOriginalSlotPenalizesMismatchOnSoftLayer() {
+        TypedScheduleRule rule =
+                new TypedScheduleRule(
+                        "PREFER_ORIGINAL_SLOT", "TERM", "__TERM__", 2, null, "SOFT", 3);
+        Timeslot slot = new Timeslot("WED-1", 3, 1, "周三 第1节");
+        Room room = new Room("A101", "教学楼 A101", 50);
+        LessonOccurrence occurrence = occurrence(1L, "T001", "G7-1");
+        occurrence.setActivityIndex(0);
+        occurrence.setPreferredPeriodCodes("MON-1;TUE-2");
+        occurrence.setTimeslot(slot);
+        occurrence.setRoom(room);
+
+        verifier.verifyThat((p, factory) -> p.preferOriginalSlot(factory, "SOFT"))
+                .given(rule, occurrence)
+                .penalizesBy(3);
+        verifier.verifyThat((p, factory) -> p.preferOriginalSlot(factory, "HARD"))
+                .given(rule, occurrence)
+                .penalizesBy(0);
+    }
+
+    @Test
+    void preferOriginalSlotDoesNotPenalizeMatchingOrMissingPreference() {
+        TypedScheduleRule rule =
+                new TypedScheduleRule(
+                        "PREFER_ORIGINAL_SLOT", "TERM", "__TERM__", 2, null, "SOFT", 3);
+        Timeslot slot = new Timeslot("MON-1", 1, 1, "周一 第1节");
+        Room room = new Room("A101", "教学楼 A101", 50);
+        LessonOccurrence matching = occurrence(1L, "T001", "G7-1");
+        matching.setActivityIndex(0);
+        matching.setPreferredPeriodCodes("MON-1");
+        matching.setTimeslot(slot);
+        matching.setRoom(room);
+        LessonOccurrence missing = occurrence(2L, "T002", "G7-2");
+        missing.setActivityIndex(0);
+        missing.setTimeslot(slot);
+        missing.setRoom(room);
+
+        verifier.verifyThat((p, factory) -> p.preferOriginalSlot(factory, "SOFT"))
+                .given(rule, matching)
+                .penalizesBy(0);
+        verifier.verifyThat((p, factory) -> p.preferOriginalSlot(factory, "SOFT"))
+                .given(rule, missing)
+                .penalizesBy(0);
+        verifier.verifyThat((p, factory) -> p.preferOriginalSlot(factory, "SOFT"))
+                .given(matching)
+                .penalizesBy(0);
+    }
+
+    @Test
     void typedPreferredPenalizesTeacherOutsidePreferredPeriodsOnHardLayer() {
         TypedScheduleRule rule =
                 new TypedScheduleRule(

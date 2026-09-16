@@ -13,4 +13,5 @@ public record TeachingRequirementItem(
         String requiredFeatures,
         String pinnedPeriodCode,
         String roomAssignmentMode,
+        String preferredPeriodCodes,
         boolean active) {}

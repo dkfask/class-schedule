@@ -132,8 +132,9 @@ def build_dataset(lessons: list[dict]) -> dict:
     requirements = collections.OrderedDict()
     for lesson in lessons:
         key = (lesson["class"], lesson["subject"], lesson["teacher"])
-        requirements.setdefault(key, 0)
-        requirements[key] += 1
+        requirements.setdefault(key, {"weekly": 0, "slots": []})
+        requirements[key]["weekly"] += 1
+        requirements[key]["slots"].append((lesson["day"], lesson["period"]))
 
     return {
         "classes": classes,
@@ -203,6 +204,7 @@ def write_workbook(dataset: dict, term_code: str, target: Path) -> None:
             "固定节次编码",
             "是否启用",
             "教室分配模式",
+            "期望节次编码",
         ],
         "资源可用性": ["资源类型", "资源编码", "学期编码", "节次编码", "是否可用"],
         "特征目录": ["编码", "名称", "是否启用"],
@@ -232,7 +234,7 @@ def write_workbook(dataset: dict, term_code: str, target: Path) -> None:
             f"MASTER_DATA v1；数据来源：2026-2027学年度上期芙蓉校区班级总课表；"
             f"目标学期 {term_code}；17 个行政班、{len(teachers)} 名教师、{len(subjects)} 门课程、"
             f"{len(rooms)} 间教室、{len(requirements)} 条教学需求；"
-            "单双周轮换课程按第二位教师建模（该映射与真实课表零冲突）；普通课程绑定行政班教室，音乐、美术、科学课程使用可选教室池。"
+            "单双周轮换课程按第二位教师建模（该映射与真实课表零冲突）；普通课程绑定行政班教室，音乐、美术、科学课程使用可选教室池；期望节次编码记录真实课表的原始排位，供 PREFER_ORIGINAL_SLOT 软规则贴原课表重排。"
         ),
     )
 
@@ -266,9 +268,17 @@ def write_workbook(dataset: dict, term_code: str, target: Path) -> None:
         sheet.cell(row=row, column=4, value=room_type)
         sheet.cell(row=row, column=5, value="TRUE")
 
+    def slot_code(day_name: str, period: int) -> str:
+        day_index = DAYS.index(day_name) + 1
+        if day_index <= 2 and period <= 2:
+            return ["MON", "TUE"][day_index - 1] + f"-{period}"
+        return f"DAY-{day_index}-{period}"
+
     requirement_sheet = workbook["教学需求"]
     requirement_index = {}
-    for index, ((class_label, subject, teacher), weekly) in enumerate(requirements.items(), start=1):
+    for index, ((class_label, subject, teacher), info) in enumerate(requirements.items(), start=1):
+        weekly = info["weekly"]
+        preferred = ";".join(slot_code(day, period) for day, period in info["slots"])
         grade, number = class_sort_key(class_label)
         # A class can study one subject with two different teachers (e.g. 道法 split
         # across two teachers), so the teacher number keeps requirement codes unique.
@@ -293,6 +303,7 @@ def write_workbook(dataset: dict, term_code: str, target: Path) -> None:
             column=11,
             value="FLEXIBLE" if subject in FLEXIBLE_SUBJECTS else "HOME",
         )
+        requirement_sheet.cell(row=row, column=12, value=preferred)
 
     workbook.save(target)
 
@@ -328,7 +339,7 @@ def main() -> None:
         "subjects": len(dataset["subjects"]),
         "requirements": len(dataset["requirements"]),
         "flexibleRoomRequirements": sum(
-            value
+            value["weekly"]
             for (class_label, subject, _teacher), value in dataset["requirements"].items()
             if subject in FLEXIBLE_SUBJECTS
         ),
@@ -345,7 +356,7 @@ def main() -> None:
         "subjects": dataset["subjects"],
         "classes": dataset["classes"],
         "requirementsDetail": [
-            {"class": key[0], "subject": key[1], "teacher": key[2], "weeklyPeriods": value}
+            {"class": key[0], "subject": key[1], "teacher": key[2], "weeklyPeriods": value["weekly"]}
             for key, value in dataset["requirements"].items()
         ],
     }

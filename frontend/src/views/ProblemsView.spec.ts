@@ -73,4 +73,21 @@ describe('ProblemsView', () => {
     expect(problem.status).toBe('IN_PROGRESS')
     wrapper.unmount()
   })
+
+  it('points an empty problem list to the publish checklist', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
+      if (url.startsWith('/api/problems?')) return response({ items: [] })
+      throw new Error(`Unexpected request: ${url}`)
+    }))
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/problems', component: ProblemsView }] })
+    await router.push('/problems')
+    await router.isReady()
+    const wrapper = mount(ProblemsView, { global: { plugins: [router] } })
+    await flushPromises()
+    expect(wrapper.get('[data-testid="empty-state"]').text()).toContain('还没有问题记录')
+    expect(wrapper.find('a[href="/versions"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
 })

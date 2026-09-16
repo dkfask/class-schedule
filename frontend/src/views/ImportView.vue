@@ -5,7 +5,7 @@ import ImportPanel from '../components/ImportPanel.vue'
 <template>
   <header class="topbar">
     <div>
-      <p class="eyebrow">IMPORT / MASTER DATA</p>
+      <p class="eyebrow">学期准备</p>
       <h1>数据导入</h1>
     </div>
     <div class="top-actions">

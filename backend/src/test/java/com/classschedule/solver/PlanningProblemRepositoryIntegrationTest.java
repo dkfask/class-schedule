@@ -129,6 +129,37 @@ class PlanningProblemRepositoryIntegrationTest {
     }
 
     @Test
+    void loadsPreferredPeriodCodesAndWarmsStartTimeslot() {
+        Long requirementId =
+                jdbc.queryForObject(
+                        "INSERT INTO teaching_requirement (code, term_id, student_group_id, subject_id, teacher_id, weekly_periods, duration_periods, preferred_period_codes) VALUES ('REQ-PREFERRED', (SELECT id FROM academic_term WHERE code='2026-FALL'), (SELECT id FROM student_group WHERE code='G7-1'), (SELECT id FROM subject WHERE code='MATH'), (SELECT id FROM teacher WHERE code='T001'), 2, 1, 'MON-1;TUE-2') RETURNING id",
+                        Long.class);
+
+        try {
+            PlanningProblem problem = repository.loadDefault();
+            Timetable timetable = problem.toTimetable();
+            LessonOccurrence first =
+                    timetable.getOccurrences().stream()
+                            .filter(item -> item.getId().equals(requirementId * 100))
+                            .findFirst()
+                            .orElseThrow();
+            LessonOccurrence second =
+                    timetable.getOccurrences().stream()
+                            .filter(item -> item.getId().equals(requirementId * 100 + 1))
+                            .findFirst()
+                            .orElseThrow();
+            assertThat(first.getPreferredPeriodCodes()).isEqualTo("MON-1;TUE-2");
+            assertThat(first.preferredPeriodCodeAt(0)).isEqualTo("MON-1");
+            assertThat(first.getTimeslot().getId()).isEqualTo("MON-1");
+            assertThat(first.isPinned()).isFalse();
+            assertThat(second.preferredPeriodCodeAt(1)).isEqualTo("TUE-2");
+            assertThat(second.getTimeslot().getId()).isEqualTo("TUE-2");
+        } finally {
+            jdbc.update("DELETE FROM teaching_requirement WHERE id = ?", requirementId);
+        }
+    }
+
+    @Test
     void flexibleRequirementKeepsTheFullEligibleRoomPool() {
         Long requirementId =
                 jdbc.queryForObject(

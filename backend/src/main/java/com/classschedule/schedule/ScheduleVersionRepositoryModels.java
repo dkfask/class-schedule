@@ -18,7 +18,8 @@ public final class ScheduleVersionRepositoryModels {
             OffsetDateTime updatedAt,
             OffsetDateTime archivedAt,
             boolean editLocked,
-            String editLockOwner) {
+            String editLockOwner,
+            OwnerApproval ownerApproval) {
         public Integer hardScore() {
             return ScheduleScoreView.parse(score).hardScore();
         }
@@ -53,7 +54,8 @@ public final class ScheduleVersionRepositoryModels {
                     null,
                     null,
                     false,
-                    null);
+                    null,
+                    OwnerApproval.none());
         }
     }
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import EmptyState from '../components/EmptyState.vue'
 import { http } from '../api/http'
-import { resolveScore } from '../utils/score'
+import { describeScore, resolveScore } from '../utils/score'
 import { useTermStore } from '../stores/term'
 import { getPeriods, getResourceOptions, getSlotItems, getWeekdays, type WorkspaceOccurrence, type WorkspaceOptions, type WorkspaceViewType } from '../utils/workspace'
 
@@ -125,8 +126,8 @@ onMounted(() => void load())
 <template>
   <header class="topbar">
     <div>
-      <p class="eyebrow">PUBLISHED / READ ONLY</p>
-      <h1>全校已发布课表</h1>
+      <p class="eyebrow">已发布课表</p>
+      <h1>全校正式课表</h1>
     </div>
     <div class="top-actions">
       <span class="sync-state">● 正式只读查看</span>
@@ -137,8 +138,8 @@ onMounted(() => void load())
   <section class="data-page panel published-page canvas-card">
     <div class="data-toolbar">
       <div>
-        <span class="eyebrow">PUBLISHED SCHEDULES</span>
-        <h2>官方已发布版本</h2>
+        <span class="eyebrow">本学期正式版本</span>
+        <h2>已发布课表</h2>
       </div>
       <div class="published-actions">
         <el-button plain :disabled="!selected" @click="download('xlsx')">下载 Excel</el-button>
@@ -161,17 +162,23 @@ onMounted(() => void load())
         @click="selectVersion(version.id)"
       >
         <div class="flex justify-between items-center">
-          <strong>版本 v{{ version.id }} · revision {{ version.revision ?? 0 }}</strong>
+          <strong>版本 v{{ version.id }}</strong>
           <span class="published-badge">正式发布</span>
         </div>
         <span>
-          {{ version.status }} · {{ version.score ?? '未评分' }} · H{{ scoreParts(version).hard ?? '—' }} / M{{ scoreParts(version).medium ?? '—' }} / S{{ scoreParts(version).soft ?? '—' }}
+          {{ describeScore(scoreParts(version)) }}
         </span>
         <small>{{ version.createdAt ?? '' }}</small>
       </button>
     </div>
 
-    <el-empty v-else-if="!loading" description="暂无已发布课表" />
+    <EmptyState
+      v-else-if="!loading"
+      title="本学期还没有已发布课表"
+      description="完成自动排课和发布检查后，教师和管理人员才能在这里查看正式课表。"
+      action-label="去检查与发布"
+      to="/versions"
+    />
 
     <div v-if="versions.length" class="published-workspace" data-testid="published-schedule-view">
       <div class="published-filter-bar">

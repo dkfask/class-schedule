@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -42,6 +43,67 @@ public class SolveJobRepository {
     @Transactional
     public SolveJobHandle enqueue(String idempotencyKey, String submittedByUsername) {
         return enqueue(idempotencyKey, submittedByUsername, null);
+    }
+
+    /** 试排：对已存在的草稿版本入队求解（条件已在规则表中生效）。 */
+    @Transactional
+    public SolveJobHandle enqueueForVersion(
+            String idempotencyKey, String submittedByUsername, long versionId) {
+        String owner = normalizedOwner(submittedByUsername);
+        requireKnownUser(owner);
+        String termCode =
+                jdbc.queryForObject(
+                        "SELECT t.code FROM schedule_version v JOIN schedule_scenario s ON s.id=v.scenario_id JOIN academic_term t ON t.id=s.term_id WHERE v.id=?",
+                        String.class,
+                        versionId);
+        SolveReadiness checked = readiness.check(terms.resolve(termCode));
+        if (!checked.ready()) throw new SolveReadinessException(checked);
+        ScheduleSnapshotHashService.Snapshot snapshot = snapshots.snapshot(termCode);
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            lockIdempotencyKey(idempotencyKey, owner);
+            Optional<SolveJobHandle> existing = findActiveByIdempotencyKey(idempotencyKey, owner);
+            if (existing.isPresent()) return existing.get();
+        }
+        int claimable =
+                jdbc.update(
+                        "UPDATE schedule_version SET status='SOLVING', snapshot_term_code=?, input_snapshot_hash=?, rule_snapshot_hash=?, input_snapshot_at=CURRENT_TIMESTAMP WHERE id=? AND status IN ('DRAFT','CANDIDATE')",
+                        snapshot.termCode(),
+                        snapshot.inputHash(),
+                        snapshot.ruleHash(),
+                        versionId);
+        if (claimable == 0) throw new IllegalArgumentException("版本不存在或当前状态不可求解: " + versionId);
+        Long jobId =
+                jdbc.queryForObject(
+                        "INSERT INTO solve_job (schedule_version_id, status, idempotency_key, next_attempt_at, deadline_at, submitted_by_user_id) VALUES (?, 'QUEUED', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '15 minutes', (SELECT id FROM app_user WHERE username = ?)) RETURNING id",
+                        Long.class,
+                        versionId,
+                        idempotencyKey == null || idempotencyKey.isBlank()
+                                ? UUID.randomUUID().toString()
+                                : idempotencyKey,
+                        owner);
+        return new SolveJobHandle(jobId, versionId, "QUEUED");
+    }
+
+    public void lockIdempotencyKeyForOwner(String idempotencyKey, String submittedByUsername) {
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            lockIdempotencyKey(idempotencyKey, normalizedOwner(submittedByUsername));
+        }
+    }
+
+    public Optional<SolveJobHandle> findActiveByIdempotencyKey(
+            String idempotencyKey, String submittedByUsername) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) return Optional.empty();
+        return jdbc.query(
+                        "SELECT j.id, j.schedule_version_id, j.status FROM solve_job j JOIN app_user u ON u.id=j.submitted_by_user_id WHERE j.idempotency_key=? AND u.username=? AND j.status IN ('QUEUED','RUNNING')",
+                        (rs, rowNum) ->
+                                new SolveJobHandle(
+                                        rs.getLong("id"),
+                                        rs.getLong("schedule_version_id"),
+                                        rs.getString("status")),
+                        idempotencyKey,
+                        submittedByUsername)
+                .stream()
+                .findFirst();
     }
 
     @Transactional
@@ -266,7 +328,7 @@ public class SolveJobRepository {
                                     room == null ? 0 : room.getCapacity());
                         });
         jdbc.update(
-                "UPDATE schedule_version SET status = 'CANDIDATE', score = ?, legacy_identity_unverified = ? WHERE id = ? AND status = 'SOLVING'",
+                "UPDATE schedule_version SET status = 'CANDIDATE', score = ?, legacy_identity_unverified = ?, owner_approval_status = CASE WHEN EXISTS (SELECT 1 FROM app_user u JOIN app_user_role ur ON ur.user_id = u.id JOIN app_role r ON r.id = ur.role_id WHERE u.enabled = TRUE AND r.active = TRUE AND r.code = 'BUSINESS_OWNER') THEN 'PENDING' ELSE 'NONE' END, owner_approval_comment = NULL, owner_approved_by = NULL, owner_approved_at = NULL WHERE id = ? AND status = 'SOLVING'",
                 score,
                 !identityComplete(solution),
                 versionId);
@@ -280,6 +342,33 @@ public class SolveJobRepository {
                     String.valueOf(jobId),
                     versionId,
                     score);
+            Integer pending =
+                    jdbc.queryForObject(
+                            """
+                            SELECT COUNT(*) FROM schedule_version v
+                            WHERE v.id = ? AND v.status IN ('DRAFT', 'CANDIDATE') AND v.owner_approval_status = 'PENDING'
+                              AND NOT EXISTS (
+                                SELECT 1 FROM audit_event e
+                                WHERE e.action = 'OWNER_APPROVAL_PENDING'
+                                  AND e.aggregate_type = 'SCHEDULE_VERSION'
+                                  AND e.aggregate_id = v.id::text
+                                  AND e.created_at > COALESCE((
+                                    SELECT MAX(decided.created_at) FROM audit_event decided
+                                    WHERE decided.action IN ('OWNER_APPROVE', 'OWNER_REJECT')
+                                      AND decided.aggregate_type = 'SCHEDULE_VERSION'
+                                      AND decided.aggregate_id = v.id::text
+                                  ), TIMESTAMP WITH TIME ZONE 'epoch')
+                              )
+                            """,
+                            Integer.class,
+                            versionId);
+            if (pending != null && pending > 0) {
+                jdbc.update(
+                        "INSERT INTO audit_event(action, aggregate_type, aggregate_id, actor, actor_kind, detail) VALUES ('OWNER_APPROVAL_PENDING', 'SCHEDULE_VERSION', ?, 'worker', 'SERVICE', jsonb_build_object('versionId', ?::bigint, 'termCode', (SELECT t.code FROM schedule_version v JOIN schedule_scenario s ON s.id = v.scenario_id JOIN academic_term t ON t.id = s.term_id WHERE v.id = ?)))",
+                        String.valueOf(versionId),
+                        versionId,
+                        versionId);
+            }
         }
         return completed;
     }

@@ -29,7 +29,7 @@ describe('RuleTemplatesView', () => {
       throw new Error(`Unexpected request: ${url}`)
     }))
 
-    const wrapper = mount(RuleTemplatesView)
+    const wrapper = mount(RuleTemplatesView, { global: { stubs: { RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' } } } })
     await flushPromises()
     expect(wrapper.get('[data-testid="rule-templates-page"]').text()).toContain('新增')
     expect(wrapper.text()).toContain('学校默认规则')

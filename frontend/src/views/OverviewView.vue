@@ -2,7 +2,11 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { http } from '../api/http'
+import EmptyState from '../components/EmptyState.vue'
+import { useAuthStore } from '../stores/auth'
 import { useTermStore } from '../stores/term'
+import { buildFirstRunSteps, firstRunPrimaryStep, isFirstRunTerm, issueDestination } from '../utils/firstRun'
+import { versionStatusLabel } from '../utils/score'
 
 interface OverviewResource {
   code: string
@@ -35,6 +39,7 @@ interface VersionSummary {
   status: string
   score?: string | null
   publishable?: boolean
+  ownerApproval?: { status?: string; required?: boolean }
   createdAt?: string
   updatedAt?: string
   revision?: number
@@ -58,6 +63,7 @@ interface StageItem {
 }
 
 const term = useTermStore()
+const auth = useAuthStore()
 const overview = ref<OverviewData | null>(null)
 const readiness = ref<SolveReadiness | null>(null)
 const versions = ref<VersionSummary[]>([])
@@ -103,7 +109,7 @@ const dashboardMetrics = computed(() => [
     label: '核心数据就绪度',
     value: dataReadinessPercent.value,
     detail: overview.value ? `${[resourceCounts.value.teachers, resourceCounts.value.studentGroups, resourceCounts.value.subjects, resourceCounts.value.rooms, resourceCounts.value.periods].filter(Boolean).length} / 5 类数据已载入` : '等待同步',
-    to: '/master-data',
+    to: auth.isPlanner ? '/master-data' : '/versions',
     tone: hasCoreData.value ? 'success' : 'info',
     icon: '◇',
   },
@@ -111,14 +117,14 @@ const dashboardMetrics = computed(() => [
     label: '待处理问题',
     value: String(readinessIssues.value.length),
     detail: readinessIssues.value.length ? '需要处理的前置检查项' : '当前没有阻塞项',
-    to: '/rule-facts',
+    to: auth.isPlanner ? '/rule-facts' : '/versions',
     tone: readinessIssues.value.length ? 'warning' : 'success',
     icon: '!',
   },
   {
     label: '当前工作版本',
     value: latestVersion.value ? `v${latestVersion.value.id}` : '—',
-    detail: latestVersion.value ? versionStatusLabel(latestVersion.value.status) : '尚未提交求解',
+    detail: latestVersion.value ? versionStatusLabel(latestVersion.value.status) : '尚未提交自动排课',
     to: '/versions',
     tone: 'info',
     icon: '□',
@@ -146,29 +152,95 @@ const readinessState = computed(() => {
   return { label: '数据尚未就绪', tone: 'warning' }
 })
 
+const blockingIssue = computed(() => readinessIssues.value[0])
+
+const firstRun = computed(() => isFirstRunTerm({
+  isPlanner: auth.isPlanner,
+  hasPublished: Boolean(publishedVersion.value),
+  hasCoreData: hasCoreData.value,
+  requirementCount: requirementCount.value,
+  ready: Boolean(readiness.value?.ready),
+}))
+const ownerReview = computed(() => auth.isBusinessOwner && !auth.isPlanner)
+const inspectVersions = computed(() => ({
+  title: ownerReview.value ? '审阅候选课表' : '查看检查清单',
+  description: ownerReview.value
+    ? '当前学期还不能面向全校。业务负责人可以查看进度、差异和审阅清单，并在课次排齐后批准或退回。'
+    : '审核员可以查看检查清单，但不能导入或修改数据。',
+  label: ownerReview.value ? '打开审批清单' : '查看检查清单',
+  to: '/versions',
+}))
+const firstRunSteps = computed(() => buildFirstRunSteps({
+  hasCoreData: hasCoreData.value,
+  requirementCount: requirementCount.value,
+  ready: Boolean(readiness.value?.ready),
+  blockingMessage: blockingIssue.value?.message,
+  blockingCode: blockingIssue.value?.code,
+}))
+const firstRunPrimary = computed(() => firstRunPrimaryStep(firstRunSteps.value))
+
 const nextAction = computed(() => {
   if (!term.hasValidTerm.value) {
-    return { title: '先选择一个可用学期', description: '选择学期后才能查看准备度和排课进度。', label: '查看基础数据', to: '/master-data' }
+    return auth.isPlanner
+      ? { title: '先选择一个可用学期', description: '选择学期后才能查看准备度和排课进度。', label: '查看基础数据', to: '/master-data' }
+      : { title: '先选择一个可用学期', description: '选择学期后才能查看准备度和课表进度。', label: '打开已发布课表', to: '/published' }
   }
   if (loading.value && !overview.value) {
-    return { title: '正在读取当前学期', description: '总览正在同步基础数据、排课准备度和版本状态。', label: '刷新总览', to: '/workspace' }
+    return { title: '正在读取当前学期', description: '总览正在同步基础数据、排课准备度和版本状态。', label: '刷新总览', to: '/overview' }
   }
   if (!overview.value || !hasCoreData.value) {
-    return { title: '补齐基础数据', description: '先准备教师、班级、课程、教室和节次，才能进行可靠的预检。', label: '配置基础数据', to: '/master-data' }
+    return auth.isPlanner
+      ? { title: '补齐基础数据', description: '先准备教师、班级、课程、教室和节次，或从模板导入本学期数据。', label: '导入学期数据', to: '/import' }
+      : { title: '等待排课员补齐数据', description: inspectVersions.value.description, label: inspectVersions.value.label, to: inspectVersions.value.to }
   }
   if (requirementCount.value === 0) {
-    return { title: '编制教学计划', description: '当前学期还没有可用于求解的教学需求。', label: '进入教学计划', to: '/teaching-plan' }
+    return auth.isPlanner
+      ? { title: '编制教学计划', description: '当前学期还没有可用于排课的教学需求。', label: '进入教学计划', to: '/teaching-plan' }
+      : { title: '等待排课员编制教学计划', description: ownerReview.value ? '当前学期还没有教学需求。业务负责人可以查看进度，但不能修改计划。' : '当前学期还没有教学需求。审核员可以查看检查清单，但不能修改计划。', label: inspectVersions.value.label, to: inspectVersions.value.to }
   }
   if (!readiness.value?.ready) {
-    return { title: '处理排课前置问题', description: readinessIssues.value[0]?.message ?? '请完成当前学期的排课前置检查。', label: '查看规则与检查', to: '/rule-facts' }
+    return auth.isPlanner
+      ? {
+          title: '处理排课前置问题',
+          description: blockingIssue.value?.message ?? '请完成当前学期的排课前置检查。',
+          label: blockingIssue.value?.code === 'NO_ACTIVE_ROOMS' ? '配置基础数据' : '查看处理入口',
+          to: issueDestination(blockingIssue.value?.code),
+        }
+      : {
+          title: '排课前置问题待处理',
+          description: blockingIssue.value?.message ?? '请等待排课员完成当前学期的前置检查。',
+          label: inspectVersions.value.label,
+          to: inspectVersions.value.to,
+        }
   }
   if (workingVersion.value && ['DRAFT', 'CANDIDATE'].includes(workingVersion.value.status)) {
-    return { title: '检查候选版本', description: '当前已有候选版本，可以进入版本页面完成检查和发布。', label: '检查并发布版本', to: '/versions' }
+    return auth.isPlanner
+      ? { title: '检查候选版本', description: '当前已有候选版本，可以进入版本页面完成检查和发布。', label: '检查并发布版本', to: '/versions' }
+      : {
+          title: '审阅候选课表',
+          description: ownerReview.value
+            ? workingVersion.value?.ownerApproval?.status === 'APPROVED'
+              ? '您已批准当前候选课表。排课员填写版本说明后即可面向全校，您不能代替排课员发布。'
+              : workingVersion.value?.ownerApproval?.status === 'REJECTED'
+                ? '您已退回当前候选课表。排课员处理后会重新进入待审批。'
+                : '当前已有候选课表。请核对课次、冲突和差异后批准或退回；批准后仍由排课员发布。'
+            : '当前已有候选课表。审核员可以查看检查清单和差异，但不能发布。',
+          label: ownerReview.value
+            ? workingVersion.value?.ownerApproval?.status === 'APPROVED'
+              ? '查看已批准清单'
+              : workingVersion.value?.ownerApproval?.status === 'REJECTED'
+                ? '查看退回原因'
+                : '打开审批清单'
+            : '查看检查清单',
+          to: '/versions',
+        }
   }
   if (publishedVersion.value) {
     return { title: '查看已发布课表', description: `当前学期已有正式版本 v${publishedVersion.value.id}，可以直接查询或导出。`, label: '打开已发布课表', to: '/published' }
   }
-  return { title: '开始自动排课', description: '排课前置检查已通过，可以提交新的求解任务。', label: '进入排课工作台', to: '/workspace' }
+  return auth.isPlanner
+    ? { title: '开始自动排课', description: '排课前置检查已通过，可以提交新的排课任务。', label: '进入自动排课', to: '/workspace' }
+    : { title: '等待候选课表', description: '排课前置检查已通过，请等待排课员提交自动排课。', label: inspectVersions.value.label, to: inspectVersions.value.to }
 })
 
 const stageItems = computed<StageItem[]>(() => {
@@ -178,39 +250,48 @@ const stageItems = computed<StageItem[]>(() => {
   const publishStatus: StageStatus = publishedVersion.value ? 'done' : workingVersion.value ? 'active' : 'pending'
   return [
     {
-      key: 'data', number: '01', label: '基础数据',
-      detail: hasCoreData.value ? `${resourceCounts.value.teachers} 位教师 · ${resourceCounts.value.rooms} 间教室` : '教师、班级、课程、教室和节次',
+      key: 'data', number: '01', label: '数据准备',
+      detail: hasCoreData.value ? `${resourceCounts.value.teachers} 位教师 · ${resourceCounts.value.rooms} 间教室` : '导入或维护教师、班级、课程、教室和节次',
       status: overview.value && hasCoreData.value ? 'done' : overview.value ? 'blocked' : 'pending',
       statusLabel: overview.value && hasCoreData.value ? '已准备' : overview.value ? '待补齐' : '待开始',
-      to: '/master-data', action: '管理数据',
+      to: auth.isPlanner ? (hasCoreData.value ? '/master-data' : '/import') : '/versions',
+      action: auth.isPlanner ? (hasCoreData.value ? '管理数据' : '导入数据') : '查看进度',
     },
     {
       key: 'plan', number: '02', label: '教学计划',
       detail: requirementCount.value ? `${requirementCount.value} 项教学需求` : '还没有可排课的教学需求',
       status: requirementCount.value ? 'done' : 'blocked',
       statusLabel: requirementCount.value ? '已建立' : '待建立',
-      to: '/teaching-plan', action: '查看计划',
+      to: auth.isPlanner ? '/teaching-plan' : '/versions',
+      action: auth.isPlanner ? '查看计划' : '查看进度',
     },
     {
       key: 'rules', number: '03', label: '规则检查',
       detail: readiness.value?.ready ? '排课前置检查已通过' : readinessIssues.value[0]?.message ?? '等待数据完成后检查',
       status: readiness.value?.ready ? 'done' : readiness.value ? 'blocked' : 'pending',
       statusLabel: readiness.value?.ready ? '已通过' : readiness.value ? '有阻塞' : '待检查',
-      to: '/rule-facts', action: '查看检查',
+      to: auth.isPlanner ? '/rule-facts' : '/versions',
+      action: auth.isPlanner ? '查看检查' : '查看进度',
     },
     {
       key: 'solve', number: '04', label: '自动排课',
       detail: latestVersion.value ? `${versionStatusLabel(latestVersion.value.status)} · v${latestVersion.value.id}` : '还没有候选排课版本',
       status: solveStatus,
       statusLabel: latestVersion.value ? versionStatusLabel(latestVersion.value.status) : '待开始',
-      to: '/workspace', action: '进入工作台',
+      to: auth.isPlanner ? '/workspace' : '/versions',
+      action: auth.isPlanner ? '开始排课' : '查看进度',
     },
     {
       key: 'publish', number: '05', label: '发布交付',
-      detail: publishedVersion.value ? `正式版本 v${publishedVersion.value.id} 已发布` : '完成检查后发布给教师和管理人员',
+      detail: publishedVersion.value
+        ? `正式版本 v${publishedVersion.value.id} 已发布`
+        : ownerReview.value
+          ? '批准后仍由排课员面向全校发布'
+          : '完成检查后发布给教师和管理人员',
       status: publishStatus,
-      statusLabel: publishedVersion.value ? '已发布' : workingVersion.value ? '待检查' : '待发布',
-      to: publishedVersion.value ? '/published' : '/versions', action: publishedVersion.value ? '查看课表' : '进入发布',
+      statusLabel: publishedVersion.value ? '已发布' : workingVersion.value ? (ownerReview.value ? '待审阅' : '待检查') : '待发布',
+      to: publishedVersion.value ? '/published' : '/versions',
+      action: publishedVersion.value ? '查看课表' : (auth.isPlanner ? '进入发布' : ownerReview.value ? '打开审批' : '查看进度'),
     },
   ]
 })
@@ -220,13 +301,13 @@ const recentSignals = computed(() => {
   if (latestVersion.value) {
     signals.push({
       label: '最近版本',
-      detail: `v${latestVersion.value.id} · ${versionStatusLabel(latestVersion.value.status)}${latestVersion.value.publishable ? ' · 可发布' : ''}`,
+      detail: `v${latestVersion.value.id} · ${versionStatusLabel(latestVersion.value.status)}${latestVersion.value.publishable ? (ownerReview.value ? (latestVersion.value.ownerApproval?.status === 'APPROVED' ? ' · 已批准' : ' · 待审批') : (latestVersion.value.ownerApproval?.required && latestVersion.value.ownerApproval?.status !== 'APPROVED' ? ' · 待审批' : ' · 可发布')) : ''}`,
       time: formatDate(latestVersion.value.updatedAt ?? latestVersion.value.createdAt),
     })
   }
   signals.push({
     label: '数据预检',
-    detail: readiness.value?.ready ? '当前学期已满足求解前置条件' : readinessIssues.value[0]?.message ?? '等待检查结果',
+    detail: readiness.value?.ready ? '当前学期已满足自动排课条件' : readinessIssues.value[0]?.message ?? '等待检查结果',
     time: lastLoadedAt.value ? `同步于 ${lastLoadedAt.value}` : '尚未同步',
   })
   signals.push({
@@ -236,18 +317,6 @@ const recentSignals = computed(() => {
   })
   return signals
 })
-
-function versionStatusLabel(status: string) {
-  const labels: Record<string, string> = {
-    DRAFT: '草稿',
-    SOLVING: '求解中',
-    CANDIDATE: '候选版本',
-    PUBLISHED: '已发布',
-    ARCHIVED: '已归档',
-    CANCELLED: '已取消',
-  }
-  return labels[status] ?? status
-}
 
 function formatDate(value?: string) {
   if (!value) return '尚未记录'
@@ -309,9 +378,9 @@ onMounted(async () => {
   <div class="overview-page">
     <header class="topbar">
       <div class="overview-heading">
-        <p class="overview-breadcrumb">智程排课系统 <span>/</span> 学期总览 <span>/</span> <strong>{{ termLabel }}</strong></p>
+        <p class="overview-breadcrumb">智程排课 <span>/</span> 学期总览 <span>/</span> <strong>{{ termLabel }}</strong></p>
         <h1>学期总览</h1>
-        <p class="topbar-subtitle">排课准备度与发布状态一览</p>
+        <p class="topbar-subtitle">当前学期该做什么、卡在哪里、下一步去哪</p>
       </div>
       <div class="top-actions">
         <span class="sync-state" :class="{ 'sync-loading': loading }"><i></i>{{ loading ? '正在同步' : `最后同步 ${lastLoadedAt || '尚未同步'}` }}</span>
@@ -330,6 +399,17 @@ onMounted(async () => {
       <button type="button" class="text-button" :disabled="loading" @click="refresh">重新加载</button>
     </div>
 
+    <section v-if="firstRun" class="overview-panel first-run-panel" data-testid="first-run-guide">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">首次排课</span>
+          <h2>按这四步完成本学期课表</h2>
+          <p class="first-run-lead">当前应先{{ firstRunPrimary.title }}。完整步骤在首次排课页按顺序完成，总览只保留进度入口。</p>
+        </div>
+        <RouterLink class="primary-action" to="/setup">打开首次排课 <span aria-hidden="true">→</span></RouterLink>
+      </div>
+    </section>
+
     <section class="overview-metrics dashboard-metrics" aria-label="当前学期状态概览">
       <RouterLink v-for="metric in dashboardMetrics" :key="metric.label" class="overview-metric" :class="`metric-${metric.tone}`" :to="metric.to">
         <div class="metric-topline"><span>{{ metric.label }}</span><b class="metric-icon" aria-hidden="true">{{ metric.icon }}</b></div>
@@ -344,8 +424,8 @@ onMounted(async () => {
       <div class="overview-panel pipeline-panel preparation-panel">
         <div class="panel-heading">
           <div>
-            <span class="eyebrow">PREPARATION / WORKFLOW</span>
-            <h2>排课准备度与流水线推进</h2>
+            <span class="eyebrow">本学期流程</span>
+            <h2>排课准备度与交付进度</h2>
           </div>
           <span class="panel-caption" :class="`caption-${readinessState.tone}`">{{ readinessState.label }}</span>
         </div>
@@ -374,15 +454,15 @@ onMounted(async () => {
       <div class="overview-panel health-panel">
         <div class="panel-heading">
           <div>
-            <span class="eyebrow">SYSTEM HEALTH</span>
-            <h2>约束与算法健康度</h2>
+            <span class="eyebrow">学期状态</span>
+            <h2>准备检查与关键数据</h2>
           </div>
           <span class="panel-caption">{{ termLabel }}</span>
         </div>
         <div class="health-list">
           <div class="health-row health-success">
             <span class="health-mark">✓</span>
-            <div><strong>排课前置检查</strong><small>{{ readiness?.ready ? '当前学期已满足求解条件' : readiness ? '存在需要处理的前置问题' : '等待接口返回检查结果' }}</small></div>
+            <div><strong>排课前置检查</strong><small>{{ readiness?.ready ? '当前学期已满足自动排课条件' : readiness ? '存在需要处理的前置问题' : '等待接口返回检查结果' }}</small></div>
             <b>{{ readiness?.ready ? '已通过' : readiness ? `${readinessIssues.length} 项` : '待检查' }}</b>
           </div>
           <div class="health-row health-info">
@@ -398,7 +478,7 @@ onMounted(async () => {
         </div>
         <div class="health-footer">
           <span>规则状态：{{ readinessIssues.length ? '需要关注' : readiness?.ready ? '正常' : '等待同步' }}</span>
-          <RouterLink to="/rule-facts" class="panel-link">查看规则中心 →</RouterLink>
+          <RouterLink :to="auth.isPlanner ? '/rule-facts' : '/versions'" class="panel-link">{{ auth.isPlanner ? '查看规则检查 →' : ownerReview ? '打开审批清单 →' : '查看检查清单 →' }}</RouterLink>
         </div>
       </div>
     </section>
@@ -407,45 +487,47 @@ onMounted(async () => {
       <div class="overview-panel version-panel">
         <div class="panel-heading">
           <div>
-            <span class="eyebrow">VERSION LIFECYCLE</span>
-            <h2>排课版本生命周期</h2>
+            <span class="eyebrow">版本进度</span>
+            <h2>排课版本与发布记录</h2>
           </div>
-          <RouterLink class="panel-link" to="/versions">版本对比 →</RouterLink>
+          <RouterLink class="panel-link" to="/versions">{{ ownerReview ? '打开审批清单 →' : '版本对比 →' }}</RouterLink>
         </div>
         <div v-if="versions.length" class="version-list">
           <RouterLink v-for="version in versions.slice(0, 3)" :key="version.id" class="version-row" to="/versions">
             <span class="version-id">v{{ version.id }}</span>
-            <span class="version-info"><strong>{{ versionStatusLabel(version.status) }}</strong><small>{{ version.publishable ? '满足发布门禁' : `revision ${version.revision ?? 0}` }} · {{ formatDate(version.updatedAt ?? version.createdAt) }}</small></span>
+            <span class="version-info"><strong>{{ versionStatusLabel(version.status) }}</strong><small>{{ version.publishable ? (ownerReview ? (version.ownerApproval?.status === 'APPROVED' ? '已批准，待排课员发布' : version.ownerApproval?.status === 'REJECTED' ? '已退回排课员' : '待您批准') : (version.ownerApproval?.required && version.ownerApproval?.status !== 'APPROVED' ? (version.ownerApproval?.status === 'REJECTED' ? '已退回' : '待业务负责人批准') : '可以发布')) : (ownerReview ? '还不适合面向全校' : '还不能发布') }} · {{ formatDate(version.updatedAt ?? version.createdAt) }}</small></span>
             <span class="version-arrow" aria-hidden="true">→</span>
           </RouterLink>
         </div>
-        <div v-else class="empty-state overview-empty">
-          <span class="empty-icon">□</span>
-          <strong>还没有排课版本</strong>
-          <small>完成前置检查后，可以从排课工作台提交首次求解。</small>
-        </div>
+        <EmptyState
+          v-else
+          title="还没有排课版本"
+          :description="auth.isPlanner ? '完成前置检查后，可以从自动排课生成第一份候选课表。' : '排课员提交自动排课后，这里会出现可供审阅的候选版本。'"
+          :action-label="auth.isPlanner ? '进入自动排课' : inspectVersions.label"
+          :to="auth.isPlanner ? '/workspace' : '/versions'"
+        />
       </div>
 
       <div class="overview-panel blocker-panel">
         <div class="panel-heading">
           <div>
-            <span class="eyebrow">ATTENTION QUEUE</span>
-            <h2>待办与冲突阻断清单</h2>
+            <span class="eyebrow">待处理事项</span>
+            <h2>阻塞项与下一步入口</h2>
           </div>
           <span class="panel-caption warning-caption">{{ readinessIssues.length }} 项</span>
         </div>
         <div v-if="readinessIssues.length" class="blocker-list">
-          <RouterLink v-for="issue in readinessIssues" :key="issue.code" class="blocker-row" to="/rule-facts">
+          <RouterLink v-for="issue in readinessIssues" :key="issue.code" class="blocker-row" :to="auth.isPlanner ? issueDestination(issue.code) : '/versions'">
             <span class="blocker-mark">!</span>
-            <span><strong>{{ issue.message }}</strong><small>{{ issue.code }} · 查看处理入口</small></span>
+            <span><strong>{{ issue.message }}</strong><small>{{ issue.code }} · {{ auth.isPlanner ? '打开处理页面' : '等待排课员处理' }}</small></span>
             <span aria-hidden="true">→</span>
           </RouterLink>
         </div>
         <div v-else-if="readiness?.ready" class="clear-state">
           <span class="clear-mark">✓</span>
           <strong>暂时没有阻塞项</strong>
-          <small>当前学期已通过排课前置检查，可以开始求解或继续处理候选版本。</small>
-          <RouterLink to="/workspace" class="text-button">进入排课工作台 →</RouterLink>
+          <small>当前学期已通过排课前置检查，可以开始排课或继续处理候选版本。</small>
+          <RouterLink :to="auth.isPlanner ? '/workspace' : '/versions'" class="text-button">{{ auth.isPlanner ? '进入自动排课 →' : ownerReview ? '打开审批清单 →' : '查看检查清单 →' }}</RouterLink>
         </div>
         <div v-else class="empty-state overview-empty">
           <span class="empty-icon">—</span>
@@ -458,8 +540,8 @@ onMounted(async () => {
     <section class="overview-panel signal-panel activity-panel">
       <div class="panel-heading">
         <div>
-          <span class="eyebrow">RECENT SIGNALS / AUDIT</span>
-          <h2>最近状态与同步记录</h2>
+            <span class="eyebrow">最近动态</span>
+            <h2>最近状态与同步记录</h2>
         </div>
         <span class="panel-caption">{{ lastLoadedAt ? `同步于 ${lastLoadedAt}` : '尚未同步' }}</span>
       </div>
@@ -476,6 +558,7 @@ onMounted(async () => {
 
 <style scoped>
 .overview-page { display: grid; gap: 20px; }
+.first-run-lead { margin: 8px 0 0; max-width: 36rem; color: #6d8075; font-size: 12px; line-height: 1.5; }
 .top-actions { align-items: center; }
 .icon-button { display: inline-grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; padding: 0; border: 1px solid #D9DEE3; background: #fff; color: #4c7762; cursor: pointer; font-size: 18px; line-height: 1; }
 .icon-button:hover:not(:disabled) { border-color: #3B6F8F; color: #23654a; }

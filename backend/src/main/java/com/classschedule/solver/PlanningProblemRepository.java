@@ -145,7 +145,7 @@ public class PlanningProblemRepository {
                 termId);
         var requirements =
                 jdbc.query(
-                        "SELECT r.id,r.code requirement_code,s.code subject_code,s.name subject_name,t.code teacher_code,t.name teacher_name,g.code group_code,g.name group_name,home.code home_room_code,COALESCE(NULLIF(r.student_count,0),g.student_count,0) student_count,r.weekly_periods,r.duration_periods,r.pinned_period_code,r.room_assignment_mode,ag.code activity_group_code,ag.activity_type,COALESCE(ag.member_index,-1) activity_member_index FROM teaching_requirement r JOIN subject s ON s.id=r.subject_id JOIN teacher t ON t.id=r.teacher_id JOIN student_group g ON g.id=r.student_group_id LEFT JOIN room home ON home.id=g.home_room_id JOIN academic_term term ON term.id=r.term_id LEFT JOIN LATERAL (SELECT ag.code,ag.activity_type,agm.member_index FROM activity_group_member agm JOIN activity_group ag ON ag.id=agm.activity_group_id WHERE agm.teaching_requirement_id=r.id AND ag.term_id=term.id AND ag.active=TRUE LIMIT 1) ag ON TRUE WHERE term.code=? AND r.active=TRUE ORDER BY r.id",
+                        "SELECT r.id,r.code requirement_code,s.code subject_code,s.name subject_name,t.code teacher_code,t.name teacher_name,g.code group_code,g.name group_name,home.code home_room_code,COALESCE(NULLIF(r.student_count,0),g.student_count,0) student_count,r.weekly_periods,r.duration_periods,r.pinned_period_code,r.room_assignment_mode,r.preferred_period_codes,ag.code activity_group_code,ag.activity_type,COALESCE(ag.member_index,-1) activity_member_index FROM teaching_requirement r JOIN subject s ON s.id=r.subject_id JOIN teacher t ON t.id=r.teacher_id JOIN student_group g ON g.id=r.student_group_id LEFT JOIN room home ON home.id=g.home_room_id JOIN academic_term term ON term.id=r.term_id LEFT JOIN LATERAL (SELECT ag.code,ag.activity_type,agm.member_index FROM activity_group_member agm JOIN activity_group ag ON ag.id=agm.activity_group_id WHERE agm.teaching_requirement_id=r.id AND ag.term_id=term.id AND ag.active=TRUE LIMIT 1) ag ON TRUE WHERE term.code=? AND r.active=TRUE ORDER BY r.id",
                         (rs, rowNum) ->
                                 new RequirementRow(
                                         rs.getLong("id"),
@@ -162,6 +162,7 @@ public class PlanningProblemRepository {
                                         rs.getInt("duration_periods"),
                                         rs.getString("pinned_period_code"),
                                         rs.getString("room_assignment_mode"),
+                                        rs.getString("preferred_period_codes"),
                                         rs.getString("activity_group_code"),
                                         rs.getString("activity_type"),
                                         rs.getInt("activity_member_index")),
@@ -237,6 +238,7 @@ public class PlanningProblemRepository {
         occurrence.setActivityType(row.activityType());
         occurrence.setActivityMemberIndex(row.activityMemberIndex());
         occurrence.setPinnedPeriodCode(row.pinnedPeriodCode());
+        occurrence.setPreferredPeriodCodes(row.preferredPeriodCodes());
         occurrence.setRequiredFeatures(
                 new LinkedHashSet<>(requiredFeatures.getOrDefault(row.id(), Set.of())));
         Set<String> unavailable =
@@ -266,6 +268,16 @@ public class PlanningProblemRepository {
                                                     "固定节次不存在: " + row.pinnedPeriodCode()));
             occurrence.setTimeslot(pinned);
             occurrence.setPinned(true);
+        } else if (occurrence.getTimeslot() == null) {
+            // 暖启动：期望节次来自导入的真实课表，本身就是一份可行排布；预排在原位
+            // 让求解器从"贴近原课表"出发只做必要调整，而不是从零自由排布。
+            String preferred = occurrence.preferredPeriodCodeAt(index);
+            if (preferred != null) {
+                timeslots.stream()
+                        .filter(slot -> preferred.equals(slot.getId()))
+                        .findFirst()
+                        .ifPresent(occurrence::setTimeslot);
+            }
         }
         return occurrence;
     }
@@ -287,6 +299,7 @@ public class PlanningProblemRepository {
             int durationPeriods,
             String pinnedPeriodCode,
             String roomAssignmentMode,
+            String preferredPeriodCodes,
             String activityGroupCode,
             String activityType,
             int activityMemberIndex) {}

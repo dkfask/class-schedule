@@ -38,8 +38,8 @@ async function logout() {
         <div class="brand">
           <img class="brand-logo-img" src="/logo.png" alt="智程排课" />
           <div class="brand-copy">
-            <strong>智程排课系统</strong>
-            <small>校务智能排课</small>
+            <strong>智程排课</strong>
+            <small>单校学期排课交付</small>
           </div>
         </div>
         <div class="term-card">
@@ -52,36 +52,40 @@ async function logout() {
           <em v-if="term.error.value" class="error-text">{{ term.error.value }}</em>
           <em v-else>{{ auth.user?.displayName }} · {{ auth.isSystemAdmin ? '系统管理员' : auth.isPlanner ? '排课员' : auth.isReviewer ? '审核员' : auth.isBusinessOwner ? '业务负责人' : '只读' }}</em>
         </div>
-        <RouterLink v-if="auth.isPlanner" to="/workspace" class="sidebar-cta"><span class="nav-icon">+</span><span>新建排课方案</span></RouterLink>
+        <RouterLink v-if="auth.canReview" to="/overview" class="sidebar-cta"><span class="nav-icon">→</span><span>{{ auth.isPlanner ? '查看本学期进度' : auth.isBusinessOwner ? '审批本学期课表' : '查看本学期进度' }}</span></RouterLink>
         <nav class="sidebar-nav">
-          <div class="nav-section-title">总览监控</div>
+          <div class="nav-section-title">本学期</div>
           <RouterLink v-if="auth.canReview" to="/overview" class="nav-item" active-class="active">
-            <span class="nav-icon">□</span><span class="nav-title">学期总览</span><span class="nav-badge">总览</span>
+            <span class="nav-icon">01</span><span class="nav-title">学期总览</span>
           </RouterLink>
-
-          <div v-if="auth.isPlanner" class="nav-section-title">阶段工作流</div>
+          <RouterLink v-if="auth.isPlanner" to="/setup" class="nav-item" active-class="active">
+            <span class="nav-icon">02</span><span class="nav-title">首次排课</span>
+          </RouterLink>
+          <RouterLink v-if="auth.isPlanner" to="/import" class="nav-item" active-class="active">
+            <span class="nav-icon">03</span><span class="nav-title">数据导入</span>
+          </RouterLink>
           <RouterLink v-if="auth.isPlanner" to="/master-data" class="nav-item" active-class="active">
-            <span class="nav-icon">01</span><span class="nav-title">基础准备</span>
+            <span class="nav-icon">04</span><span class="nav-title">基础数据</span>
           </RouterLink>
           <RouterLink v-if="auth.isPlanner" to="/teaching-plan" class="nav-item" active-class="active">
-            <span class="nav-icon">02</span><span class="nav-title">教学计划</span>
+            <span class="nav-icon">05</span><span class="nav-title">教学计划</span>
           </RouterLink>
           <RouterLink v-if="auth.isPlanner" to="/rule-facts" class="nav-item" active-class="active">
-            <span class="nav-icon">03</span><span class="nav-title">规则设定</span>
-          </RouterLink>
-          <RouterLink v-if="auth.isPlanner" to="/rule-templates" class="nav-item" active-class="active">
-            <span class="nav-icon">04</span><span class="nav-title">规则模板</span>
+            <span class="nav-icon">06</span><span class="nav-title">规则检查</span>
           </RouterLink>
           <RouterLink v-if="auth.isPlanner" to="/workspace" class="nav-item" active-class="active">
-            <span class="nav-icon">05</span><span class="nav-title">自动求解</span>
+            <span class="nav-icon">07</span><span class="nav-title">自动排课</span>
           </RouterLink>
           <RouterLink v-if="auth.canReview" to="/versions" class="nav-item" active-class="active">
-            <span class="nav-icon">06</span><span class="nav-title">版本与发布</span>
+            <span class="nav-icon">08</span><span class="nav-title">{{ auth.isPlanner ? '检查与发布' : auth.isBusinessOwner ? '课表审批' : '检查清单' }}</span>
+          </RouterLink>
+          <RouterLink to="/published" class="nav-item" active-class="active">
+            <span class="nav-icon">09</span><span class="nav-title">已发布课表</span>
           </RouterLink>
 
           <div class="nav-section-title">交付与治理</div>
-          <RouterLink to="/published" class="nav-item" active-class="active">
-            <span class="nav-icon">▤</span><span class="nav-title">已发布课表</span>
+          <RouterLink v-if="auth.isPlanner" to="/rule-templates" class="nav-item" active-class="active">
+            <span class="nav-icon">▣</span><span class="nav-title">规则模板</span>
           </RouterLink>
           <RouterLink v-if="auth.canReadAudit" to="/audit" class="nav-item" active-class="active">
             <span class="nav-icon">◷</span><span class="nav-title">操作与审计</span>
@@ -105,7 +109,7 @@ async function logout() {
         </nav>
       </div>
       <div class="sidebar-foot">
-        <div class="engine-state"><span class="status-dot"></span><span>本地环境已连接</span><span class="engine-latency">12ms</span></div>
+        <div class="engine-state"><span class="status-dot"></span><span>已登录学校排课系统</span></div>
         <button class="logout-button" @click="logout">退出登录</button>
       </div>
     </aside>

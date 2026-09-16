@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 import { http, jsonRequest } from '../api/http'
+import EmptyState from '../components/EmptyState.vue'
 import { useTermStore } from '../stores/term'
 
 interface Notification {
@@ -31,6 +33,25 @@ function formatDate(value?: string) {
   if (!value) return '时间未知'
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+}
+
+function destination(item: Notification) {
+  if (item.kind === 'RELEASE' && item.title.includes('已发布')) return '/published'
+  if (item.aggregateType === 'SCHEDULE_VERSION' || item.title.includes('批准') || item.title.includes('退回') || item.title.includes('候选')) return '/versions'
+  if (item.aggregateType === 'IMPORT_BATCH') return '/import'
+  if (item.aggregateType === 'SOLVE_JOB') return '/workspace'
+  if (item.aggregateType === 'PROBLEM_RECORD') return '/problems'
+  return '/overview'
+}
+
+function destinationLabel(item: Notification) {
+  if (item.title.includes('待您批准') || item.title.includes('已退回')) return '打开审批清单'
+  if (item.title.includes('已批准')) return '检查并发布'
+  if (item.title.includes('已发布')) return '查看已发布课表'
+  if (item.aggregateType === 'IMPORT_BATCH') return '查看导入'
+  if (item.aggregateType === 'SOLVE_JOB') return '查看排课任务'
+  if (item.aggregateType === 'PROBLEM_RECORD') return '查看问题'
+  return '查看学期进度'
 }
 
 async function load() {
@@ -71,12 +92,18 @@ onMounted(() => void load())
     <div v-if="message" class="inline-message success-message">{{ message }}</div>
     <div v-if="error" class="inline-message error-message">{{ error }}</div>
     <div v-if="loading" class="notification-empty">正在加载通知…</div>
-    <div v-else-if="!visibleItems.length" class="notification-empty">当前没有需要展示的通知</div>
+    <EmptyState
+      v-else-if="!visibleItems.length"
+      title="还没有需要处理的通知"
+      description="导入、自动排课、审批、发布和问题处理完成后，相关进展会出现在这里。"
+      action-label="查看学期进度"
+      to="/overview"
+    />
     <div v-else class="notification-list">
       <article v-for="item in visibleItems" :key="item.id" class="notification-row" :class="{ unread: item.status === 'PENDING', mandatory: item.mandatory }">
         <div class="notification-mark">{{ item.mandatory ? '!' : '·' }}</div>
         <div class="notification-body"><div class="notification-title"><strong>{{ item.title }}</strong><span class="notification-status">{{ statusLabels[item.status] ?? item.status }}</span></div><p>{{ item.message }}</p><small>{{ item.termCode || '未关联学期' }} · {{ formatDate(item.createdAt) }}<template v-if="item.aggregateId"> · {{ item.aggregateType }} #{{ item.aggregateId }}</template></small></div>
-        <div v-if="item.status !== 'DONE'" class="notification-buttons"><button v-if="item.status === 'PENDING'" class="quiet-button" @click="update(item, 'READ')">标记已读</button><button class="primary-button" @click="update(item, 'DONE')">完成</button></div>
+        <div class="notification-buttons"><RouterLink class="quiet-button" :to="destination(item)">{{ destinationLabel(item) }}</RouterLink><button v-if="item.status === 'PENDING'" class="quiet-button" @click="update(item, 'READ')">标记已读</button><button v-if="item.status !== 'DONE'" class="primary-button" @click="update(item, 'DONE')">完成</button></div>
       </article>
     </div>
   </section>

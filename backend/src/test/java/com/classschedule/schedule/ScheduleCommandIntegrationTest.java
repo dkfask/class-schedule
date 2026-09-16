@@ -334,6 +334,99 @@ class ScheduleCommandIntegrationTest {
                 .andExpect(jsonPath("$[0].commands[0].sequence").value(1));
     }
 
+    @Test
+    void trialSolveForksVersionAndReusesActiveIdempotencyKey() throws Exception {
+        long version = seedCandidateVersion();
+        String key = "trial-solve-" + System.nanoTime();
+        String body =
+                objectMapper.writeValueAsString(
+                        Map.of(
+                                "idempotencyKey", key,
+                                "rule",
+                                Map.of(
+                                        "termCode", "2026-FALL",
+                                        "ruleCode", "PREFER_ORIGINAL_SLOT",
+                                        "scopeType", "TERM",
+                                        "intValue", 2,
+                                        "severity", "SOFT",
+                                        "weight", 1)));
+
+        String first =
+                mockMvc.perform(
+                                post("/api/schedule-versions/" + version + "/trial-solve")
+                                        .with(csrf())
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(body))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.status").value("QUEUED"))
+                        .andExpect(jsonPath("$.ruleCode").value("PREFER_ORIGINAL_SLOT"))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        long draftId = objectMapper.readTree(first).get("versionId").asLong();
+        long jobId = objectMapper.readTree(first).get("jobId").asLong();
+        assertThat(draftId).isNotEqualTo(version);
+        assertThat(jdbc.queryForObject("SELECT status FROM schedule_version WHERE id=?", String.class, version))
+                .isEqualTo("CANDIDATE");
+
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + version + "/trial-solve")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.versionId").value(draftId))
+                .andExpect(jsonPath("$.jobId").value(jobId));
+        assertThat(
+                        jdbc.queryForObject(
+                                "SELECT COUNT(*) FROM solve_job WHERE idempotency_key=? AND status='QUEUED'",
+                                Integer.class,
+                                key))
+                .isEqualTo(1);
+        assertThat(
+                        jdbc.queryForObject(
+                                "SELECT COUNT(*) FROM schedule_version WHERE parent_version_id=?",
+                                Integer.class,
+                                version))
+                .isEqualTo(1);
+    }
+
+    @Test
+    @WithMockUser(username = "test-viewer", roles = "VIEWER")
+    void viewerCannotStartTrialSolve() throws Exception {
+        jdbc.update(
+                "INSERT INTO app_user(username,password_hash,display_name) VALUES('test-viewer','{noop}test','测试查看员') ON CONFLICT (username) DO NOTHING");
+        long version = seedCandidateVersion();
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + version + "/trial-solve")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"rule\":{\"termCode\":\"2026-FALL\",\"ruleCode\":\"PREFER_ORIGINAL_SLOT\",\"scopeType\":\"TERM\",\"intValue\":2}}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void trialSolveImpactPreviewDoesNotWriteRuleOrVersion() throws Exception {
+        long version = seedCandidateVersion();
+        String body =
+                "{\"termCode\":\"2026-FALL\",\"ruleCode\":\"TEACHER_DAILY_MAX\",\"scopeType\":\"TERM\",\"intValue\":1,\"severity\":\"HARD\",\"weight\":1}";
+        int beforeRules = jdbc.queryForObject("SELECT COUNT(*) FROM schedule_rule_instance", Integer.class);
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + version + "/trial-solve/impact-preview")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valid").value(true))
+                .andExpect(jsonPath("$.ruleCode").value("TEACHER_DAILY_MAX"))
+                .andExpect(jsonPath("$.affectedCount").isNumber());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM schedule_rule_instance", Integer.class))
+                .isEqualTo(beforeRules);
+        assertThat(jdbc.queryForObject("SELECT status FROM schedule_version WHERE id=?", String.class, version))
+                .isEqualTo("CANDIDATE");
+    }
+
     private long seedCandidateVersion() {
         return seedCandidateVersion("test-planner");
     }
