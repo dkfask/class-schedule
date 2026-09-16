@@ -13,7 +13,7 @@ test.describe('版本与发布管理（TC-07）', () => {
   test('TC-07-01 版本列表加载与状态显示', async ({ page }) => {
     const hasVersions = await page.locator('.version-row').count();
     test.skip(hasVersions === 0, '本地库无版本数据');
-    await expect(page.locator('.version-row').first()).toContainText(/CANDIDATE|PUBLISHED|DRAFT|ARCHIVED/);
+    await expect(page.locator('.version-row').first()).toContainText(/候选版本|已发布|草稿|已归档/);
   });
 
   test('TC-07-02 版本差异与只看变化切换', async ({ page }) => {
@@ -27,7 +27,7 @@ test.describe('版本与发布管理（TC-07）', () => {
   });
 
   test('TC-07-03 fork：复制已发布版本为新草稿', async ({ page }) => {
-    const publishedRow = page.locator('.version-row', { hasText: 'PUBLISHED' }).first();
+    const publishedRow = page.locator('.version-row', { hasText: '已发布' }).first();
     test.skip((await publishedRow.count()) === 0, '本地库无已发布版本');
     const parentLabel = await publishedRow.locator('strong').first().innerText(); // 形如 "版本 v83 · r2"
     await publishedRow.click();
@@ -39,11 +39,11 @@ test.describe('版本与发布管理（TC-07）', () => {
     // 因为新增一条会把最旧的版本挤出第一页。
     const parentId = parentLabel.match(/版本 v(\d+)/)?.[1];
     await expect(page.locator('.version-row').first()).toContainText(`父版本 v${parentId}`, { timeout: 15_000 });
-    await expect(page.locator('.version-row').first()).toContainText('DRAFT');
+    await expect(page.locator('.version-row').first()).toContainText('草稿');
   });
 
   test('TC-07-04 草稿版本锁定与解锁', async ({ page }) => {
-    const draftRow = page.locator('.version-row', { hasText: 'DRAFT' }).first();
+    const draftRow = page.locator('.version-row', { hasText: '草稿' }).first();
     test.skip((await draftRow.count()) === 0, '本地库无草稿版本（可先运行 fork 用例）');
     await draftRow.click();
     await page.getByRole('button', { name: '锁定编辑' }).click();
