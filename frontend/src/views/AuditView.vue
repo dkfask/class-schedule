@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { http } from '../api/http'
+import EmptyState from '../components/EmptyState.vue'
 import { useTermStore } from '../stores/term'
 
 interface AuditEvent {
@@ -161,7 +162,13 @@ onMounted(() => void load())
 
     <div v-if="error" class="inline-message error-message">{{ error }}</div>
     <div v-if="loading" class="audit-empty">正在读取操作记录…</div>
-    <div v-else-if="!events.length" class="audit-empty">当前筛选条件下暂无操作记录</div>
+    <EmptyState
+      v-else-if="!events.length"
+      title="还没有操作记录"
+      description="导入、自动排课、调整和发布后，这里会留下可追溯的操作记录。"
+      action-label="查看学期进度"
+      to="/overview"
+    />
     <div v-else class="audit-list">
       <article v-for="event in events" :key="event.id" class="audit-row">
         <div class="audit-row-main">

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import EmptyState from '../components/EmptyState.vue'
 import { http, jsonRequest } from '../api/http'
 
 type Resource = 'teachers' | 'student-groups' | 'subjects' | 'rooms'
@@ -202,7 +203,13 @@ onMounted(async () => { await loadRoomOptions(); await loadItems() })
       </el-table-column>
     </el-table>
 
-    <el-empty v-if="!loading && !errorMessage && items.length === 0" description="暂无数据" />
+    <EmptyState
+      v-if="!loading && !errorMessage && items.length === 0"
+      :title="`还没有${resourceLabel}`"
+      description="可以从学期数据导入一次性补齐，也可以在这里逐条新增。"
+      action-label="导入学期数据"
+      to="/import"
+    />
 
     <el-pagination
       v-if="total > 0"

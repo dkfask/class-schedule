@@ -52,6 +52,8 @@ public class SecurityConfig {
                                         .permitAll()
                                         .requestMatchers("/api/auth/**")
                                         .authenticated()
+                                        .requestMatchers("/api/schedule-versions/*/owner-approval")
+                                                .hasRole("BUSINESS_OWNER")
                                         .requestMatchers(
                                                 "/api/schedule-versions/*/trial-solve",
                                                 "/api/schedule-versions/*/trial-solve/impact-preview",

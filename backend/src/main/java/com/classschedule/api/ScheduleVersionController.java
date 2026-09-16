@@ -69,21 +69,58 @@ public class ScheduleVersionController {
             }
             return ResponseEntity.ok(Map.of("versionId", versionId, "status", "PUBLISHED"));
         } catch (VersionMutationException exception) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(
-                            Map.of(
-                                    "status",
-                                    "CONFLICT",
-                                    "code",
-                                    exception.code(),
-                                    "versionId",
-                                    exception.versionId(),
-                                    "currentRevision",
-                                    exception.currentRevision(),
-                                    "message",
-                                    exception.getMessage()));
+            return conflict(exception);
         }
     }
 
+    @PostMapping("/{versionId}/owner-approval")
+    public ResponseEntity<Map<String, Object>> decideOwnerApproval(
+            @PathVariable Long versionId,
+            @RequestHeader(value = "If-Match", required = false) Long expectedRevision,
+            @org.springframework.web.bind.annotation.RequestBody(required = false)
+                    OwnerApprovalRequest request,
+            Authentication authentication) {
+        try {
+            var approval =
+                    repository.decideOwnerApproval(
+                            versionId,
+                            authentication.getName(),
+                            request == null ? null : request.decision(),
+                            request == null ? null : request.comment(),
+                            expectedRevision);
+            return ResponseEntity.ok(
+                    Map.of(
+                            "versionId",
+                            versionId,
+                            "status",
+                            approval.status(),
+                            "ownerApproval",
+                            approval));
+        } catch (VersionMutationException exception) {
+            return conflict(exception);
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("status", "CONFLICT", "message", exception.getMessage()));
+        }
+    }
+
+    private ResponseEntity<Map<String, Object>> conflict(VersionMutationException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(
+                        Map.of(
+                                "status",
+                                "CONFLICT",
+                                "code",
+                                exception.code(),
+                                "versionId",
+                                exception.versionId(),
+                                "currentRevision",
+                                exception.currentRevision(),
+                                "message",
+                                exception.getMessage()));
+    }
+
     public record PublishRequest(String releaseNote) {}
+
+    public record OwnerApprovalRequest(String decision, String comment) {}
 }

@@ -29,6 +29,7 @@ public class TeachingRequirementRepository {
         validateReferences(request);
         ensureFeatureCodes(request.requiredFeatures());
         String roomAssignmentMode = normalizeRoomAssignmentMode(request.roomAssignmentMode());
+        String preferredPeriodCodes = normalizePreferredPeriodCodes(request.preferredPeriodCodes());
         if (jdbc.queryForObject(
                         "SELECT COUNT(*) FROM teaching_requirement WHERE code=?",
                         Integer.class,
@@ -36,7 +37,7 @@ public class TeachingRequirementRepository {
                 > 0) throw new IllegalArgumentException("教学需求编码已存在: " + request.code());
         Long id =
                 jdbc.queryForObject(
-                        "INSERT INTO teaching_requirement(code,term_id,student_group_id,subject_id,teacher_id,weekly_periods,duration_periods,student_count,pinned_period_code,room_assignment_mode) VALUES(?,(SELECT id FROM academic_term WHERE code=?),(SELECT id FROM student_group WHERE code=?),(SELECT id FROM subject WHERE code=?),(SELECT id FROM teacher WHERE code=?),?,?,?,?,?) RETURNING id",
+                        "INSERT INTO teaching_requirement(code,term_id,student_group_id,subject_id,teacher_id,weekly_periods,duration_periods,student_count,pinned_period_code,room_assignment_mode,preferred_period_codes) VALUES(?,(SELECT id FROM academic_term WHERE code=?),(SELECT id FROM student_group WHERE code=?),(SELECT id FROM subject WHERE code=?),(SELECT id FROM teacher WHERE code=?),?,?,?,?,?,?) RETURNING id",
                         Long.class,
                         request.code(),
                         request.termCode(),
@@ -47,7 +48,8 @@ public class TeachingRequirementRepository {
                         request.durationPeriods(),
                         request.studentCount(),
                         request.pinnedPeriodCode(),
-                        roomAssignmentMode);
+                        roomAssignmentMode,
+                        preferredPeriodCodes);
         replaceFeatures(id, request.requiredFeatures());
         jdbc.update(
                 "INSERT INTO audit_event(action,aggregate_type,aggregate_id,detail) VALUES('CREATE','TEACHING_REQUIREMENT',?,jsonb_build_object('code',?))",
@@ -62,6 +64,7 @@ public class TeachingRequirementRepository {
         validateReferences(request);
         ensureFeatureCodes(request.requiredFeatures());
         String roomAssignmentMode = normalizeRoomAssignmentMode(request.roomAssignmentMode());
+        String preferredPeriodCodes = normalizePreferredPeriodCodes(request.preferredPeriodCodes());
         Integer duplicate =
                 jdbc.queryForObject(
                         "SELECT COUNT(*) FROM teaching_requirement WHERE code = ? AND id <> ?",
@@ -71,7 +74,7 @@ public class TeachingRequirementRepository {
         if (duplicate != null && duplicate > 0)
             throw new IllegalArgumentException("教学需求编码已存在: " + request.code());
         jdbc.update(
-                "UPDATE teaching_requirement SET code=?,term_id=(SELECT id FROM academic_term WHERE code=?),student_group_id=(SELECT id FROM student_group WHERE code=?),subject_id=(SELECT id FROM subject WHERE code=?),teacher_id=(SELECT id FROM teacher WHERE code=?),weekly_periods=?,duration_periods=?,student_count=?,pinned_period_code=?,room_assignment_mode=? WHERE id=?",
+                "UPDATE teaching_requirement SET code=?,term_id=(SELECT id FROM academic_term WHERE code=?),student_group_id=(SELECT id FROM student_group WHERE code=?),subject_id=(SELECT id FROM subject WHERE code=?),teacher_id=(SELECT id FROM teacher WHERE code=?),weekly_periods=?,duration_periods=?,student_count=?,pinned_period_code=?,room_assignment_mode=?,preferred_period_codes=? WHERE id=?",
                 request.code(),
                 request.termCode(),
                 request.studentGroupCode(),
@@ -82,6 +85,7 @@ public class TeachingRequirementRepository {
                 request.studentCount(),
                 request.pinnedPeriodCode(),
                 roomAssignmentMode,
+                preferredPeriodCodes,
                 id);
         replaceFeatures(id, request.requiredFeatures());
         jdbc.update(
@@ -173,6 +177,29 @@ public class TeachingRequirementRepository {
                                 request.termCode(),
                                 request.pinnedPeriodCode())
                         == 0) throw new IllegalArgumentException("固定节次不属于目标学期");
+        String preferredPeriodCodes = normalizePreferredPeriodCodes(request.preferredPeriodCodes());
+        if (preferredPeriodCodes != null) {
+            for (String periodCode : preferredPeriodCodes.split(";")) {
+                if (jdbc.queryForObject(
+                                "SELECT COUNT(*) FROM period_template p JOIN academic_term t ON t.id=p.term_id WHERE t.code=? AND p.code=?",
+                                Integer.class,
+                                request.termCode(),
+                                periodCode)
+                        == 0) throw new IllegalArgumentException("期望节次不属于目标学期: " + periodCode);
+            }
+        }
+    }
+
+    private String normalizePreferredPeriodCodes(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String joined =
+                java.util.Arrays.stream(raw.split("[;,；，]"))
+                        .map(String::trim)
+                        .filter(item -> !item.isEmpty())
+                        .map(item -> item.toUpperCase())
+                        .distinct()
+                        .collect(java.util.stream.Collectors.joining(";"));
+        return joined.isEmpty() ? null : joined;
     }
 
     private void require(String table, String code, String label) {

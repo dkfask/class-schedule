@@ -54,14 +54,18 @@ public class ScheduleRepository {
                         owner,
                         termCode);
         ScheduleSnapshotHashService.Snapshot snapshot = snapshots.snapshot(termCode);
-        return jdbc.queryForObject(
-                "INSERT INTO schedule_version (scenario_id, owner_user_id, status, solver_version, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at, legacy_identity_unverified) VALUES (?, (SELECT owner_user_id FROM schedule_scenario WHERE id = ?), 'SOLVING', 'timefold-1.17.0', ?, ?, ?, CURRENT_TIMESTAMP, TRUE) RETURNING id",
-                Long.class,
-                scenarioId,
-                scenarioId,
-                snapshot.termCode(),
-                snapshot.inputHash(),
-                snapshot.ruleHash());
+        Long versionId =
+                jdbc.queryForObject(
+                        "INSERT INTO schedule_version (scenario_id, owner_user_id, status, solver_version, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at, legacy_identity_unverified) VALUES (?, (SELECT owner_user_id FROM schedule_scenario WHERE id = ?), 'SOLVING', 'timefold-1.17.0', ?, ?, ?, CURRENT_TIMESTAMP, TRUE) RETURNING id",
+                        Long.class,
+                        scenarioId,
+                        scenarioId,
+                        snapshot.termCode(),
+                        snapshot.inputHash(),
+                        snapshot.ruleHash());
+        if (versionId == null) throw new IllegalStateException("创建版本失败");
+        resetOwnerApproval(versionId);
+        return versionId;
     }
 
     public long createJob(long versionId) {
@@ -110,13 +114,14 @@ public class ScheduleRepository {
                     room == null ? 0 : room.getCapacity());
         }
         jdbc.update(
-                "UPDATE schedule_version SET status = 'CANDIDATE', score = ?, legacy_identity_unverified = ? WHERE id = ? AND status = 'SOLVING'",
+                "UPDATE schedule_version SET status = 'CANDIDATE', score = ?, legacy_identity_unverified = ?, owner_approval_status = CASE WHEN EXISTS (SELECT 1 FROM app_user u JOIN app_user_role ur ON ur.user_id = u.id JOIN app_role r ON r.id = ur.role_id WHERE u.enabled = TRUE AND r.active = TRUE AND r.code = 'BUSINESS_OWNER') THEN 'PENDING' ELSE 'NONE' END, owner_approval_comment = NULL, owner_approved_by = NULL, owner_approved_at = NULL WHERE id = ? AND status = 'SOLVING'",
                 score,
                 !identityComplete(timetable),
                 versionId);
         jdbc.update(
                 "UPDATE solve_job SET status = 'COMPLETED', progress = 100, finished_at = CURRENT_TIMESTAMP WHERE id = ?",
                 jobId);
+        recordPendingOwnerApproval(versionId, "worker");
     }
 
     private boolean identityComplete(Timetable timetable) {
@@ -191,7 +196,7 @@ public class ScheduleRepository {
                             (rs, rowNum) -> mapAssignment(rs),
                             versionId);
             return jdbc.queryForObject(
-                    "SELECT v.id, v.status, v.score, v.legacy_identity_unverified, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.edit_lock_reason, v.snapshot_term_code, v.input_snapshot_hash, v.rule_snapshot_hash, v.input_snapshot_at, COUNT(a.id) AS assignment_count, COUNT(a.timeslot_code) AS assigned_timeslots, COUNT(a.room_code) AS assigned_rooms FROM schedule_version v LEFT JOIN schedule_assignment a ON v.id = a.schedule_version_id WHERE v.id = ? GROUP BY v.id, v.status, v.score, v.legacy_identity_unverified, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.edit_lock_reason, v.snapshot_term_code, v.input_snapshot_hash, v.rule_snapshot_hash, v.input_snapshot_at",
+                    "SELECT v.id, v.status, v.score, v.legacy_identity_unverified, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.edit_lock_reason, v.snapshot_term_code, v.input_snapshot_hash, v.rule_snapshot_hash, v.input_snapshot_at, v.owner_approval_status, v.owner_approval_comment, v.owner_approved_by, v.owner_approved_at, COUNT(a.id) AS assignment_count, COUNT(a.timeslot_code) AS assigned_timeslots, COUNT(a.room_code) AS assigned_rooms FROM schedule_version v LEFT JOIN schedule_assignment a ON v.id = a.schedule_version_id WHERE v.id = ? GROUP BY v.id, v.status, v.score, v.legacy_identity_unverified, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.edit_lock_reason, v.snapshot_term_code, v.input_snapshot_hash, v.rule_snapshot_hash, v.input_snapshot_at, v.owner_approval_status, v.owner_approval_comment, v.owner_approved_by, v.owner_approved_at",
                     (rs, rowNum) -> {
                         long assignmentCount = rs.getLong("assignment_count");
                         long assignedTimeslots = rs.getLong("assigned_timeslots");
@@ -237,7 +242,8 @@ public class ScheduleRepository {
                                                                         "input_snapshot_at",
                                                                         java.time.OffsetDateTime
                                                                                 .class),
-                                                                legacyIdentityUnverified))
+                                                                legacyIdentityUnverified,
+                                                                mapOwnerApproval(rs)))
                                                 .isEmpty()
                                         && ruleValidator
                                                 .validate(
@@ -261,7 +267,8 @@ public class ScheduleRepository {
                                                                         "input_snapshot_at",
                                                                         java.time.OffsetDateTime
                                                                                 .class),
-                                                                legacyIdentityUnverified))
+                                                                legacyIdentityUnverified,
+                                                                mapOwnerApproval(rs)))
                                                 .stream()
                                                 .noneMatch(
                                                         ScheduleRuleValidator.Violation::blocking);
@@ -281,7 +288,8 @@ public class ScheduleRepository {
                                 rs.getString("input_snapshot_hash"),
                                 rs.getString("rule_snapshot_hash"),
                                 rs.getObject("input_snapshot_at", java.time.OffsetDateTime.class),
-                                legacyIdentityUnverified);
+                                legacyIdentityUnverified,
+                                mapOwnerApproval(rs));
                     },
                     versionId);
         } catch (EmptyResultDataAccessException exception) {
@@ -326,7 +334,8 @@ public class ScheduleRepository {
                 full.inputSnapshotHash(),
                 full.ruleSnapshotHash(),
                 full.inputSnapshotAt(),
-                full.legacyIdentityUnverified());
+                full.legacyIdentityUnverified(),
+                full.ownerApproval());
     }
 
     public AdjustmentPreviewResponse previewAdjustment(
@@ -780,7 +789,7 @@ public class ScheduleRepository {
                         scenarioId);
         Long newVersionId =
                 jdbc.queryForObject(
-                        "INSERT INTO schedule_version (scenario_id, owner_user_id, parent_version_id, status, score, solver_version, random_seed, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at, legacy_identity_unverified) SELECT ?, (SELECT id FROM app_user WHERE username = ?), id, 'DRAFT', NULL, solver_version, random_seed, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at, legacy_identity_unverified FROM schedule_version WHERE id = ? RETURNING id",
+                        "INSERT INTO schedule_version (scenario_id, owner_user_id, parent_version_id, status, score, solver_version, random_seed, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at, legacy_identity_unverified, owner_approval_status) SELECT ?, (SELECT id FROM app_user WHERE username = ?), id, 'DRAFT', NULL, solver_version, random_seed, snapshot_term_code, input_snapshot_hash, rule_snapshot_hash, input_snapshot_at, legacy_identity_unverified, CASE WHEN EXISTS (SELECT 1 FROM app_user u JOIN app_user_role ur ON ur.user_id = u.id JOIN app_role r ON r.id = ur.role_id WHERE u.enabled = TRUE AND r.active = TRUE AND r.code = 'BUSINESS_OWNER') THEN 'PENDING' ELSE 'NONE' END FROM schedule_version WHERE id = ? RETURNING id",
                         Long.class,
                         newScenarioId,
                         owner,
@@ -790,6 +799,7 @@ public class ScheduleRepository {
                 newVersionId,
                 versionId);
         insertAudit(newVersionId, "FORK", 0, String.valueOf(versionId), owner);
+        recordPendingOwnerApproval(newVersionId, owner);
         return newVersionId;
     }
 
@@ -826,11 +836,11 @@ public class ScheduleRepository {
                 jdbc.queryForObject(
                         "SELECT COUNT(*)" + from + where, Long.class, baseParams.toArray());
         String listSql =
-                "SELECT v.id, v.status, v.score, v.legacy_identity_unverified, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.parent_version_id, v.created_at, COUNT(a.id) AS assignment_count, COUNT(a.timeslot_code) AS assigned_timeslots, COUNT(a.room_code) AS assigned_rooms"
+                "SELECT v.id, v.status, v.score, v.legacy_identity_unverified, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.parent_version_id, v.created_at, v.owner_approval_status, v.owner_approval_comment, v.owner_approved_by, v.owner_approved_at, COUNT(a.id) AS assignment_count, COUNT(a.timeslot_code) AS assigned_timeslots, COUNT(a.room_code) AS assigned_rooms"
                         + from
                         + " LEFT JOIN schedule_assignment a ON a.schedule_version_id = v.id"
                         + where
-                        + " GROUP BY v.id, v.status, v.score, v.legacy_identity_unverified, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.parent_version_id, v.created_at ORDER BY v.created_at DESC, v.id DESC LIMIT ? OFFSET ?";
+                        + " GROUP BY v.id, v.status, v.score, v.legacy_identity_unverified, v.revision, v.updated_at, v.archived_at, v.edit_locked, v.edit_lock_owner, v.parent_version_id, v.created_at, v.owner_approval_status, v.owner_approval_comment, v.owner_approved_by, v.owner_approved_at ORDER BY v.created_at DESC, v.id DESC LIMIT ? OFFSET ?";
         List<Object> listParams = new ArrayList<>(baseParams);
         listParams.add(safeSize);
         listParams.add(safePage * safeSize);
@@ -915,7 +925,31 @@ public class ScheduleRepository {
                 rs.getObject("updated_at", java.time.OffsetDateTime.class),
                 rs.getObject("archived_at", java.time.OffsetDateTime.class),
                 rs.getBoolean("edit_locked"),
-                rs.getString("edit_lock_owner"));
+                rs.getString("edit_lock_owner"),
+                mapOwnerApproval(rs));
+    }
+
+    private OwnerApproval mapOwnerApproval(ResultSet rs) throws SQLException {
+        return OwnerApproval.of(
+                rs.getString("owner_approval_status"),
+                rs.getString("owner_approval_comment"),
+                rs.getString("owner_approved_by"),
+                rs.getObject("owner_approved_at", OffsetDateTime.class),
+                ownerApprovalRequired());
+    }
+
+    private boolean ownerApprovalRequired() {
+        Integer count =
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM app_user u JOIN app_user_role ur ON ur.user_id = u.id JOIN app_role r ON r.id = ur.role_id WHERE u.enabled = TRUE AND r.active = TRUE AND r.code = 'BUSINESS_OWNER'",
+                        Integer.class);
+        return count != null && count > 0;
+    }
+
+    private void resetOwnerApproval(long versionId) {
+        jdbc.update(
+                "UPDATE schedule_version SET owner_approval_status = CASE WHEN EXISTS (SELECT 1 FROM app_user u JOIN app_user_role ur ON ur.user_id = u.id JOIN app_role r ON r.id = ur.role_id WHERE u.enabled = TRUE AND r.active = TRUE AND r.code = 'BUSINESS_OWNER') THEN 'PENDING' ELSE 'NONE' END, owner_approval_comment = NULL, owner_approved_by = NULL, owner_approved_at = NULL WHERE id = ?",
+                versionId);
     }
 
     @Transactional
@@ -1184,7 +1218,7 @@ public class ScheduleRepository {
             long versionId, long expectedRevision, long resultRevision, String status) {
         int updated =
                 jdbc.update(
-                        "UPDATE schedule_version SET revision = ?, updated_at = CURRENT_TIMESTAMP, status = ?, score = NULL WHERE id = ? AND revision = ?",
+                        "UPDATE schedule_version SET revision = ?, updated_at = CURRENT_TIMESTAMP, status = ?, score = NULL, owner_approval_status = CASE WHEN EXISTS (SELECT 1 FROM app_user u JOIN app_user_role ur ON ur.user_id = u.id JOIN app_role r ON r.id = ur.role_id WHERE u.enabled = TRUE AND r.active = TRUE AND r.code = 'BUSINESS_OWNER') THEN 'PENDING' ELSE 'NONE' END, owner_approval_comment = NULL, owner_approved_by = NULL, owner_approved_at = NULL WHERE id = ? AND revision = ?",
                         resultRevision,
                         status,
                         versionId,
@@ -1195,6 +1229,7 @@ public class ScheduleRepository {
                     versionId,
                     currentRevision(versionId),
                     "版本已被其他操作更新，请重新加载");
+        recordPendingOwnerApproval(versionId, "system");
     }
 
     private void insertCommandEvent(
@@ -1229,7 +1264,7 @@ public class ScheduleRepository {
             String actor,
             String releaseNote) {
         jdbc.update(
-                "INSERT INTO audit_event (action, aggregate_type, aggregate_id, actor, actor_user_id, actor_kind, correlation_id, outcome, detail) VALUES (?, 'SCHEDULE_VERSION', ?, ?, (SELECT id FROM app_user WHERE username = ?), CASE WHEN ? = 'worker' THEN 'SERVICE' ELSE 'USER' END, ?, 'SUCCESS', jsonb_build_object('revision', ?::bigint, 'correlationId', ?::text, 'releaseNote', ?::text))",
+                "INSERT INTO audit_event (action, aggregate_type, aggregate_id, actor, actor_user_id, actor_kind, correlation_id, outcome, detail) VALUES (?, 'SCHEDULE_VERSION', ?, ?, (SELECT id FROM app_user WHERE username = ?), CASE WHEN ? = 'worker' THEN 'SERVICE' ELSE 'USER' END, ?, 'SUCCESS', jsonb_build_object('revision', ?::bigint, 'correlationId', ?::text, 'releaseNote', ?::text, 'termCode', (SELECT t.code FROM schedule_version v JOIN schedule_scenario s ON s.id = v.scenario_id JOIN academic_term t ON t.id = s.term_id WHERE v.id = ?)))",
                 action,
                 String.valueOf(versionId),
                 actor,
@@ -1238,7 +1273,33 @@ public class ScheduleRepository {
                 correlationId,
                 revision,
                 correlationId,
-                releaseNote);
+                releaseNote,
+                versionId);
+    }
+
+    private void recordPendingOwnerApproval(long versionId, String actor) {
+        Integer pending =
+                jdbc.queryForObject(
+                        """
+                        SELECT COUNT(*) FROM schedule_version v
+                        WHERE v.id = ? AND v.status IN ('DRAFT', 'CANDIDATE') AND v.owner_approval_status = 'PENDING'
+                          AND NOT EXISTS (
+                            SELECT 1 FROM audit_event e
+                            WHERE e.action = 'OWNER_APPROVAL_PENDING'
+                              AND e.aggregate_type = 'SCHEDULE_VERSION'
+                              AND e.aggregate_id = v.id::text
+                              AND e.created_at > COALESCE((
+                                SELECT MAX(decided.created_at) FROM audit_event decided
+                                WHERE decided.action IN ('OWNER_APPROVE', 'OWNER_REJECT')
+                                  AND decided.aggregate_type = 'SCHEDULE_VERSION'
+                                  AND decided.aggregate_id = v.id::text
+                              ), TIMESTAMP WITH TIME ZONE 'epoch')
+                          )
+                        """,
+                        Integer.class,
+                        versionId);
+        if (pending == null || pending == 0) return;
+        insertAudit(versionId, "OWNER_APPROVAL_PENDING", currentRevision(versionId), null, actor);
     }
 
     private record CommandRow(
@@ -1689,6 +1750,15 @@ public class ScheduleRepository {
         }
         ScheduleVersionView version = findVersion(versionId);
         if (!version.publishable()) return false;
+        if (version.ownerApproval().blocksPublish()) {
+            throw new VersionMutationException(
+                    "OWNER_APPROVAL_REQUIRED",
+                    versionId,
+                    revision,
+                    version.ownerApproval().rejected()
+                            ? "业务负责人已退回该候选课表，请处理后重新提交审阅"
+                            : "业务负责人尚未批准该候选课表，暂不能面向全校");
+        }
         requireExpectedRevision(versionId, revision, expectedRevision);
         int updated =
                 jdbc.update(
@@ -1698,6 +1768,77 @@ public class ScheduleRepository {
         if (updated != 1) return false;
         insertAudit(versionId, "PUBLISH", revision + 1, null, actor, releaseNote);
         return true;
+    }
+
+    @Transactional
+    public OwnerApproval decideOwnerApproval(
+            long versionId, String actor, String decision, String comment, Long expectedRevision) {
+        String normalizedActor = normalizedActor(actor);
+        requireKnownUser(normalizedActor);
+        if (!hasRole(normalizedActor, "BUSINESS_OWNER")) {
+            throw new VersionMutationException("OWNER_APPROVAL_FORBIDDEN", versionId, 0, "只有业务负责人可以审批候选课表");
+        }
+        Map<String, Object> row;
+        try {
+            row =
+                    jdbc.queryForMap(
+                            "SELECT revision, status, owner_approval_status FROM schedule_version WHERE id = ? FOR UPDATE",
+                            versionId);
+        } catch (EmptyResultDataAccessException exception) {
+            throw new IllegalArgumentException("版本不存在: " + versionId, exception);
+        }
+        long revision = ((Number) row.get("revision")).longValue();
+        requireExpectedRevision(versionId, revision, expectedRevision);
+        String status = String.valueOf(row.get("status"));
+        if (!("CANDIDATE".equals(status) || "DRAFT".equals(status))) {
+            throw new VersionMutationException(
+                    "OWNER_APPROVAL_NOT_ALLOWED", versionId, revision, "只有候选或草稿课表可以审批");
+        }
+        String normalizedDecision = decision == null ? "" : decision.trim().toUpperCase();
+        if (!Set.of("APPROVED", "REJECTED").contains(normalizedDecision)) {
+            throw new IllegalArgumentException("审批结论只能是通过或退回");
+        }
+        if ("APPROVED".equals(normalizedDecision) && !findVersion(versionId).publishable()) {
+            throw new VersionMutationException(
+                    "OWNER_APPROVAL_NOT_READY",
+                    versionId,
+                    revision,
+                    "课次尚未排齐或仍有硬冲突，不能批准面向全校");
+        }
+        String note = comment == null || comment.isBlank() ? null : comment.trim();
+        if ("REJECTED".equals(normalizedDecision) && (note == null || note.isBlank())) {
+            throw new IllegalArgumentException("退回时请写明原因，便于排课员处理");
+        }
+        int updated =
+                jdbc.update(
+                        "UPDATE schedule_version SET owner_approval_status = ?, owner_approval_comment = ?, owner_approved_by = ?, owner_approved_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP, revision = revision + 1 WHERE id = ? AND revision = ?",
+                        normalizedDecision,
+                        note,
+                        normalizedActor,
+                        versionId,
+                        revision);
+        if (updated != 1) {
+            throw new VersionMutationException(
+                    "VERSION_REVISION_CONFLICT", versionId, currentRevision(versionId), "版本已被其他操作更新，请重新加载");
+        }
+        insertAudit(
+                versionId,
+                "APPROVED".equals(normalizedDecision) ? "OWNER_APPROVE" : "OWNER_REJECT",
+                revision + 1,
+                null,
+                normalizedActor,
+                note);
+        return findVersion(versionId).ownerApproval();
+    }
+
+    private boolean hasRole(String username, String roleCode) {
+        Integer count =
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM app_user u JOIN app_user_role ur ON ur.user_id = u.id JOIN app_role r ON r.id = ur.role_id WHERE u.username = ? AND u.enabled = TRUE AND r.active = TRUE AND r.code = ?",
+                        Integer.class,
+                        username,
+                        roleCode);
+        return count != null && count > 0;
     }
 
     private void requireOwner(Map<String, Object> row, long versionId, String actor) {

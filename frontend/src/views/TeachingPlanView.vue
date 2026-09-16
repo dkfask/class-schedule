@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import EmptyState from '../components/EmptyState.vue'
 import { http, jsonRequest } from '../api/http'
 import { useTermStore } from '../stores/term'
 
@@ -17,6 +18,7 @@ interface Requirement {
   requiredFeatures: string
   pinnedPeriodCode: string | null
   roomAssignmentMode: 'HOME' | 'FLEXIBLE'
+  preferredPeriodCodes: string | null
   active: boolean
 }
 interface Option { code: string; name: string }
@@ -51,6 +53,7 @@ const form = ref({
   requiredFeatures: '',
   pinnedPeriodCode: '',
   roomAssignmentMode: 'HOME' as 'HOME' | 'FLEXIBLE',
+  preferredPeriodCodes: '',
 })
 
 const selectedTerm = computed(() => term.terms.value.find(item => item.code === term.selectedTermCode.value))
@@ -93,7 +96,7 @@ function openCreate() {
   editingId.value = null
   form.value = {
     code: '', studentGroupCode: options.value.studentGroups?.[0]?.code ?? '', subjectCode: options.value.subjects?.[0]?.code ?? '',
-    teacherCode: options.value.teachers?.[0]?.code ?? '', weeklyPeriods: 1, durationPeriods: 1, studentCount: 0, requiredFeatures: '', pinnedPeriodCode: '', roomAssignmentMode: 'HOME',
+    teacherCode: options.value.teachers?.[0]?.code ?? '', weeklyPeriods: 1, durationPeriods: 1, studentCount: 0, requiredFeatures: '', pinnedPeriodCode: '', roomAssignmentMode: 'HOME', preferredPeriodCodes: '',
   }
   dialogOpen.value = true
 }
@@ -105,6 +108,7 @@ function openEdit(item: Requirement) {
     weeklyPeriods: item.weeklyPeriods, durationPeriods: item.durationPeriods, studentCount: item.studentCount,
     requiredFeatures: item.requiredFeatures, pinnedPeriodCode: item.pinnedPeriodCode ?? '',
     roomAssignmentMode: item.roomAssignmentMode ?? 'HOME',
+    preferredPeriodCodes: item.preferredPeriodCodes ?? '',
   }
   dialogOpen.value = true
 }
@@ -210,6 +214,12 @@ onMounted(async () => {
             <span v-else class="text-gray-400">—</span>
           </template>
         </el-table-column>
+        <el-table-column label="期望节次" min-width="160">
+          <template #default="scope">
+            <span v-if="scope.row.preferredPeriodCodes" class="preferred-badge">{{ scope.row.preferredPeriodCodes }}</span>
+            <span v-else class="text-gray-400">—</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="requiredFeatures" label="特征" min-width="120">
           <template #default="scope">{{ scope.row.requiredFeatures || '—' }}</template>
         </el-table-column>
@@ -232,7 +242,13 @@ onMounted(async () => {
       </el-table>
     </div>
 
-    <el-empty v-if="!loading && !errorMessage && items.length === 0" description="暂无教学需求" />
+    <EmptyState
+      v-if="!loading && !errorMessage && items.length === 0"
+      title="还没有教学需求"
+      description="请先导入或补齐班级、课程和教师，再编制本学期教学计划。"
+      action-label="导入学期数据"
+      to="/import"
+    />
 
     <el-pagination
       v-if="total > 0"
@@ -296,6 +312,9 @@ onMounted(async () => {
           <el-option v-for="item in options.periods ?? []" :key="item.code" :label="item.label" :value="item.code" />
         </el-select>
       </el-form-item>
+      <el-form-item label="期望节次">
+        <el-input v-model="form.preferredPeriodCodes" data-testid="preferred-period-codes" maxlength="512" placeholder="按每周课次顺序填写，如 MON-1;TUE-2；留空表示无偏好" />
+      </el-form-item>
     </el-form>
     <template #footer>
       <el-button @click="dialogOpen = false">取消</el-button>
@@ -336,6 +355,14 @@ onMounted(async () => {
   padding: 2px 6px;
   border-radius: 4px;
   border: 1px solid #fde68a;
+}
+.preferred-badge {
+  font-family: monospace;
+  font-size: 11px;
+  color: #1f4d46;
+  background: #eef7f3;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 .full-width {
   width: 100%;

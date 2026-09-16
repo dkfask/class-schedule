@@ -23,7 +23,7 @@ describe('RuleFactsView', () => {
       if (url.includes('/api/rule-facts/activity-groups')) return response([])
       return response({ status: 'UPDATED' })
     }))
-    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
+    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
     await flushPromises()
     const vm = wrapper.vm as any
     await vm.saveAvailability()
@@ -41,7 +41,7 @@ describe('RuleFactsView', () => {
       if (String(input) === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
       return response({ message: '资源不存在' }, false)
     }))
-    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' } } } })
+    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' } } } })
     const vm = wrapper.vm as any
     await vm.saveAvailability()
     await flushPromises()
@@ -66,7 +66,7 @@ describe('RuleFactsView', () => {
       if (url.includes('/api/schedule-rules?termCode')) return response([])
       return response({})
     }))
-    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
+    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
     await flushPromises()
     const vm = wrapper.vm as any
     expect(vm.availability).toHaveLength(1)
@@ -92,7 +92,7 @@ describe('RuleFactsView', () => {
       if (url.includes('/api/schedule-rules?termCode')) return response([])
       return response({})
     }))
-    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
+    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
     await flushPromises()
     const vm = wrapper.vm as any
     expect(vm.error).toContain('特征目录')
@@ -115,7 +115,7 @@ describe('RuleFactsView', () => {
       }
       return response({ status: 'UPDATED' })
     }))
-    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
+    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
     await flushPromises()
     const vm = wrapper.vm as any
     expect(vm.availability).toHaveLength(1)
@@ -142,12 +142,83 @@ describe('RuleFactsView', () => {
       if (url.includes('/api/rule-facts/activity-groups')) return response([])
       return response({})
     }))
-    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
+    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
     await flushPromises()
     expect(wrapper.get('[data-testid="rule-explanation"]').text()).toContain('限制同一教师每天可承担的最大课时数')
     expect(wrapper.text()).toContain('硬约束')
     expect(wrapper.text()).toContain('当前生效')
-    expect(wrapper.text()).toContain('规则中心')
+    expect(wrapper.text()).toContain('规则检查')
+    wrapper.unmount()
+  })
+
+  it('shows a next-step empty state when no extra quality rules exist', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'test-csrf' })
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
+      if (url.includes('/api/rule-facts/') || url.includes('/api/schedule-rules')) return response([])
+      return response({})
+    }))
+    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' } } } })
+    await flushPromises()
+    expect(wrapper.text()).toContain('还没有锁定时段')
+    expect(wrapper.text()).toContain('还没有教室特征')
+    expect(wrapper.find('a[href="/master-data"]').exists()).toBe(true)
+    expect(wrapper.find('a[href="/teaching-plan"]').exists()).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('explains the original-slot preference rule from the catalog', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'test-csrf' })
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
+      if (url.endsWith('/api/schedule-rules/catalog')) return response([{ ruleCode: 'PREFER_ORIGINAL_SLOT', label: '贴近期望节次（原课表）', valueType: 'INTEGER', scopes: ['TERM'] }])
+      if (url.includes('/api/schedule-rules?termCode')) return response([])
+      if (url.includes('/api/rule-facts/availability')) return response([])
+      if (url.includes('/api/rule-facts/features')) return response([])
+      if (url.includes('/api/rule-facts/room-features')) return response([])
+      if (url.includes('/api/rule-facts/requirement-features')) return response([])
+      if (url.includes('/api/rule-facts/activity-groups')) return response([])
+      return response({})
+    }))
+    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
+    await flushPromises()
+    const vm = wrapper.vm as any
+    vm.ruleCode = 'PREFER_ORIGINAL_SLOT'
+    await flushPromises()
+    expect(wrapper.get('[data-testid="rule-explanation"]').text()).toContain('尽量把课次排在教学需求填写的期望节次')
+    wrapper.unmount()
+  })
+
+  it('explains overlapping term and teacher daily-max rules with a next step', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/api/auth/csrf') return response({ headerName: 'X-XSRF-TOKEN', token: 'test-csrf' })
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
+      if (url.endsWith('/api/schedule-rules/catalog')) return response([{ ruleCode: 'TEACHER_DAILY_MAX', label: '教师每日课时上限', valueType: 'INTEGER', scopes: ['TERM', 'TEACHER'] }])
+      if (url.includes('/api/schedule-rules?termCode')) {
+        return response([
+          { id: 1, rule_code: 'TEACHER_DAILY_MAX', scope_type: 'TERM', int_value: 4, severity: 'HARD', weight: 1 },
+          { id: 2, rule_code: 'TEACHER_DAILY_MAX', scope_type: 'TEACHER', scope_code: 'T001', int_value: 6, severity: 'SOFT', weight: 1 },
+        ])
+      }
+      if (url.includes('/api/rule-facts/availability')) return response([])
+      if (url.includes('/api/rule-facts/features')) return response([])
+      if (url.includes('/api/rule-facts/room-features')) return response([])
+      if (url.includes('/api/rule-facts/requirement-features')) return response([])
+      if (url.includes('/api/rule-facts/activity-groups')) return response([])
+      return response({})
+    }))
+    const wrapper = mount(RuleFactsView, { global: { stubs: { RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' }, 'el-button': { template: '<button><slot /></button>' }, 'el-empty': { template: '<div />' } } } })
+    await flushPromises()
+    const hints = wrapper.get('[data-testid="rule-overlap-hints"]')
+    expect(hints.text()).toContain('挡不住全校硬上限')
+    expect(hints.text()).toContain('指定教师 T001')
+    expect(hints.text()).toContain('放宽或取消全校硬上限')
+    expect(hints.find('a').attributes('href')).toBe('#quality-rules')
+    expect(wrapper.text()).toContain('全校')
+    expect(wrapper.text()).not.toContain('TERM:T001')
     wrapper.unmount()
   })
 })

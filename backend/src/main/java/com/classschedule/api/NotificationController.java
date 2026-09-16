@@ -81,15 +81,22 @@ public class NotificationController {
                 """
                 INSERT INTO app_notification(user_id,audit_event_id,kind,title,message,status,aggregate_type,aggregate_id,term_code,mandatory,created_at)
                 SELECT u.id,e.id,
-                       CASE WHEN e.action IN ('IMPORT_FAILED','SOLVE_FAILED','SOLVE_DEADLINE') THEN 'ACTION_REQUIRED' WHEN e.action='PUBLISH' THEN 'RELEASE' ELSE 'ACTIVITY' END,
+                       CASE
+                           WHEN e.action IN ('IMPORT_FAILED','SOLVE_FAILED','SOLVE_DEADLINE','OWNER_REJECT','OWNER_APPROVAL_PENDING') THEN 'ACTION_REQUIRED'
+                           WHEN e.action IN ('PUBLISH','OWNER_APPROVE') THEN 'RELEASE'
+                           ELSE 'ACTIVITY'
+                       END,
                        CASE e.action
                            WHEN 'IMPORT_COMPLETED' THEN '数据导入完成'
                            WHEN 'IMPORT_FAILED' THEN '数据导入失败，需要处理'
-                           WHEN 'SOLVE_COMPLETED' THEN '求解完成，可以检查候选版本'
+                           WHEN 'SOLVE_COMPLETED' THEN CASE WHEN COALESCE(jv.owner_approval_status, sv.owner_approval_status) = 'PENDING' THEN '候选课表已生成，等待业务负责人批准' ELSE '求解完成，可以检查候选版本' END
                            WHEN 'SOLVE_FAILED' THEN '求解失败，需要处理'
                            WHEN 'SOLVE_DEADLINE' THEN '求解超时，需要重新提交'
                            WHEN 'SOLVE_CANCELLED' THEN '求解任务已取消'
                            WHEN 'PUBLISH' THEN '课表版本已发布'
+                           WHEN 'OWNER_APPROVE' THEN '业务负责人已批准候选课表'
+                           WHEN 'OWNER_REJECT' THEN '业务负责人已退回候选课表'
+                           WHEN 'OWNER_APPROVAL_PENDING' THEN '候选课表待您批准'
                            WHEN 'PROBLEM_CREATED' THEN '新增问题反馈'
                            WHEN 'PROBLEM_UPDATED' THEN '问题记录已更新'
                            ELSE '课表工作流有新的进展'
@@ -97,18 +104,21 @@ public class NotificationController {
                        CASE e.action
                            WHEN 'IMPORT_COMPLETED' THEN '导入批次 #' || e.aggregate_id || ' 已完成，数据健康状态可以重新确认。'
                            WHEN 'IMPORT_FAILED' THEN '导入批次 #' || e.aggregate_id || ' 未通过检查，请打开问题中心查看证据。'
-                           WHEN 'SOLVE_COMPLETED' THEN '求解任务 #' || e.aggregate_id || ' 已完成，候选版本等待发布检查。'
+                           WHEN 'SOLVE_COMPLETED' THEN CASE WHEN COALESCE(jv.owner_approval_status, sv.owner_approval_status) = 'PENDING' THEN '求解任务 #' || e.aggregate_id || ' 已完成。课次排齐后需业务负责人批准，再由排课员面向全校。' ELSE '求解任务 #' || e.aggregate_id || ' 已完成，候选版本等待发布检查。' END
                            WHEN 'SOLVE_FAILED' THEN '求解任务 #' || e.aggregate_id || ' 执行失败，请根据错误码处理。'
                            WHEN 'SOLVE_DEADLINE' THEN '求解任务 #' || e.aggregate_id || ' 超过截止时间，请重新提交。'
                            WHEN 'SOLVE_CANCELLED' THEN '求解任务 #' || e.aggregate_id || ' 已取消，历史记录仍保留。'
                            WHEN 'PUBLISH' THEN '版本 v' || e.aggregate_id || ' 已发布，可以进入已发布课表查看。'
+                           WHEN 'OWNER_APPROVE' THEN '版本 v' || e.aggregate_id || ' 已批准。排课员填写版本说明后即可面向全校，业务负责人不能代替发布。'
+                           WHEN 'OWNER_REJECT' THEN '版本 v' || e.aggregate_id || ' 已退回' || CASE WHEN NULLIF(BTRIM(COALESCE(e.detail->>'releaseNote','')), '') IS NULL THEN '，请处理后重新提交审阅。' ELSE '：' || BTRIM(e.detail->>'releaseNote') END
+                           WHEN 'OWNER_APPROVAL_PENDING' THEN '版本 v' || e.aggregate_id || ' 等待审阅。请核对课次、冲突和差异后批准或退回；批准后仍由排课员发布。'
                            WHEN 'PROBLEM_CREATED' THEN '问题 #' || e.aggregate_id || ' 已进入待处理清单。'
                            WHEN 'PROBLEM_UPDATED' THEN '问题 #' || e.aggregate_id || ' 的处理状态已更新。'
                            ELSE e.action || ' 已记录。'
                        END,
                        'PENDING',e.aggregate_type,e.aggregate_id,
                        COALESCE(e.detail->>'termCode',ib.term_code,st.code,jt.code,pt.code),
-                       e.action IN ('IMPORT_FAILED','SOLVE_FAILED','SOLVE_DEADLINE'),e.created_at
+                       e.action IN ('IMPORT_FAILED','SOLVE_FAILED','SOLVE_DEADLINE','OWNER_REJECT','OWNER_APPROVAL_PENDING'),e.created_at
                 FROM audit_event e
                 JOIN app_user u ON u.username=? AND u.enabled=TRUE
                 LEFT JOIN import_batch ib ON e.aggregate_type='IMPORT_BATCH' AND e.aggregate_id=ib.id::text
@@ -121,8 +131,17 @@ public class NotificationController {
                 LEFT JOIN academic_term jt ON jt.id=js.term_id
                 LEFT JOIN problem_record pr ON e.aggregate_type='PROBLEM_RECORD' AND e.aggregate_id=pr.id::text
                 LEFT JOIN academic_term pt ON pt.id=pr.term_id
-                WHERE e.action IN ('IMPORT_COMPLETED','IMPORT_FAILED','SOLVE_COMPLETED','SOLVE_FAILED','SOLVE_DEADLINE','SOLVE_CANCELLED','PUBLISH','PROBLEM_CREATED','PROBLEM_UPDATED')
-                  AND (e.actor_user_id=u.id OR e.actor=u.username OR ib.created_by_user_id=u.id OR sj.submitted_by_user_id=u.id OR sv.owner_user_id=u.id OR pr.reported_by_user_id=u.id)
+                WHERE e.action IN ('IMPORT_COMPLETED','IMPORT_FAILED','SOLVE_COMPLETED','SOLVE_FAILED','SOLVE_DEADLINE','SOLVE_CANCELLED','PUBLISH','OWNER_APPROVE','OWNER_REJECT','OWNER_APPROVAL_PENDING','PROBLEM_CREATED','PROBLEM_UPDATED')
+                  AND (
+                    CASE
+                        WHEN e.action = 'OWNER_APPROVAL_PENDING' THEN EXISTS (
+                            SELECT 1 FROM app_user_role ur JOIN app_role r ON r.id = ur.role_id
+                            WHERE ur.user_id = u.id AND r.active = TRUE AND r.code = 'BUSINESS_OWNER'
+                        )
+                        WHEN e.action IN ('OWNER_APPROVE','OWNER_REJECT') THEN (sv.owner_user_id = u.id OR e.actor_user_id = u.id OR e.actor = u.username)
+                        ELSE (e.actor_user_id=u.id OR e.actor=u.username OR ib.created_by_user_id=u.id OR sj.submitted_by_user_id=u.id OR sv.owner_user_id=u.id OR pr.reported_by_user_id=u.id)
+                    END
+                  )
                   AND NOT EXISTS (SELECT 1 FROM app_notification existing WHERE existing.user_id=u.id AND existing.audit_event_id=e.id)
                 """,
                 username);

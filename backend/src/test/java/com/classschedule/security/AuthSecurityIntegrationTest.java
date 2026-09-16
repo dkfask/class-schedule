@@ -206,6 +206,78 @@ class AuthSecurityIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("{\"releaseNote\":\"审核发布\"}"))
                 .andExpect(status().isForbidden());
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + candidate + "/owner-approval")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"decision\":\"APPROVED\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "auth-owner", roles = "BUSINESS_OWNER")
+    void businessOwnerCanApproveButCannotPublish() throws Exception {
+        jdbc.update(
+                "INSERT INTO app_user(username,password_hash,display_name,enabled) VALUES(?,?,?,TRUE) ON CONFLICT (username) DO UPDATE SET password_hash=EXCLUDED.password_hash, display_name=EXCLUDED.display_name, enabled=TRUE",
+                "auth-owner",
+                encoder.encode("owner-pass"),
+                "测试业务负责人");
+        jdbc.update(
+                "INSERT INTO app_user_role(user_id,role_id) SELECT u.id,r.id FROM app_user u,app_role r WHERE u.username='auth-owner' AND r.code='BUSINESS_OWNER' ON CONFLICT DO NOTHING");
+        long candidate = seedPublishableCandidate();
+        mockMvc.perform(get("/api/schedule-versions/" + candidate))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.publishable").value(true))
+                .andExpect(jsonPath("$.ownerApproval.required").value(true))
+                .andExpect(jsonPath("$.ownerApproval.status").value("PENDING"));
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + candidate + "/publish")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"releaseNote\":\"负责人发布\"}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + candidate + "/owner-approval")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"decision\":\"APPROVED\",\"comment\":\"本学期课表可以面向全校\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"))
+                .andExpect(jsonPath("$.ownerApproval.status").value("APPROVED"));
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + candidate + "/publish")
+                                .with(user("auth-planner").roles("PLANNER"))
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"releaseNote\":\"业务负责人已批准\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PUBLISHED"));
+    }
+
+    @Test
+    @WithMockUser(username = "auth-planner", roles = "PLANNER")
+    void plannerCannotPublishBeforeOwnerApprovalWhenOwnerExists() throws Exception {
+        jdbc.update(
+                "INSERT INTO app_user(username,password_hash,display_name,enabled) VALUES(?,?,?,TRUE) ON CONFLICT (username) DO UPDATE SET password_hash=EXCLUDED.password_hash, display_name=EXCLUDED.display_name, enabled=TRUE",
+                "auth-owner",
+                encoder.encode("owner-pass"),
+                "测试业务负责人");
+        jdbc.update(
+                "INSERT INTO app_user_role(user_id,role_id) SELECT u.id,r.id FROM app_user u,app_role r WHERE u.username='auth-owner' AND r.code='BUSINESS_OWNER' ON CONFLICT DO NOTHING");
+        long candidate = seedPublishableCandidate();
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + candidate + "/publish")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"releaseNote\":\"未审批发布\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("OWNER_APPROVAL_REQUIRED"));
+        mockMvc.perform(
+                        post("/api/schedule-versions/" + candidate + "/owner-approval")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"decision\":\"APPROVED\"}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -249,6 +321,17 @@ class AuthSecurityIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
+    private long seedPublishableCandidate() {
+        long versionId = seedVersion("CANDIDATE");
+        jdbc.update(
+                "INSERT INTO schedule_assignment(schedule_version_id,occurrence_id,subject_code,subject_name,teacher_code,teacher_name,student_group_code,student_group_name,timeslot_code,timeslot_label,weekday,period_no,room_code,room_name,source,locked,duration) VALUES(?,1,'MATH','数学','T001','张老师','G7-1','七年级1班','MON-1','周一 第1节',1,1,'A101','教学楼 A101','SOLVER',false,1)",
+                versionId);
+        jdbc.update(
+                "INSERT INTO schedule_assignment(schedule_version_id,occurrence_id,subject_code,subject_name,teacher_code,teacher_name,student_group_code,student_group_name,timeslot_code,timeslot_label,weekday,period_no,room_code,room_name,source,locked,duration) VALUES(?,2,'CHN','语文','T002','李老师','G7-2','七年级2班','TUE-1','周二 第1节',2,1,'A102','教学楼 A102','SOLVER',false,1)",
+                versionId);
+        return versionId;
+    }
+
     private long seedVersion(String status) {
         return seedVersion(status, "auth-planner");
     }
@@ -265,7 +348,7 @@ class AuthSecurityIntegrationTest {
                         owner,
                         "security-" + status + "-" + System.nanoTime());
         return jdbc.queryForObject(
-                "INSERT INTO schedule_version(scenario_id,owner_user_id,status,score,legacy_identity_unverified) VALUES(?,(SELECT id FROM app_user WHERE username=?),?,?,FALSE) RETURNING id",
+                "INSERT INTO schedule_version(scenario_id,owner_user_id,status,score,legacy_identity_unverified,owner_approval_status) VALUES(?,(SELECT id FROM app_user WHERE username=?),?,?,FALSE,'PENDING') RETURNING id",
                 Long.class,
                 scenarioId,
                 owner,

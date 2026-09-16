@@ -289,8 +289,8 @@ defineExpose({
     </div>
 
     <div v-if="confirmation && confirmation.status === 'IMPORTED'" class="import-state success-state" data-testid="import-success">
-      已完成批次 #{{ confirmation.batchId }} 的导入，共写入 {{ confirmation.importedRows ?? confirmationTotals.rows }} 行；新增 {{ confirmationTotals.created }}，更新 {{ confirmationTotals.updated }}，停用 {{ confirmationTotals.deactivated }}。请返回工作台检查当前学期排课条件后再开始求解。
-      <el-button link type="primary" @click="router.push('/workspace')">返回排课工作台</el-button>
+      已完成批次 #{{ confirmation.batchId }} 的导入，共写入 {{ confirmation.importedRows ?? confirmationTotals.rows }} 行；新增 {{ confirmationTotals.created }}，更新 {{ confirmationTotals.updated }}，停用 {{ confirmationTotals.deactivated }}。下一步请检查本学期准备度，确认无阻塞后再开始排课。
+      <el-button link type="primary" @click="router.push('/overview')">查看学期总览</el-button>
     </div>
   </section>
 </template>

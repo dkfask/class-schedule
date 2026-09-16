@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 test.describe('邮箱注册（TC-AUTH）', () => {
-  test('邮箱验证码注册并可以登录，直接进入排课工作台', async ({ page }) => {
+  test('邮箱验证码注册并可以登录，直接进入学期总览', async ({ page }) => {
     test.skip(!process.env.E2E_EMAIL, '设置 E2E_EMAIL 后运行真实邮箱注册流程')
     const email = process.env.E2E_EMAIL as string
     const secret = process.env.E2E_PASSWORD ?? `pw-${Math.random().toString(36).slice(2, 10)}`

@@ -100,7 +100,7 @@ describe('workspace display logic', () => {
   })
 
   it('handles status labels and cancellation gates', () => {
-    expect(getStatusLabel('RUNNING', 'SOLVING')).toBe('求解中')
+    expect(getStatusLabel('RUNNING', 'SOLVING')).toBe('排课中')
     expect(getStatusLabel('WAITING', 'DRAFT')).toBe('草稿可编辑')
     expect(canCancelSolve(10, 'QUEUED', false)).toBe(true)
     expect(canCancelSolve(10, 'COMPLETED', false)).toBe(false)

@@ -42,3 +42,27 @@ export function resolveScore(
   const soft = provided.soft ?? parsed.soft
   return { hard, medium, soft, valid: parsed.valid || [hard, medium, soft].every(value => value !== null) }
 }
+
+export function describeScore(score: ScoreBreakdown): string {
+  if (score.hard === null && score.medium === null && score.soft === null) return '尚未检查冲突'
+  const parts: string[] = []
+  if (score.hard !== null && score.hard !== 0) parts.push(`有 ${Math.abs(score.hard)} 处硬冲突`)
+  else if (score.hard === 0) parts.push('没有硬冲突')
+  if (score.medium !== null && score.medium !== 0) parts.push(`还有 ${Math.abs(score.medium)} 节未排`)
+  if (score.soft !== null && score.soft !== 0) parts.push('部分偏好未满足')
+  else if (score.soft === 0 && score.hard === 0) parts.push('偏好基本满足')
+  return parts.join(' · ')
+}
+
+export function versionStatusLabel(status?: string | null): string {
+  const labels: Record<string, string> = {
+    DRAFT: '草稿',
+    SOLVING: '正在排课',
+    CANDIDATE: '候选版本',
+    PUBLISHED: '已发布',
+    ARCHIVED: '已归档',
+    CANCELLED: '已取消',
+    FAILED: '排课失败',
+  }
+  return status ? (labels[status] ?? status) : '等待排课'
+}

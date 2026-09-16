@@ -7,6 +7,7 @@ const router = createRouter({
     { path: '/login', component: () => import('./views/LoginView.vue'), meta: { public: true } },
     { path: '/', redirect: '/overview' },
     { path: '/overview', component: () => import('./views/OverviewView.vue'), meta: { requiresAuth: true, reviewer: true } },
+    { path: '/setup', component: () => import('./views/FirstRunView.vue'), meta: { requiresAuth: true, planner: true } },
     { path: '/workspace', component: () => import('./views/WorkspaceView.vue'), meta: { requiresAuth: true, planner: true } },
     { path: '/master-data', component: () => import('./views/MasterDataView.vue'), meta: { requiresAuth: true, planner: true } },
     { path: '/teaching-plan', component: () => import('./views/TeachingPlanView.vue'), meta: { requiresAuth: true, planner: true } },

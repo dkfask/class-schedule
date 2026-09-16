@@ -11,6 +11,7 @@ function mountView() {
       stubs: {
         'el-button': { template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot /></button>', props: ['disabled', 'loading'] },
         'el-empty': { template: '<div><slot /></div>' },
+        RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
       },
     },
   })
@@ -31,8 +32,8 @@ describe('PublishedView', () => {
     }))
     const wrapper = mountView()
     await flushPromises()
-    expect(wrapper.text()).toContain('H0 / M0 / S0')
-    expect(wrapper.text()).toContain('H-1 / M-2 / S-3')
+    expect(wrapper.text()).toContain('没有硬冲突 · 偏好基本满足')
+    expect(wrapper.text()).toContain('有 1 处硬冲突 · 还有 2 节未排 · 部分偏好未满足')
     wrapper.unmount()
   })
 
@@ -80,6 +81,20 @@ describe('PublishedView', () => {
     await flushPromises()
     expect(calls.some(url => url.includes('/api/schedule-versions/24/filtered?view=TEACHER&resourceCode=T001'))).toBe(true)
     expect(wrapper.get('[data-testid="published-view-teacher"]').attributes('aria-pressed')).toBe('true')
+    wrapper.unmount()
+  })
+
+  it('guides an unpublished term back to the release checklist', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/api/terms') return response([{ code: '2026-FALL', name: '2026 秋季学期', status: 'ACTIVE' }])
+      if (url.includes('/api/schedule-versions')) return response({ items: [] })
+      return response({})
+    }))
+    const wrapper = mountView()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="empty-state"]').text()).toContain('本学期还没有已发布课表')
+    expect(wrapper.get('[data-testid="empty-state"] a').attributes('href')).toBe('/versions')
     wrapper.unmount()
   })
 })

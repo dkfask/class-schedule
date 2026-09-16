@@ -100,9 +100,9 @@ export function resolveBoardOccurrences(
 export function getStatusLabel(jobStatus: string, versionStatus: string): string {
   const labels: Record<string, string> = {
     QUEUED: '排队中',
-    RUNNING: '求解中',
+    RUNNING: '排课中',
     COMPLETED: '候选结果',
-    FAILED: '求解失败',
+    FAILED: '排课失败',
     CANCELLED: '已取消',
     CANDIDATE: '候选可编辑',
     DRAFT: '草稿可编辑',

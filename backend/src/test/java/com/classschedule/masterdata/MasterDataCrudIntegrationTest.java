@@ -88,6 +88,31 @@ class MasterDataCrudIntegrationTest {
     }
 
     @Test
+    void teachingRequirementPersistsPreferredPeriodCodes() throws Exception {
+        mockMvc.perform(
+                        post("/api/master-data/teaching-requirements")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"code\":\"REQ-PREF\",\"termCode\":\"2026-FALL\",\"studentGroupCode\":\"G7-1\",\"subjectCode\":\"MATH\",\"teacherCode\":\"T001\",\"weeklyPeriods\":2,\"durationPeriods\":1,\"preferredPeriodCodes\":\"mon-1; tue-2\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.preferredPeriodCodes").value("MON-1;TUE-2"));
+        assertThat(
+                        jdbc.queryForObject(
+                                "SELECT preferred_period_codes FROM teaching_requirement WHERE code='REQ-PREF'",
+                                String.class))
+                .isEqualTo("MON-1;TUE-2");
+        mockMvc.perform(
+                        post("/api/master-data/teaching-requirements")
+                                .with(csrf())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"code\":\"REQ-BAD-PREF\",\"termCode\":\"2026-FALL\",\"studentGroupCode\":\"G7-1\",\"subjectCode\":\"MATH\",\"teacherCode\":\"T001\",\"weeklyPeriods\":1,\"durationPeriods\":1,\"preferredPeriodCodes\":\"NOT-A-PERIOD\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("TEACHING_REQUIREMENT_CONFLICT"));
+    }
+
+    @Test
     void teachingRequirementUpdateRejectsDuplicateCode() throws Exception {
         mockMvc.perform(
                         post("/api/master-data/teaching-requirements")

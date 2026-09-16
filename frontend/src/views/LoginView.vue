@@ -67,7 +67,7 @@ async function sendVerificationCode() {
 function loginRedirect() {
   const redirect = route.query.redirect
   if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')) return redirect
-  return auth.isPlanner ? '/overview' : '/published'
+  return auth.canReview ? '/overview' : '/published'
 }
 
 async function submit() {
@@ -134,18 +134,18 @@ onBeforeUnmount(clearCountdown)
   <main class="login-canvas">
     <section class="glass-card login-panel">
       <div class="brand-row">
-        <img class="brand-logo-img" src="/logo.png" alt="排课工作台 Logo" />
+        <img class="brand-logo-img" src="/logo.png" alt="智程排课 Logo" />
         <div>
-          <h2>排课工作台</h2>
-          <small>智程校务智能排课系统</small>
+          <h2>智程排课</h2>
+          <small>学校学期排课与课表发布</small>
         </div>
       </div>
 
       <div class="panel-header">
-        <p class="eyebrow">ACCOUNT / {{ mode === 'login' ? 'SIGN IN' : 'SIGN UP' }}</p>
-        <h1>{{ mode === 'login' ? '登录排课系统' : '注册新账号' }}</h1>
+        <p class="eyebrow">{{ mode === 'login' ? '登录' : '注册' }}</p>
+        <h1>{{ mode === 'login' ? '登录学校排课系统' : '注册新账号' }}</h1>
         <p class="login-caption">
-          {{ mode === 'login' ? '使用邮箱或用户名继续。' : '验证邮箱后即可进入排课工作台进行排课、求解与课表调整。' }}
+          {{ mode === 'login' ? '使用学校账号进入本学期排课、检查与课表发布。' : '验证邮箱后即可进入学校排课系统，完成数据准备、排课检查和课表发布。' }}
         </p>
       </div>
 

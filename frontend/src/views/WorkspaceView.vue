@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import {
   canCancelSolve,
   countAssignedOccurrences,
@@ -18,6 +18,7 @@ import {
 import { http } from '../api/http'
 import { aiDiagnostics, type AiDiagnosis } from '../api/ai'
 import { parseScore } from '../utils/score'
+import { explainConflict, explainPendingReason } from '../utils/scheduleExplain'
 import { useTermStore } from '../stores/term'
 
 type Occurrence = WorkspaceOccurrence
@@ -154,6 +155,8 @@ const message = ref('')
 const termName = ref('')
 const masterDataSummary = ref({ teachers: 0, studentGroups: 0, subjects: 0, rooms: 0 })
 const backendPublishable = ref(false)
+const ownerApprovalRequired = ref(false)
+const ownerApprovalStatus = ref('NONE')
 const publishDialogOpen = ref(false)
 const publishing = ref(false)
 const releaseNote = ref('')
@@ -164,7 +167,7 @@ const assignedCount = computed(() => countAssignedOccurrences(occurrences.value)
 const canEditVersion = computed(() => ['DRAFT', 'CANDIDATE'].includes(versionStatus.value) && !versionEditLocked.value && !versionArchived.value)
 const latestAppliedCommand = computed(() => commandHistory.value.find(item => item.state === 'APPLIED'))
 const latestUndoneCommand = computed(() => commandHistory.value.find(item => item.state === 'UNDONE'))
-const publishable = computed(() => backendPublishable.value)
+const publishable = computed(() => backendPublishable.value && (!ownerApprovalRequired.value || ownerApprovalStatus.value === 'APPROVED'))
 const releaseReady = computed(() => publishable.value && releaseConfirmed.value && Boolean(releaseNote.value.trim()))
 const qualityPercent = computed(() => getQualityPercent(occurrences.value))
 const selectedResource = computed(() => resourceOptions.value.find(item => item.code === resourceCode.value))
@@ -178,16 +181,20 @@ const pendingOccurrences = computed(() => occurrences.value.filter(item => {
   return !query || [item.subjectCode, item.subjectName, item.teacherCode, item.teacherName, item.studentGroupCode, item.studentGroupName].some(value => value.toLowerCase().includes(query))
 }))
 function pendingReason(item: Occurrence) {
-  if (!item.timeslotCode && !item.roomCode) return '未分配节次与教室'
-  if (!item.timeslotCode) return '未分配节次'
-  if (!item.roomCode) return '未分配教室'
-  return '需要复核'
+  return explainPendingReason(item)
+}
+
+function previewViolations(previewResult: AdjustmentPreview) {
+  return previewResult.hardViolations.map(item => ({
+    ...item,
+    ...explainConflict(item.code, item.message, item.resourceCode),
+  }))
 }
 function pendingGroupLabel(item: Occurrence) {
   if (pendingGroupBy.value === 'teacher') return item.teacherName || item.teacherCode || '未指定教师'
   if (pendingGroupBy.value === 'class') return item.studentGroupName || item.studentGroupCode || '未指定班级'
   if (pendingGroupBy.value === 'subject') return item.subjectName || item.subjectCode || '未指定课程'
-  return pendingReason(item)
+  return pendingReason(item).title
 }
 const pendingGroups = computed(() => {
   const groups = new Map<string, Occurrence[]>()
@@ -203,22 +210,40 @@ const statusLabel = computed(() => getStatusLabel(jobStatus.value, versionStatus
 const hasExistingSolveContext = computed(() => Boolean(jobId.value || versionId.value || occurrences.value.length))
 const solveStateInfo = computed(() => {
   if (jobStatus.value === 'FAILED') {
-    const known: Record<string, { category: string; detail: string; nextStep: string; retryable: boolean; actionPath?: string }> = {
-      SOLVER_DATA_NOT_READY: { category: '输入数据未就绪', detail: '求解器在读取基础数据或教学需求时发现前置条件不足。', nextStep: '检查基础数据和教学计划，修复后重新求解。', retryable: true, actionPath: '/master-data' },
-      DEADLINE_EXCEEDED: { category: '执行超时', detail: '任务在截止时间内没有完成，原候选版本仍然保留。', nextStep: '缩小求解范围或调整规则后重新求解。', retryable: true },
-      SOLVER_ERROR: { category: '求解器异常', detail: '求解过程发生未分类异常，当前候选版本未被覆盖。', nextStep: '先查看错误详情，确认数据无误后重新求解。', retryable: true },
-      STALE_JOB: { category: '任务结果已过期', detail: '任务完成时版本状态已经变化，迟到结果被系统丢弃。', nextStep: '刷新工作台并重新提交求解。', retryable: true },
+    const known: Record<string, { category: string; detail: string; nextStep: string; retryable: boolean; actionPath?: string; actionLabel?: string }> = {
+      SOLVER_DATA_NOT_READY: { category: '数据未就绪', detail: '当前学期的基础数据或教学计划还不满足排课条件。', nextStep: '先补齐基础数据和教学计划，再重新排课。', retryable: true, actionPath: '/master-data', actionLabel: '去补数据' },
+      DEADLINE_EXCEEDED: { category: '执行超时', detail: '本次排课没有在截止时间内完成，原来的候选课表仍然保留。', nextStep: '缩小求解范围或调整规则后重新求解。', retryable: true },
+      SOLVER_ERROR: { category: '排课异常', detail: '本次排课没有生成新结果，原来的候选课表没有被覆盖。', nextStep: '查看失败原因，确认数据无误后重新排课。', retryable: true },
+      STALE_JOB: { category: '结果已过期', detail: '任务完成时课表版本已经变化，这次结果没有写入。', nextStep: '刷新本页后重新提交排课。', retryable: true },
     }
-    const fallback = { category: '任务失败', detail: '系统没有生成可用候选结果，原有版本仍然保留。', nextStep: '查看错误详情后重试。', retryable: true }
+    const fallback = { category: '任务失败', detail: '系统没有生成可用候选课表，原来的版本仍然保留。', nextStep: '查看失败原因后重试。', retryable: true }
     const state = known[jobErrorCode.value] ?? fallback
-    return { tone: 'danger', title: '求解失败', code: jobErrorCode.value || '未提供错误码', ...state }
+    return { tone: 'danger', title: '排课失败', code: jobErrorCode.value || '未提供错误码', ...state }
   }
-  if (jobStatus.value === 'CANCELLED') return { tone: 'warning', title: '求解已取消', code: '', category: '人工取消', detail: '任务已停止，不会覆盖已有候选版本。', nextStep: '确认数据和规则后可以重新提交。', retryable: true }
-  if (jobStatus.value === 'COMPLETED') return { tone: 'success', title: '候选方案已生成', code: '', category: '求解完成', detail: '结果已加载到当前工作台，可以继续诊断、微调或发布。', nextStep: assignedCount.value === occurrences.value.length ? '检查发布清单后确认是否发布。' : '先处理待排任务和冲突，再进入发布检查。', retryable: false }
-  if (jobStatus.value === 'RUNNING') return { tone: 'info', title: '正在求解', code: '', category: '执行中', detail: '系统正在计算候选方案，完成后会自动加载结果。', nextStep: '可以等待完成，也可以取消当前任务。', retryable: false }
-  if (jobStatus.value === 'QUEUED') return { tone: 'info', title: '等待执行', code: '', category: '排队中', detail: '任务已提交，正在等待求解 Worker 获取执行权。', nextStep: '任务会按队列自动执行。', retryable: false }
-  return { tone: 'info', title: '尚未开始', code: '', category: '待开始', detail: '完成数据和规则检查后提交一次求解任务。', nextStep: '确认当前学期后开始自动排课。', retryable: false }
+  if (jobStatus.value === 'CANCELLED') return { tone: 'warning', title: '排课已取消', code: '', category: '已取消', detail: '任务已停止，不会覆盖已有候选课表。', nextStep: '确认数据和规则后可以重新提交。', retryable: true }
+  if (jobStatus.value === 'COMPLETED') {
+    const pending = occurrences.value.length - assignedCount.value
+    const hasHard = hardScore.value !== null && hardScore.value !== 0
+    return {
+      tone: pending || hasHard ? 'warning' : 'success',
+      title: pending ? '还有课次没有排上' : (hasHard ? '还有教师、班级或教室冲突' : '候选课表已生成'),
+      code: '',
+      category: '排课完成',
+      detail: pending
+        ? `已安排 ${assignedCount.value} / ${occurrences.value.length} 节课。左侧按原因列出还没排上的课，点开后可以改时间或教室。`
+        : (hasHard ? '课次都已安排，但仍有教师、班级或教室冲突，发布前需要先处理。' : '结果已加载，可以检查课表、微调后进入发布。'),
+      nextStep: assignedCount.value === occurrences.value.length && !hasHard ? '检查发布清单后确认是否发布。' : (pending ? '先点开左侧未排课次，补上时间和教室。' : '点开冲突课次，改时间、换教室或与另一节课对调。'),
+      retryable: false,
+      actionPath: publishable.value ? '/versions' : undefined,
+      actionLabel: publishable.value ? '去检查并发布' : undefined,
+    }
+  }
+  if (jobStatus.value === 'RUNNING') return { tone: 'info', title: '正在排课', code: '', category: '执行中', detail: '系统正在生成本学期候选课表，完成后会自动加载结果。', nextStep: '可以等待完成，也可以取消当前任务。', retryable: false }
+  if (jobStatus.value === 'QUEUED') return { tone: 'info', title: '等待执行', code: '', category: '排队中', detail: '排课任务已提交，正在排队等待执行。', nextStep: '任务会按队列自动执行。', retryable: false }
+  return { tone: 'info', title: '尚未开始', code: '', category: '待开始', detail: '完成数据和规则检查后，为本学期提交一次自动排课。', nextStep: '确认当前学期后开始自动排课。', retryable: false }
 })
+const unassignedCount = computed(() => Math.max(0, occurrences.value.length - assignedCount.value))
+const hardConflictLabel = computed(() => hardScore.value === null ? '待计算' : hardScore.value === 0 ? '无' : String(Math.abs(hardScore.value)))
 const affectedOccurrences = computed(() => {
   const ids = new Set(preview.value?.affectedAssignmentIds ?? [])
   return occurrences.value.filter(item => ids.has(item.occurrenceId))
@@ -448,7 +473,7 @@ async function restoreWorkspaceState(termCode = term.selectedTermCode.value) {
 
 async function loadVersion(id = versionId.value) {
   if (!id) return
-  const version = await requestJson<{ id: number; status: string; score?: string; hardScore?: number | null; mediumScore?: number | null; softScore?: number | null; publishable: boolean; assignments: Occurrence[]; revision?: number; editLocked?: boolean; editLockOwner?: string; archivedAt?: string }>(`/api/schedule-versions/${id}`)
+  const version = await requestJson<{ id: number; status: string; score?: string; hardScore?: number | null; mediumScore?: number | null; softScore?: number | null; publishable: boolean; assignments: Occurrence[]; revision?: number; editLocked?: boolean; editLockOwner?: string; archivedAt?: string; ownerApproval?: { status?: string; required?: boolean } }>(`/api/schedule-versions/${id}`)
   versionId.value = version.id
   versionStatus.value = version.status
   versionRevision.value = version.revision ?? 0
@@ -460,6 +485,8 @@ async function loadVersion(id = versionId.value) {
   mediumScore.value = version.mediumScore ?? parseScore(version.score).medium
   softScore.value = version.softScore ?? parseScore(version.score).soft
   backendPublishable.value = version.publishable
+  ownerApprovalRequired.value = Boolean(version.ownerApproval?.required)
+  ownerApprovalStatus.value = version.ownerApproval?.status ?? 'NONE'
   occurrences.value = version.assignments ?? []
   if (selectedOccurrence.value) {
     selectedOccurrence.value = occurrences.value.find(item => item.occurrenceId === selectedOccurrence.value?.occurrenceId) ?? null
@@ -618,7 +645,7 @@ async function lockSelectedAssignment() {
       headers: mutationHeaders(newIdempotencyKey('assignment-lock')),
       body: JSON.stringify({ reason: adjustmentForm.value.reason.trim(), expectedRevision: versionRevision.value }),
     })
-    message.value = '课次已锁定，重新求解时需要重新确认该课次'
+    message.value = '课次已锁定，重新排课时需要重新确认该课次'
     versionRevision.value = result.revision
     await loadVersion()
   } catch (error) {
@@ -923,14 +950,14 @@ onBeforeUnmount(() => {
 <template>
   <header class="topbar">
     <div>
-      <p class="eyebrow">SCHEDULE / WORKSPACE PIPELINE</p>
-      <h1>排课控制台</h1>
+      <p class="eyebrow">本学期排课</p>
+      <h1>自动排课</h1>
     </div>
     <div class="top-actions">
       <span class="sync-state">● {{ errorMessage ? '需要处理' : '数据已同步' }}</span>
       <el-button plain @click="router.push('/import')">导入数据</el-button>
-      <el-button v-if="canCancel" plain :loading="cancelling" @click="cancelSolve">取消求解</el-button>
-      <el-button data-testid="start-solve" type="primary" :loading="loading" :disabled="loading || readinessLoading || readiness === null || !readiness.ready" @click="startSolve">{{ loading ? `正在求解 ${progress}%` : (readinessLoading ? '检查排课条件…' : (hasExistingSolveContext ? '重新求解' : '开始自动排课')) }}</el-button>
+      <el-button v-if="canCancel" plain :loading="cancelling" @click="cancelSolve">取消排课</el-button>
+      <el-button data-testid="start-solve" type="primary" :loading="loading" :disabled="loading || readinessLoading || readiness === null || !readiness.ready" @click="startSolve">{{ loading ? `正在排课 ${progress}%` : (readinessLoading ? '检查排课条件…' : (hasExistingSolveContext ? '重新排课' : '开始自动排课')) }}</el-button>
       <div class="avatar">教</div>
     </div>
   </header>
@@ -939,15 +966,15 @@ onBeforeUnmount(() => {
   <section class="pipeline-flow-card">
     <div class="pipeline-header">
       <div>
-        <span class="pipeline-tag">SCHEDULE PIPELINE</span>
-        <h3 class="pipeline-title">全流程排课向导 · 第 {{ currentPipelineStep }} / 6 步</h3>
+        <span class="pipeline-tag">学期进度</span>
+        <h3 class="pipeline-title">当前在第 {{ currentPipelineStep }} / 6 步 · {{ solveStateInfo.title }}</h3>
       </div>
       <div class="pipeline-guide-hint">
         <span v-if="currentPipelineStep === 1">需录入或导入基础教室与时段节次</span>
         <span v-else-if="currentPipelineStep === 2">需补充本学期的教学需求和课时计划</span>
         <span v-else-if="currentPipelineStep === 3">需检查规则强度、作用范围和排课前置条件</span>
         <span v-else-if="currentPipelineStep === 4">已具备排课条件，可随时执行自动排课</span>
-        <span v-else-if="currentPipelineStep === 5">候选版本已生成，可进行冲突诊断、微调或交换</span>
+        <span v-else-if="currentPipelineStep === 5">先处理未排课次和冲突，再进入检查与发布</span>
         <span v-else>课表已成功发布为正式版，全校只读</span>
       </div>
     </div>
@@ -1001,8 +1028,8 @@ onBeforeUnmount(() => {
       >
         <div class="step-num">3</div>
         <div class="step-content">
-          <strong>规则中心</strong>
-          <small>{{ readiness?.ready ? '规则与前置条件已就绪' : '检查规则与数据约束' }}</small>
+          <strong>规则检查</strong>
+          <small>{{ readiness?.ready ? '排课前置条件已通过' : '还有需要处理的前置问题' }}</small>
         </div>
         <span class="step-arrow">➔</span>
       </div>
@@ -1020,8 +1047,8 @@ onBeforeUnmount(() => {
       >
         <div class="step-num">4</div>
         <div class="step-content">
-          <strong>算法求解</strong>
-          <small>{{ loading ? `求解中 ${progress}%` : (readiness?.ready ? '条件已就绪' : '等待前置就绪') }}</small>
+          <strong>自动排课</strong>
+          <small>{{ loading ? `排课中 ${progress}%` : (readiness?.ready ? '可以开始排课' : '等待前置条件') }}</small>
         </div>
         <span class="step-arrow">➔</span>
       </div>
@@ -1037,8 +1064,8 @@ onBeforeUnmount(() => {
       >
         <div class="step-num">5</div>
         <div class="step-content">
-          <strong>冲突诊断与微调</strong>
-          <small>{{ versionId ? `v${versionId} · ${score ?? '未评分'}` : '尚未生成候选' }}</small>
+          <strong>检查结果</strong>
+          <small>{{ versionId ? `v${versionId} · 未排 ${unassignedCount}` : '尚未生成候选课表' }}</small>
         </div>
         <span class="step-arrow">➔</span>
       </div>
@@ -1055,18 +1082,18 @@ onBeforeUnmount(() => {
       >
         <div class="step-num">6</div>
         <div class="step-content">
-          <strong>校验与正式发布</strong>
-          <small>{{ versionStatus === 'PUBLISHED' ? '已正式发布' : (publishable ? '达到发布标准' : '待达标') }}</small>
+          <strong>检查与发布</strong>
+          <small>{{ versionStatus === 'PUBLISHED' ? '已正式发布' : (publishable ? '可以发布' : (ownerApprovalRequired && ownerApprovalStatus !== 'APPROVED' ? (ownerApprovalStatus === 'REJECTED' ? '已退回' : '待业务负责人批准') : '还不能发布')) }}</small>
         </div>
       </div>
     </div>
   </section>
 
   <section class="summary-row">
-    <div class="metric"><span>排课状态</span><strong>{{ statusLabel }}</strong><small>{{ jobId ? `任务 #${jobId} · 尝试 ${attempt}` : '尚未提交求解任务' }}</small></div>
-    <div class="metric"><span>教学任务</span><strong>{{ assignedCount }} / {{ occurrences.length || '—' }}</strong><small>已分配 / 总任务</small></div>
-    <div class="metric"><span>评分</span><strong :class="hardScore === 0 ? 'good' : ''">{{ score ?? '待计算' }}</strong><small>H {{ hardScore ?? '—' }} · M {{ mediumScore ?? '—' }} · S {{ softScore ?? '—' }} · {{ progress }}% · {{ termName }}<span v-if="jobDeadline"> · 截止 {{ new Date(jobDeadline).toLocaleTimeString() }}</span></small></div>
-    <div class="metric metric-action"><span>当前版本</span><strong>{{ versionId ? `版本 v${versionId}` : '未创建版本' }}</strong><small>{{ versionStatus || '等待求解' }}</small></div>
+    <div class="metric"><span>排课状态</span><strong>{{ statusLabel }}</strong><small>{{ jobId ? `任务 #${jobId}` : '尚未提交排课任务' }}</small></div>
+    <div class="metric"><span>教学任务</span><strong>{{ assignedCount }} / {{ occurrences.length || '—' }}</strong><small>已安排 / 总课次</small></div>
+    <div class="metric"><span>未排课次</span><strong :class="unassignedCount ? '' : 'good'">{{ occurrences.length ? unassignedCount : '—' }}</strong><small>{{ unassignedCount ? '点开左侧课次补时间和教室' : '全部课次已安排' }}</small></div>
+    <div class="metric metric-action"><span>当前版本</span><strong>{{ versionId ? `版本 v${versionId}` : '未创建版本' }}</strong><small>{{ hardScore && hardScore !== 0 ? '仍有冲突，发布前需处理' : `冲突 ${hardConflictLabel}` }} · {{ statusLabel }}</small></div>
   </section>
 
   <section class="toolbar">
@@ -1077,27 +1104,28 @@ onBeforeUnmount(() => {
       <el-select v-if="resourceOptions.length" :model-value="resourceCode" size="small" class="resource-select" @update:model-value="selectResource">
         <el-option v-for="item in resourceOptions" :key="item.code" :label="`${item.name} · ${item.code}`" :value="item.code" />
       </el-select>
-      <span v-else class="toolbar-empty">完成一次求解后选择资源</span>
+      <span v-else class="toolbar-empty">完成一次排课后选择班级、教师或教室</span>
     </div>
   </section>
 
   <section class="board-layout">
     <aside class="task-panel panel">
-      <div class="panel-heading"><div><span class="eyebrow">TASK POOL</span><h2>待排任务</h2></div><span class="count">{{ pendingOccurrences.length }}</span></div>
+      <div class="panel-heading"><div><span class="eyebrow">未排课次</span><h2>为什么没排上</h2></div><span class="count">{{ pendingOccurrences.length }}</span></div>
       <input class="search" placeholder="搜索课程、教师或班级" v-model="searchQuery" />
       <div v-if="pendingOccurrences.length" class="task-list">
         <label class="task-group-select"><span>分组</span><select v-model="pendingGroupBy"><option value="reason">未排原因</option><option value="teacher">教师</option><option value="class">班级</option><option value="subject">课程</option></select></label>
         <section v-for="group in pendingGroups" :key="group.label" class="task-group">
           <div class="task-group-heading"><strong>{{ group.label }}</strong><span>{{ group.items.length }}</span></div>
-          <div v-for="item in group.items" :key="item.occurrenceId" class="task-item" @click="openAdjustment(item)"><span class="task-color"></span><div><strong>{{ item.subjectName }}</strong><small>{{ item.studentGroupName }} · {{ item.teacherName }}</small></div></div>
+          <small v-if="pendingGroupBy === 'reason'" class="task-group-hint">{{ pendingReason(group.items[0]).nextStep }}</small>
+          <div v-for="item in group.items" :key="item.occurrenceId" class="task-item" @click="openAdjustment(item)"><span class="task-color"></span><div><strong>{{ item.subjectName }}</strong><small>{{ item.studentGroupName }} · {{ item.teacherName }} · {{ pendingReason(item).detail }}</small></div></div>
         </section>
       </div>
-      <div v-else class="empty-state"><span class="empty-icon">✓</span><strong>{{ occurrences.length ? '没有待排任务' : '还没有求解结果' }}</strong><small>{{ occurrences.length ? '所有教学任务都有时间和教室' : '导入教学计划或运行自动排课' }}</small></div>
+      <div v-else class="empty-state"><span class="empty-icon">✓</span><strong>{{ occurrences.length ? '没有未排课次' : '还没有排课结果' }}</strong><small>{{ occurrences.length ? '所有教学任务都已安排时间和教室' : '完成本学期数据准备后，在本页提交自动排课' }}</small><RouterLink v-if="!occurrences.length" class="empty-link" to="/overview">查看学期进度</RouterLink></div>
     </aside>
 
     <div class="timetable panel">
-      <div class="panel-heading"><div><span class="eyebrow">{{ viewType }} VIEW</span><h2>{{ selectedResource?.name ?? activeView }}</h2><small class="resource-caption">{{ selectedResource?.code ?? '未选择资源' }}</small></div><span class="readonly-badge">{{ jobStatus === 'PUBLISHED' ? '已发布只读' : '候选可编辑' }}</span></div>
-      <div v-if="!weekdays.length" class="empty-state board-empty"><span class="empty-icon">＋</span><strong>等待课表节次</strong><small>完成求解后按当前学期节次生成课表</small></div>
+      <div class="panel-heading"><div><span class="eyebrow">课表</span><h2>{{ selectedResource?.name ?? activeView }}</h2><small class="resource-caption">{{ selectedResource?.code ?? '未选择班级、教师或教室' }}</small></div><span class="readonly-badge">{{ jobStatus === 'PUBLISHED' ? '已发布只读' : '候选可调整' }}</span></div>
+      <div v-if="!weekdays.length" class="empty-state board-empty"><span class="empty-icon">＋</span><strong>等待课表结果</strong><small>完成本次排课后，按当前学期节次显示课表</small><RouterLink class="empty-link" to="/overview">查看学期进度</RouterLink></div>
       <div v-else class="grid" :style="gridStyle">
         <div class="grid-corner">节次</div>
         <div v-for="day in weekdays" :key="day.number" class="day-head">{{ day.label }}</div>
@@ -1113,32 +1141,30 @@ onBeforeUnmount(() => {
     </div>
 
     <aside class="detail-panel panel">
-      <div class="panel-heading"><div><span class="eyebrow">DETAIL</span><h2>排课提示</h2></div><span class="readonly-badge">{{ canEditVersion ? (versionEditLocked ? '锁定' : '可编辑') : '只读' }}</span></div>
+      <div class="panel-heading"><div><span class="eyebrow">任务结果</span><h2>下一步</h2></div><span class="readonly-badge">{{ canEditVersion ? (versionEditLocked ? '锁定' : '可调整') : '只读' }}</span></div>
       <div v-if="readiness" class="notice" :class="{ success: readiness.ready, warning: !readiness.ready }"><span>{{ readiness.ready ? '✓' : '!' }}</span><div><strong>{{ readiness.ready ? '排课条件已就绪' : '排课条件未就绪' }}</strong><small>节次 {{ readiness.timeslotCount }} · 启用教室 {{ readiness.roomCount }} · 有效教学需求 {{ readiness.requirementCount }}<span v-if="!readiness.ready">；{{ readiness.issues.map(issue => issue.message).join('；') }}</span></small></div></div>
       <div v-if="jobId || loading || errorMessage" class="solve-status-card" :class="`solve-status-${solveStateInfo.tone}`" data-testid="solve-status">
-        <div class="solve-status-heading"><div><span class="eyebrow">SOLVE JOB #{{ jobId ?? '—' }}</span><strong>{{ solveStateInfo.title }}</strong></div><span class="solve-status-category">{{ solveStateInfo.category }}</span></div>
+        <div class="solve-status-heading"><div><span class="eyebrow">排课任务 {{ jobId ?? '—' }}</span><strong>{{ solveStateInfo.title }}</strong></div><span class="solve-status-category">{{ solveStateInfo.category }}</span></div>
         <p>{{ solveStateInfo.detail }}</p>
         <div class="solve-status-grid">
           <div><span>进度</span><strong>{{ progress }}%</strong></div>
-          <div><span>尝试次数</span><strong>{{ attempt || '—' }}</strong></div>
           <div><span>提交时间</span><strong>{{ formatTimestamp(jobSubmittedAt) }}</strong></div>
           <div><span>开始时间</span><strong>{{ formatTimestamp(jobStartedAt) }}</strong></div>
           <div><span>完成时间</span><strong>{{ formatTimestamp(jobFinishedAt) }}</strong></div>
           <div><span>截止时间</span><strong>{{ formatTimestamp(jobDeadline) }}</strong></div>
-          <div><span>最近心跳</span><strong>{{ formatTimestamp(jobHeartbeatAt) }}</strong></div>
         </div>
-        <div v-if="jobStatus === 'FAILED'" class="solve-failure-detail"><span>失败码 {{ solveStateInfo.code }}</span><small>{{ errorMessage || '后端未提供进一步错误说明' }}</small><a :href="`/problems?termCode=${encodeURIComponent(term.selectedTermCode.value)}&solveJobId=${jobId}&title=${encodeURIComponent(`求解失败：${solveStateInfo.category}`)}`">创建问题记录</a></div>
+        <div v-if="jobStatus === 'FAILED'" class="solve-failure-detail"><span>技术编号 {{ solveStateInfo.code }}</span><small>{{ errorMessage || '系统没有提供进一步说明' }}</small><a :href="`/problems?termCode=${encodeURIComponent(term.selectedTermCode.value)}&solveJobId=${jobId}&title=${encodeURIComponent(`排课失败：${solveStateInfo.category}`)}`">记录这次问题</a></div>
         <div class="solve-next-step"><span>下一步</span><strong>{{ solveStateInfo.nextStep }}</strong></div>
         <div class="solve-status-actions">
-          <el-button v-if="solveStateInfo.actionPath" size="small" plain @click="router.push(solveStateInfo.actionPath)">去检查数据</el-button>
-          <el-button v-if="solveStateInfo.retryable && !loading" size="small" plain @click="startSolve">重新求解</el-button>
+          <el-button v-if="solveStateInfo.actionPath" size="small" plain @click="router.push(solveStateInfo.actionPath)">{{ solveStateInfo.actionLabel || '去检查数据' }}</el-button>
+          <el-button v-if="solveStateInfo.retryable && !loading" size="small" plain @click="startSolve">重新排课</el-button>
         </div>
       </div>
-      <div class="notice"><span>↗</span><div><strong>点击课程进行调整</strong><small>先选择目标节次和教室，后端会显示冲突及受影响课程</small></div></div>
+      <div class="notice"><span>↗</span><div><strong>点击课次查看影响后再调整</strong><small>先选择目标节次和教室，确认冲突和受影响班级、教师后再保存</small></div></div>
       <div v-if="errorMessage && jobStatus !== 'FAILED'" class="import-issues"><strong>{{ errorMessage }}</strong></div>
       <div v-if="message" class="inline-message">{{ message }}</div>
-      <div v-if="versionId && commandHistory.length" class="command-history"><div class="history-heading"><strong>最近调整</strong><span>revision {{ versionRevision }}</span></div><div v-for="command in commandHistory.slice(0, 3)" :key="command.groupId" class="history-row"><span>{{ command.commandType }}</span><small>{{ command.reason }} · {{ command.state }}</small></div><div class="history-actions"><el-button size="small" plain :disabled="!latestAppliedCommand || !canEditVersion" @click="undoLatest">撤销</el-button><el-button size="small" plain :disabled="!latestUndoneCommand || !canEditVersion" @click="redoLatest">重做</el-button></div></div>
-      <div class="quality"><div><span>方案完整度</span><strong>{{ qualityPercent }}%</strong></div><div class="quality-track"><i :style="{ width: `${qualityPercent}%` }"></i></div></div>
+      <div v-if="versionId && commandHistory.length" class="command-history"><div class="history-heading"><strong>最近调整</strong><span>第 {{ versionRevision }} 次调整</span></div><div v-for="command in commandHistory.slice(0, 3)" :key="command.groupId" class="history-row"><span>{{ command.commandType }}</span><small>{{ command.reason }} · {{ command.state }}</small></div><div class="history-actions"><el-button size="small" plain :disabled="!latestAppliedCommand || !canEditVersion" @click="undoLatest">撤销</el-button><el-button size="small" plain :disabled="!latestUndoneCommand || !canEditVersion" @click="redoLatest">重做</el-button></div></div>
+      <div class="quality"><div><span>课次完整度</span><strong>{{ qualityPercent }}%</strong></div><div class="quality-track"><i :style="{ width: `${qualityPercent}%` }"></i></div></div>
       <div v-if="versionId" class="ai-block">
         <el-button size="small" plain :disabled="aiLoading" :loading="aiLoading" @click="runAiDiagnostics">AI 诊断</el-button>
         <div v-if="aiError" class="error-message">{{ aiError }}</div>
@@ -1156,7 +1182,7 @@ onBeforeUnmount(() => {
 
   <el-drawer v-model="adjustmentOpen" title="调整课程" size="420px" data-testid="adjustment-drawer" :before-close="handleDrawerClose">
     <template v-if="selectedOccurrence">
-      <div class="drawer-lesson"><span class="eyebrow">ASSIGNMENT #{{ selectedOccurrence.occurrenceId }}</span><h2>{{ selectedOccurrence.subjectName }}</h2><p>{{ selectedOccurrence.studentGroupName }} · {{ selectedOccurrence.teacherName }}</p><div class="drawer-facts"><div><span>当前节次</span><strong>{{ selectedOccurrence.timeslotLabel || selectedOccurrence.timeslotCode || '未分配' }}</strong></div><div><span>当前教室</span><strong>{{ selectedOccurrence.roomName || selectedOccurrence.roomCode || '未分配' }}</strong></div><div><span>活动组</span><strong>{{ selectedOccurrence.activityGroupCode || '无' }}</strong></div><div><span>课次类型</span><strong>{{ activityTypeLabel(selectedOccurrence) }}</strong></div><div><span>固定/锁定</span><strong>{{ selectedOccurrence.pinnedPeriodCode ? `固定节次 · ${selectedOccurrence.pinnedPeriodCode}` : (selectedOccurrence.locked ? '已锁定' : '可调整') }}</strong></div><div><span>来源</span><strong>{{ sourceLabel(selectedOccurrence.source) }}</strong></div><div><span>学生人数</span><strong>{{ selectedOccurrence.studentCount ?? '—' }}</strong></div><div><span>教室容量</span><strong>{{ selectedOccurrence.roomCapacity ?? '—' }}</strong></div></div><div v-if="selectedOccurrence.requiredFeatures?.length" class="drawer-requirements"><span>所需教室特征</span><strong>{{ selectedOccurrence.requiredFeatures.join('、') }}</strong></div><el-tag v-if="selectedOccurrence.locked" type="warning" effect="plain">已锁定</el-tag></div>
+      <div class="drawer-lesson"><span class="eyebrow">课次 {{ selectedOccurrence.occurrenceId }}</span><h2>{{ selectedOccurrence.subjectName }}</h2><p>{{ selectedOccurrence.studentGroupName }} · {{ selectedOccurrence.teacherName }}</p><div class="drawer-facts"><div><span>当前节次</span><strong>{{ selectedOccurrence.timeslotLabel || selectedOccurrence.timeslotCode || '尚未安排' }}</strong></div><div><span>当前教室</span><strong>{{ selectedOccurrence.roomName || selectedOccurrence.roomCode || '尚未安排' }}</strong></div><div><span>活动组</span><strong>{{ selectedOccurrence.activityGroupCode || '无' }}</strong></div><div><span>课次类型</span><strong>{{ activityTypeLabel(selectedOccurrence) }}</strong></div><div><span>固定/锁定</span><strong>{{ selectedOccurrence.pinnedPeriodCode ? `固定节次 · ${selectedOccurrence.pinnedPeriodCode}` : (selectedOccurrence.locked ? '已锁定' : '可调整') }}</strong></div><div><span>来源</span><strong>{{ sourceLabel(selectedOccurrence.source) }}</strong></div><div><span>学生人数</span><strong>{{ selectedOccurrence.studentCount ?? '—' }}</strong></div><div><span>教室容量</span><strong>{{ selectedOccurrence.roomCapacity ?? '—' }}</strong></div></div><div v-if="selectedOccurrence.requiredFeatures?.length" class="drawer-requirements"><span>所需教室特征</span><strong>{{ selectedOccurrence.requiredFeatures.join('、') }}</strong></div><el-tag v-if="selectedOccurrence.locked" type="warning" effect="plain">已锁定</el-tag></div>
       <el-form v-if="!selectedOccurrence.locked" label-position="top" class="adjustment-form">
         <el-form-item label="目标节次"><el-select v-model="adjustmentForm.timeslotCode" class="full-width"><el-option v-for="item in orderedTimeslotOptions" :key="item.code" :label="`${item.label} · ${item.code}${item.code === selectedOccurrence.pinnedPeriodCode ? ' · 固定节次' : ''}`" :value="item.code" /></el-select></el-form-item>
         <el-form-item label="目标教室"><el-select v-model="adjustmentForm.roomCode" class="full-width"><el-option v-for="item in orderedRoomOptions" :key="item.code" :label="`${item.name} · ${item.code} · 容量 ${item.capacity}${item.capacity >= (selectedOccurrence.studentCount ?? 0) ? ' · 容量匹配' : ' · 容量不足'}`" :value="item.code" /></el-select></el-form-item>
@@ -1164,11 +1190,16 @@ onBeforeUnmount(() => {
       </el-form>
       <el-button v-if="!selectedOccurrence.locked" class="full-width" data-testid="preview-adjustment" :loading="previewLoading" @click="previewAdjustment">预览调整</el-button>
       <div v-if="!selectedOccurrence.locked && preview" class="preview-result" :class="preview.allowed ? 'preview-ok' : 'preview-blocked'">
-        <strong>{{ preview.allowed ? '可以放置' : '存在硬冲突，不能确认' }}</strong>
-        <span v-if="preview.lockedConflict">涉及锁定课程</span>
-        <div v-if="preview.affectedAssignmentIds.length" class="affected-lessons"><span>受影响课次</span><strong v-if="affectedOccurrences.length">{{ affectedOccurrences.map(item => `${item.subjectName} · ${item.studentGroupName}`).join('；') }}</strong><strong v-else>{{ preview.affectedAssignmentIds.join('、') }}</strong></div>
-        <span class="preview-location">当前位置：{{ preview.current.timeslotCode || '未分配' }} · {{ preview.current.roomCode || '未分配' }}；目标：{{ preview.target.timeslotCode || '未分配' }} · {{ preview.target.roomCode || '未分配' }}</span>
-        <span v-for="violation in preview.hardViolations" :key="`${violation.code}-${violation.resourceCode}`">{{ violation.code }}：{{ violation.message }}</span>
+        <strong>{{ preview.allowed ? '可以放到这里' : '这里放不下' }}</strong>
+        <span v-if="preview.lockedConflict">目标位置有已锁定课程，不能直接挤占。</span>
+        <div v-if="preview.affectedAssignmentIds.length" class="affected-lessons"><span>会影响到</span><strong v-if="affectedOccurrences.length">{{ affectedOccurrences.map(item => `${item.subjectName} · ${item.studentGroupName}`).join('；') }}</strong><strong v-else>{{ preview.affectedAssignmentIds.join('、') }}</strong></div>
+        <span class="preview-location">当前位置：{{ preview.current.timeslotCode || '尚未安排' }} · {{ preview.current.roomCode || '尚未安排' }}；目标：{{ preview.target.timeslotCode || '尚未安排' }} · {{ preview.target.roomCode || '尚未安排' }}</span>
+        <div v-for="violation in previewViolations(preview)" :key="`${violation.code}-${violation.resourceCode}`" class="preview-violation">
+          <strong>{{ violation.title }}</strong>
+          <small>{{ violation.detail }}</small>
+          <span>{{ violation.nextStep }}</span>
+          <RouterLink v-if="violation.actionPath" class="empty-link" :to="violation.actionPath">{{ violation.actionLabel }}</RouterLink>
+        </div>
       </div>
       <div v-if="!selectedOccurrence.locked && exchangeLoading" class="exchange-candidates">正在计算交换候选…</div>
       <div v-if="!selectedOccurrence.locked && exchangeCandidates.length" class="exchange-candidates" data-testid="exchange-candidates"><strong>可交换课程</strong><button v-for="candidate in exchangeCandidates" :key="candidate.occurrenceId" :class="{ selected: selectedExchangeCandidate?.occurrenceId === candidate.occurrenceId }" @click="selectedExchangeCandidate = candidate">{{ candidate.subjectName }} · {{ candidate.studentGroupCode }}<small>{{ candidate.teacherCode }} · {{ candidate.timeslotCode }} · {{ candidate.roomCode }}</small></button></div>
@@ -1180,12 +1211,12 @@ onBeforeUnmount(() => {
     <div class="release-dialog">
       <div class="release-dialog-summary">
         <strong>版本 v{{ versionId }} · {{ termName || term.selectedTermCode.value }}</strong>
-        <span>{{ occurrences.length }} 个教学任务 · 已分配 {{ assignedCount }} 个 · 硬约束 {{ hardScore ?? '—' }}</span>
+        <span>{{ occurrences.length }} 节课 · 已安排 {{ assignedCount }} 节 · {{ hardScore && hardScore !== 0 ? '仍有冲突' : '没有硬冲突' }}</span>
       </div>
       <ul class="release-dialog-checks">
-        <li><span class="check-ok">✓</span><div><strong>任务完整性</strong><small>{{ assignedCount }} / {{ occurrences.length }} 个教学任务已有节次和教室</small></div></li>
-        <li><span class="check-ok">✓</span><div><strong>独立校验</strong><small>当前版本已通过后端发布门禁</small></div></li>
-        <li v-if="softScore !== null && softScore !== 0"><span class="check-warn">!</span><div><strong>非阻塞提醒</strong><small>仍有软约束评分 {{ softScore }}，不会阻止发布，请在版本说明中注明业务取舍</small></div></li>
+        <li><span class="check-ok">✓</span><div><strong>课次已排齐</strong><small>{{ assignedCount }} / {{ occurrences.length }} 个教学任务已有节次和教室</small></div></li>
+        <li><span class="check-ok">✓</span><div><strong>没有硬冲突</strong><small>当前版本已通过课表校验，可以进入发布检查。</small></div></li>
+        <li v-if="softScore !== null && softScore !== 0"><span class="check-warn">!</span><div><strong>仍有偏好未完全满足</strong><small>部分偏好还没完全满足，不会阻止发布。请在版本说明中注明学校已接受的取舍。</small></div></li>
       </ul>
       <label class="release-note-field">
         <span>版本说明</span>
@@ -1199,13 +1230,13 @@ onBeforeUnmount(() => {
     </template>
   </el-dialog>
 
-  <el-dialog v-model="solveDialogOpen" title="重新求解前确认" width="460px" data-testid="solve-dialog">
+  <el-dialog v-model="solveDialogOpen" title="重新排课前确认" width="460px" data-testid="solve-dialog">
     <div class="solve-dialog-content">
       <div class="solve-dialog-summary"><strong>当前版本 v{{ versionId ?? '—' }} · {{ termName || term.selectedTermCode.value }}</strong><span>{{ occurrences.length }} 个教学任务 · 已安排 {{ assignedCount }} 个 · 当前状态 {{ statusLabel }}</span></div>
-      <ul class="solve-dialog-effects"><li><span class="effect-keep">保留</span><div><strong>当前候选版本和调整历史</strong><small>原版本不会被覆盖，已完成的人工调整、撤销和重做记录继续可查。</small></div></li><li><span class="effect-reset">新建</span><div><strong>生成独立候选版本</strong><small>本次求解读取当前学期快照和规则配置，完成后作为新的候选结果返回。</small></div></li><li><span class="effect-reset">重置</span><div><strong>当前手工调整不自动带入</strong><small>如需保留个别位置，请在新候选生成后重新锁定或调整，并再次确认发布清单。</small></div></li></ul>
-      <p class="solve-dialog-note">重新求解会重新计算所有教学任务，可能改变当前课表的时间和教室安排。</p>
+      <ul class="solve-dialog-effects"><li><span class="effect-keep">保留</span><div><strong>当前候选课表和调整记录</strong><small>原版本不会被覆盖，已完成的人工调整、撤销和重做记录继续可查。</small></div></li><li><span class="effect-reset">新建</span><div><strong>生成新的候选课表</strong><small>本次排课读取当前学期数据和规则，完成后作为新的候选结果返回。</small></div></li><li><span class="effect-reset">重置</span><div><strong>当前手工调整不自动带入</strong><small>如需保留个别位置，请在新候选生成后重新锁定或调整，并再次确认发布清单。</small></div></li></ul>
+      <p class="solve-dialog-note">重新排课会重新计算所有教学任务，可能改变当前课表的时间和教室安排。</p>
     </div>
-    <template #footer><el-button @click="solveDialogOpen = false">取消</el-button><el-button type="primary" data-testid="confirm-resolve" @click="confirmResolve">确认重新求解</el-button></template>
+    <template #footer><el-button @click="solveDialogOpen = false">取消</el-button><el-button type="primary" data-testid="confirm-resolve" @click="confirmResolve">确认重新排课</el-button></template>
   </el-dialog>
 </template>
 
@@ -1277,4 +1308,9 @@ onBeforeUnmount(() => {
 .solve-dialog-effects strong { color: #365d4b; font-size: 12px; }
 .solve-dialog-effects small { margin-top: 3px; color: #75897f; font-size: 11px; line-height: 1.45; }
 .solve-dialog-note { margin: 16px 0 0; padding: 9px 10px; color: #97652a; background: #FBF4E7; font-size: 11px; line-height: 1.5; }
+.empty-link { display: inline-block; margin-top: 8px; color: #2d6a56; font-size: 11px; font-weight: 650; text-decoration: none; }
+.task-group-hint { display: block; margin: 0 0 8px; color: #6d8075; font-size: 10px; line-height: 1.45; }
+.preview-violation { display: grid; gap: 2px; }
+.preview-violation strong { color: inherit; font-size: 12px; }
+.preview-violation small, .preview-violation span { color: inherit; font-size: 11px; line-height: 1.45; }
 </style>

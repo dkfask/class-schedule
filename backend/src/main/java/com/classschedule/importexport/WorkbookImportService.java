@@ -58,7 +58,7 @@ public class WorkbookImportService {
                     sheet.createRow(1)
                             .createCell(0)
                             .setCellValue(
-                                    "MASTER_DATA v1；必填 Sheet：教师、班级、课程、教学需求；班级可填写绑定教室编码，教学需求可选择 HOME 或 FLEXIBLE 教室分配模式；教室、资源可用性、特征目录、教室特征、教学需求特征和活动组可省略或留空；学期和节次只校验引用，不在本模板写入；缺少的行不会删除已有数据。");
+                                    "MASTER_DATA v1；必填 Sheet：教师、班级、课程、教学需求；班级可填写绑定教室编码，教学需求可选择 HOME 或 FLEXIBLE 教室分配模式，并可填写分号分隔的期望节次编码以贴近原课表；教室、资源可用性、特征目录、教室特征、教学需求特征和活动组可省略或留空；学期和节次只校验引用，不在本模板写入；缺少的行不会删除已有数据。");
                 }
             }
             workbook.write(output);
